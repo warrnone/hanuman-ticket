@@ -1,0 +1,58 @@
+/* ===============================
+   Role Select Buttons
+   =============================== */
+
+.role-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  padding: 16px;
+  border-radius: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+
+  color: #ffffff;
+  cursor: pointer;
+  border: none;
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* FIX icon + text */
+.role-btn .role-icon,
+.role-btn .role-text {
+  display: flex;
+  align-items: center;
+}
+
+/* SALES */
+.sales-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.35);
+}
+
+.sales-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 35px rgba(34, 197, 94, 0.45);
+}
+
+/* ADMIN */
+.admin-btn {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
+}
+
+.admin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 35px rgba(99, 102, 241, 0.45);
+}
+
+/* ACTIVE */
+.role-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
