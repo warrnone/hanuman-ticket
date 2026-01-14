@@ -30,8 +30,7 @@ export default function AdminPage() {
       const data = await res.json();
       setUsers(data);
     } catch (err) {
-      console.error(err);
-      alert("ไม่สามารถโหลดข้อมูลพนักงานได้");
+      swalError("ไม่สามารถโหลดข้อมูลพนักงานได้");
     }
   };
 
