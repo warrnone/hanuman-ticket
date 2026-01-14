@@ -189,18 +189,22 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               className="border rounded px-3 py-2"
-              placeholder="รหัสพนักงาน (Username)"
+              placeholder="รหัสพนักงาน (ตัวเลขเท่านั้น)"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onChange={(e) => {
+                const onlyNumber = e.target.value.replace(/\D/g, "");
+                setUsername(onlyNumber);
+              }}
               disabled={loading}
-              autoFocus
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className={`mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50`}
           >
             {loading ? "กำลังเพิ่ม..." : "Add User"}
           </button>
@@ -251,7 +255,7 @@ export default function AdminPage() {
                             onChange={() => toggleActive(u)}
                           />
                           <div
-                            className="
+                            className={`
                               w-11 h-6 rounded-full
                               bg-gray-300
                               peer-checked:bg-green-500
@@ -266,7 +270,7 @@ export default function AdminPage() {
                               after:rounded-full
                               after:transition-all
                               peer-checked:after:translate-x-5
-                            "
+                            `}
                           />
                         </label>
 
@@ -287,7 +291,6 @@ export default function AdminPage() {
             </table>
           )}
         </div>
-
       </div>
     </div>
   );
