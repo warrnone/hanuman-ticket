@@ -18,7 +18,8 @@ export default function AdminLoginPage() {
   // กัน admin login ซ้ำ
   useEffect(() => {
     const role = localStorage.getItem("role");
-    if (role === "admin") {
+    const user = localStorage.getItem("username");
+    if (role === "admin" && user) {
       router.replace("/admin");
     }
   }, [router]);
