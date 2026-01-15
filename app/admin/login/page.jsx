@@ -4,49 +4,72 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-import "../../login/login_button.css"; // reuse style
+import "../../login/login_button.css";
 import SubmitLoading from "../../components/SubmitLoading";
 
 export default function AdminLoginPage() {
   const router = useRouter();
 
+  // ======================
+  // STATE
+  // ======================
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // กัน admin login ซ้ำ
+  // ======================
+  // GUARD: ถ้าเป็น admin อยู่แล้ว → เด้งไป /admin
+  // ======================
   useEffect(() => {
-    const role = localStorage.getItem("role");
-    const user = localStorage.getItem("username");
-    if (role === "admin" && user) {
+    setMounted(true);
+
+    const roleCookie = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("role="))
+      ?.split("=")[1];
+
+    if (roleCookie === "admin") {
       router.replace("/admin");
     }
   }, [router]);
 
+  // 🚫 กัน hydration / loading loop
+  if (!mounted) return null;
+
+  // ======================
+  // LOGIN HANDLER
+  // ======================
   const handleLogin = (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // mock delay
+    // mock delay (เอาออกได้)
     setTimeout(() => {
       // 🔐 ADMIN LOGIN
       if (username === "admin" && password === "admin123") {
-        localStorage.setItem("role", "admin");
+        // ✅ ตั้ง cookie ให้ middleware อ่านได้
+        document.cookie = "role=admin; path=/; SameSite=Lax";
+
+        // (optional) ใช้แสดงชื่อใน UI
         localStorage.setItem("username", "Administrator");
+
         router.replace("/admin");
         return;
       }
 
       setError("Admin username หรือ password ไม่ถูกต้อง");
       setLoading(false);
-    }, 1500);
+    }, 1000);
   };
 
+  // ======================
+  // UI
+  // ======================
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-800 to-purple-900">
-
       {loading && <SubmitLoading />}
 
       <form
@@ -66,8 +89,7 @@ export default function AdminLoginPage() {
 
         {/* BADGE */}
         <div className="text-center mb-3">
-          <span className="px-3 py-1 rounded-full text-sm font-semibold
-            bg-purple-100 text-purple-700">
+          <span className="px-3 py-1 rounded-full text-sm font-semibold bg-purple-100 text-purple-700">
             Admin Login
           </span>
         </div>
@@ -82,7 +104,7 @@ export default function AdminLoginPage() {
 
         <input
           className="w-full border rounded px-3 py-2 mb-3"
-          placeholder="Admin Username"
+          placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           disabled={loading}
@@ -92,7 +114,7 @@ export default function AdminLoginPage() {
         <input
           type="password"
           className="w-full border rounded px-3 py-2 mb-4"
-          placeholder="Admin Password"
+          placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={loading}

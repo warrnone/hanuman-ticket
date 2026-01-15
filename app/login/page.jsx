@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+import { loginApi } from "@/lib/authClient"; // ✅ ใช้จาก lib
 import "./login_button.css";
 import SubmitLoading from "../components/SubmitLoading";
 
@@ -20,12 +21,12 @@ export default function LoginPage() {
   const [role, setRole] = useState(null);
 
   // ======================
-  // CHECK ROLE (ต้องเลือกมาก่อน)
+  // CHECK ROLE (ต้องเลือก role มาก่อน)
   // ======================
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     if (!storedRole) {
-      router.replace("/"); // กลับไปหน้าเลือก role
+      router.replace("/"); // หน้าเลือก role
       return;
     }
     setRole(storedRole);
@@ -34,36 +35,28 @@ export default function LoginPage() {
   // ======================
   // LOGIN HANDLER
   // ======================
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // 🔐 SALES
-    if (
-      role === "sales" &&
-      username === "sales" &&
-      password === "1234"
-    ) {
-      localStorage.setItem("username", "Sales Staff");
-      router.replace("/sales");
-      return;
-    }
+    try {
+      await loginApi({
+        username,
+        password,
+        role, // "admin" | "sales"
+      });
 
-    // 🔐 ADMIN
-    if (
-      role === "admin" &&
-      username === "admin" &&
-      password === "admin123"
-    ) {
-      localStorage.setItem("username", "Admin");
-      router.replace("/admin");
-      return;
+      // ✅ cookie ถูกตั้งโดย API แล้ว
+      if (role === "admin") {
+        router.replace("/admin");
+      } else if (role === "sales") {
+        router.replace("/sales");
+      }
+    } catch (err) {
+      setError(err.message || "Login failed");
+      setLoading(false);
     }
-
-    // ❌ LOGIN FAIL
-    setError("Invalid permissions or incorrect Username / Password.");
-    setLoading(false);
   };
 
   // ======================
@@ -71,7 +64,6 @@ export default function LoginPage() {
   // ======================
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-700">
-
       {/* 🔥 FULL SCREEN LOADING */}
       {loading && <SubmitLoading />}
 
@@ -93,8 +85,7 @@ export default function LoginPage() {
         {/* ROLE BADGE */}
         {role && (
           <div className="text-center mb-3">
-            <span className="px-3 py-1 rounded-full text-sm font-semibold
-              bg-blue-100 text-blue-700">
+            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
               Login as: {role.toUpperCase()}
             </span>
           </div>
@@ -102,7 +93,6 @@ export default function LoginPage() {
 
         <h1 className="text-2xl font-bold text-center mb-2">
           {role === "sales" && "Sales Login"}
-          {role === "cashier" && "Cashier Login"}
           {role === "admin" && "Admin Login"}
         </h1>
 
