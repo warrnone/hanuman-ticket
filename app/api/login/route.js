@@ -19,6 +19,7 @@ export async function POST(req) {
         path: "/",
         httpOnly: true,
         sameSite: "lax",
+        maxAge : 60 * 30,     // setTime cookies
       });
 
       return res;
@@ -71,6 +72,7 @@ export async function POST(req) {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
+      maxAge: 60 * 30,
     });
 
     return res;

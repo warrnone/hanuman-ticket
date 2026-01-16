@@ -15,6 +15,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  const [cachedCount, setCachedCount] = useState(3);
   
   // ======================
   // FETCH USERS
@@ -33,6 +35,9 @@ export default function AdminPage() {
 
       const data = await res.json();
       setUsers(data);
+      if (data.length > 0) {
+        setCachedCount(data.length);
+      }
     } catch (err) {
       swalError("ไม่สามารถโหลดข้อมูลพนักงานได้");
     } finally {
@@ -256,8 +261,18 @@ export default function AdminPage() {
 
           {isLoading ? (
             <div className="animate-pulse space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-12 bg-gray-200 rounded" />
+              {Array.from({ length: cachedCount }).map((_, i) => (
+                <div key={i} className="border-x border-b">
+                  <div className="grid grid-cols-4 gap-3 px-3 py-3 items-center">
+                    <div className="h-4 bg-gray-200 rounded w-16"></div>
+                    <div className="h-4 bg-gray-200 rounded w-12"></div>
+                    <div className="h-4 bg-gray-200 rounded w-14"></div>
+                    <div className="flex justify-center gap-3">
+                      <div className="w-11 h-6 bg-gray-200 rounded-full"></div>
+                      <div className="w-5 h-5 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           ) : users.length === 0 ? (
