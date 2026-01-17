@@ -19,7 +19,7 @@ export async function POST(req) {
         path: "/",
         httpOnly: true,
         sameSite: "lax",
-        maxAge : 60 * 30,     // setTime cookies
+        maxAge: 60 * 30,
       });
 
       return res;
@@ -68,7 +68,15 @@ export async function POST(req) {
       },
     });
 
+    // ✅ สำคัญมาก
     res.cookies.set("role", "sales", {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 30,
+    });
+
+    res.cookies.set("user_id", user.id, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",

@@ -184,7 +184,7 @@ export default function AdminPage() {
     if (!result.isConfirmed) return;
 
     try {
-      await fetch("/api/admin/logout", {
+      await fetch("/api/logout", {
         method: "POST",
       });
     } catch (err) {
