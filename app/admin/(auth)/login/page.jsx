@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-import "../../login/login_button.css";
-import SubmitLoading from "../../components/SubmitLoading";
+import "../../../login/login_button.css";
+import SubmitLoading from "../../../components/SubmitLoading";
 
 export default function AdminLoginPage() {
   const router = useRouter();

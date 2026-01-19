@@ -10,7 +10,7 @@ export const swalSuccess = (title, text = "") => {
     icon: "success",
     title,
     text,
-    timer: 300,
+    timer: 100,
     showConfirmButton: false,
   });
 };
