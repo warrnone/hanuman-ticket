@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { swalSuccess , swalError , swalConfirm} from "../../../components/Swal";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
@@ -74,7 +75,6 @@ export default function CategoriesPage() {
     }
   };
 
-
   /* ======================
      TOGGLE STATUS
   ====================== */
@@ -83,6 +83,11 @@ export default function CategoriesPage() {
       console.error("toggleStatus: invalid category", c);
       return;
     }
+    const result = await swalConfirm(
+      "ปรับหมวดหมู่?"
+    );
+
+    if (!result.isConfirmed) return;
 
     const newStatus = c.status === "active" ? "inactive" : "active";
 
@@ -103,9 +108,9 @@ export default function CategoriesPage() {
         list.map((item) => (item.id === c.id ? data : item))
       );
       setError("");
+      swalSuccess("อัปเดตสำเร็จ");
     } catch (err) {
-      console.error("Toggle error:", err);
-      alert(err.message || "เปลี่ยนสถานะไม่สำเร็จ");
+      swalError("อัปเดตไม่สำเร็จ");
     }
   };
 
@@ -114,8 +119,10 @@ export default function CategoriesPage() {
   ====================== */
   const deleteCategory = async (id) => {
     if (!id) return;
-    if (!confirm("ลบหมวดหมู่นี้ถาวร?\n(ไม่สามารถกู้คืนได้)")) return;
-
+     const result = await swalConfirm(
+      "ลบหมวดหมู่นี้ถาวร?",`ไม่สามารถกู้คืนได้`
+    );
+    if (!result.isConfirmed) return;
     try {
       const res = await fetch(`/api/admin/categories/${id}`, {
         method: "DELETE",
@@ -129,9 +136,9 @@ export default function CategoriesPage() {
 
       setCategories((list) => list.filter((c) => c.id !== id));
       setError("");
+      swalSuccess("ลบหมวดหมู่สำเร็จ");
     } catch (err) {
-      console.error("Delete error:", err);
-      alert(err.message || "ลบไม่สำเร็จ");
+      swalError("ลบไม่สำเร็จ");
     }
   };
 
@@ -197,10 +204,25 @@ export default function CategoriesPage() {
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-slate-500">กำลังโหลด...</div>
+          <div className="flex items-center justify-center space-x-2 p-12 text-slate-500">
+            <div className="h-3 w-3 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]"></div>
+            <div className="h-3 w-3 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]"></div>
+            <div className="h-3 w-3 animate-bounce rounded-full bg-slate-400"></div>
+          </div>
         ) : categories.length === 0 ? (
-          <div className="p-12 text-center text-slate-500">
-            ยังไม่มีหมวดหมู่
+          <div className="group flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-[2rem] hover:border-indigo-300 transition-colors duration-500 bg-white">
+            <div className="mb-4 text-slate-200 group-hover:text-indigo-200 transition-colors duration-500">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 8V12M12 12V16M12 12H16M12 12H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="currentColor" strokeWidth="1.5"/>
+              </svg>
+            </div>
+            <div className="space-y-1 text-center">
+              <p className="text-slate-500 font-medium tracking-wide">ยังไม่มีรายการหมวดหมู่</p>
+              <div className="flex justify-center">
+                <div className="h-1 w-8 bg-slate-100 rounded-full group-hover:w-16 group-hover:bg-indigo-100 transition-all duration-500"></div>
+              </div>
+            </div>
           </div>
         ) : (
           <table className="w-full">
