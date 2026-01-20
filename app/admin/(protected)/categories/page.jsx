@@ -212,8 +212,14 @@ export default function CategoriesPage() {
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-slate-500">
-            กำลังโหลดข้อมูล...
+          <div className="flex flex-col items-center justify-center p-12 space-y-4">
+            <div className="relative flex h-12 w-12">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-12 w-12 bg-slate-500"></span>
+            </div>
+            <div className="text-slate-500 font-medium animate-pulse">
+              กำลังโหลดข้อมูล...
+            </div>
           </div>
         ) : categories.length === 0 ? (
           <div className="p-12 text-center text-slate-500">

@@ -15,6 +15,7 @@ export default function AdminLayout({ children }) {
     { name: "Dashboard", href: "/admin", icon: "📊" },
     { name: "Users", href: "/admin/users", icon: "👥" },
     { name: "Packages", href: "/admin/packages", icon: "📦" },
+    { name: "Photo & Video", href: "/admin/photo", icon: "📸" },
     { name: "Categories", href: "/admin/categories", icon: "📁" },
   ];
 

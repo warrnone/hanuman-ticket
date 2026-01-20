@@ -15,9 +15,21 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-
   const [cachedCount, setCachedCount] = useState(3);
-  
+
+  // ======================
+  // PAGINATION
+  // ======================
+  const PAGE_SIZE = 9;
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+
+  const paginatedUsers = users.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+
   // ======================
   // FETCH USERS
   // ======================
@@ -34,7 +46,7 @@ export default function AdminPage() {
       }
 
       const data = await res.json();
-      setUsers(data);
+      setUsers(Array.isArray(data) ? data : []);
       if (data.length > 0) {
         setCachedCount(data.length);
       }
@@ -46,12 +58,19 @@ export default function AdminPage() {
   };
 
   // ======================
-  // LOAD DATA (NO ROLE GUARD HERE)
+  // INIT LOAD
   // ======================
   useEffect(() => {
     setMounted(true);
     fetchUsers();
   }, []);
+
+  // กัน page เกินหลังลบข้อมูล
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [users.length, totalPages, page]);
 
   // 🚫 กัน hydration error
   if (!mounted) return null;
@@ -73,9 +92,7 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim(),
-        }),
+        body: JSON.stringify({ username: username.trim() }),
       });
 
       const result = await res.json();
@@ -88,7 +105,7 @@ export default function AdminPage() {
       setUsername("");
       fetchUsers();
       swalSuccess("บันทึกสำเร็จ", "เพิ่มพนักงานเรียบร้อยแล้ว");
-    } catch (err) {
+    } catch {
       swalError("เกิดข้อผิดพลาด");
     } finally {
       setLoading(false);
@@ -106,6 +123,7 @@ export default function AdminPage() {
 
     const prev = user.is_active;
 
+    // optimistic update
     setUsers((list) =>
       list.map((u) =>
         u.id === user.id ? { ...u, is_active: !prev } : u
@@ -119,15 +137,14 @@ export default function AdminPage() {
         body: JSON.stringify({ is_active: !prev }),
       });
 
-      if (!res.ok) {
-        throw new Error("update failed");
-      }
+      if (!res.ok) throw new Error();
 
       swalSuccess(
         "อัปเดตสำเร็จ",
         prev ? "ปิดการใช้งานแล้ว" : "เปิดการใช้งานแล้ว"
       );
-    } catch (err) {
+    } catch {
+      // rollback
       setUsers((list) =>
         list.map((u) =>
           u.id === user.id ? { ...u, is_active: prev } : u
@@ -167,7 +184,7 @@ export default function AdminPage() {
 
       setUsers((list) => list.filter((u) => u.id !== user.id));
       swalSuccess("ลบสำเร็จ", "ข้อมูลถูกลบออกจากระบบแล้ว");
-    } catch (err) {
+    } catch {
       swalError("เกิดข้อผิดพลาด");
     }
   };
@@ -182,12 +199,11 @@ export default function AdminPage() {
         onSubmit={handleAddUser}
         className="bg-white p-6 rounded-xl shadow mb-8"
       >
-        <h2 className="font-semibold text-lg mb-2">
-          ➕ เพิ่มพนักงาน
-        </h2>
+        <h2 className="font-semibold text-lg mb-2">➕ เพิ่มพนักงาน</h2>
 
         <p className="text-sm text-gray-500 mb-4">
-          * รหัสผ่านเริ่มต้นคือ <b>1234</b><br />
+          * รหัสผ่านเริ่มต้นคือ <b>1234</b>
+          <br />
           พนักงานต้องเปลี่ยนรหัสเองหลัง Login ครั้งแรก
         </p>
 
@@ -214,30 +230,23 @@ export default function AdminPage() {
 
       {/* USER LIST */}
       <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="font-semibold text-lg mb-4">
-          👥 รหัสพนักงาน
-        </h2>
+        <h2 className="font-semibold text-lg mb-4">👥 รหัสพนักงาน</h2>
 
         {isLoading ? (
           <div className="animate-pulse space-y-3">
-            {Array.from({ length: cachedCount }).map((_, i) => (
+            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
               <div key={i} className="border-x border-b">
                 <div className="grid grid-cols-4 gap-3 px-3 py-3 items-center">
-                  <div className="h-4 bg-gray-200 rounded w-16"></div>
-                  <div className="h-4 bg-gray-200 rounded w-12"></div>
-                  <div className="h-4 bg-gray-200 rounded w-14"></div>
-                  <div className="flex justify-center gap-3">
-                    <div className="w-11 h-6 bg-gray-200 rounded-full"></div>
-                    <div className="w-5 h-5 bg-gray-200 rounded"></div>
-                  </div>
+                  <div className="h-4 bg-gray-200 rounded w-16" />
+                  <div className="h-4 bg-gray-200 rounded w-12" />
+                  <div className="h-4 bg-gray-200 rounded w-14" />
+                  <div className="w-11 h-6 bg-gray-200 rounded-full" />
                 </div>
               </div>
             ))}
           </div>
         ) : users.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">
-            ยังไม่มีพนักงาน
-          </p>
+          <p className="text-center text-gray-500 py-8">ยังไม่มีพนักงาน</p>
         ) : (
           <table className="w-full border text-sm">
             <thead className="bg-gray-100">
@@ -249,7 +258,7 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {paginatedUsers.map((u) => (
                 <tr key={u.id}>
                   <td className="border px-3 py-2">{u.username}</td>
                   <td className="border px-3 py-2">{u.role}</td>
@@ -265,24 +274,7 @@ export default function AdminPage() {
                           checked={u.is_active}
                           onChange={() => toggleActive(u)}
                         />
-                        <div
-                          className="
-                            w-11 h-6 rounded-full
-                            bg-gray-300
-                            peer-checked:bg-green-500
-                            relative
-                            after:content-['']
-                            after:absolute
-                            after:top-0.5
-                            after:left-0.5
-                            after:w-5
-                            after:h-5
-                            after:bg-white
-                            after:rounded-full
-                            after:transition-all
-                            peer-checked:after:translate-x-5
-                          "
-                        />
+                        <div className="w-11 h-6 rounded-full bg-gray-300 peer-checked:bg-green-500 relative after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-5" />
                       </label>
                       <button
                         onClick={() => deleteUser(u)}
@@ -296,6 +288,31 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        )}
+
+        {/* PAGINATION */}
+        {users.length > PAGE_SIZE && (
+          <div className="flex justify-center gap-2 mt-4">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              ◀ ก่อนหน้า
+            </button>
+
+            <span className="px-3 py-1">
+              หน้า {page} / {totalPages}
+            </span>
+
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              ถัดไป ▶
+            </button>
+          </div>
         )}
       </div>
     </>
