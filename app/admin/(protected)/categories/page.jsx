@@ -32,8 +32,6 @@ export default function CategoriesPage() {
       );
 
       const text = await res.text(); 
-      console.log("API status:", res.status);
-      console.log("API raw response:", text);
 
       if (!res.ok) {
         throw new Error(text || "Failed to fetch categories");

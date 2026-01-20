@@ -52,6 +52,7 @@ export default function AdminLayout({ children }) {
               alt="Hanuman Logo"
               fill
               className="object-cover"
+              sizes="40px"
               priority
             />
           </div>
