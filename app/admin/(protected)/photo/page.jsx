@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { swalSuccess, swalError, swalConfirm } from "@/app/components/Swal";
 
 export default function AdminPhotoVideoPage() {
   /* =========================
@@ -67,7 +68,7 @@ export default function AdminPhotoVideoPage() {
 
   const handleSave = async () => {
     if (!formData.activity_category_id || !formData.media_type || !formData.price) {
-      alert('กรุณากรอกข้อมูลให้ครบ');
+      swalError('กรุณากรอกข้อมูลให้ครบ');
       return;
     }
 
@@ -98,6 +99,7 @@ export default function AdminPhotoVideoPage() {
       setShowModal(false);
       resetForm();
       fetchRules();
+      swalSuccess('บันทึกสำเร็จ', 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว');
     } catch (err) {
       console.error(err);
       alert('บันทึกข้อมูลไม่สำเร็จ');
@@ -118,10 +120,21 @@ export default function AdminPhotoVideoPage() {
   };
 
   const handleDelete = async id => {
-    if (!confirm('ลบรายการนี้หรือไม่?')) return;
+    const result = await swalConfirm(
+      "ลบรายการนี้หรือไม่?",
+      `ต้องการลบถาวรหรือไม่`
+    );
 
-    await fetch(`/api/admin/photo-video/${id}`, { method: 'DELETE' });
+    if (!result.isConfirmed) return;
+
+    let res = await fetch(`/api/admin/photo-video/${id}`, { method: 'DELETE' });
+    
+    if(res.status !== 200){
+      swalError("เกิดข้อผิดพลาด", "ไม่สามารถลบข้อมูลได้ในขณะนี้");
+      return;
+    }
     fetchRules();
+    swalSuccess("ลบสำเร็จ", "ข้อมูลถูกลบออกจากระบบแล้ว");
   };
 
   /* =========================
@@ -150,7 +163,14 @@ export default function AdminPhotoVideoPage() {
       {/* TABLE */}
       <div className="bg-white rounded-xl shadow overflow-x-auto">
         {loading ? (
-          <div className="p-6 text-center text-gray-500">Loading...</div>
+          <div className="flex flex-col items-center justify-center p-6">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 border-4 border-blue-100 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 rounded-full blur-sm border-t-blue-400 animate-spin"></div>
+            </div>
+            <span className="mt-4 text-gray-400 italic text-sm">Please wait...</span>
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-100">
@@ -186,13 +206,14 @@ export default function AdminPhotoVideoPage() {
                   <td className="p-3 text-center">
                     <button
                       onClick={() => handleEdit(rule)}
-                      className="text-blue-600 mr-3"
+                      className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-md text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors duration-200 mr-2"
                     >
                       Edit
                     </button>
+
                     <button
                       onClick={() => handleDelete(rule.id)}
-                      className="text-red-600"
+                      className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-medium hover:bg-red-600 hover:text-white transition-colors duration-200"
                     >
                       Delete
                     </button>

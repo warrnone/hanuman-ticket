@@ -6,12 +6,13 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 ========================= */
 export async function PATCH(req, { params }) {
   try {
+    const { id } = await params; // ⭐ สำคัญมาก
     const body = await req.json();
 
     const { error } = await supabaseAdmin
       .from("photo_video_prices")
       .update(body)
-      .eq("id", params.id);
+      .eq("id", id);
 
     if (error) throw error;
 
@@ -30,10 +31,12 @@ export async function PATCH(req, { params }) {
 ========================= */
 export async function DELETE(req, { params }) {
   try {
+    const { id } = await params; // ⭐ สำคัญมาก
+
     const { error } = await supabaseAdmin
       .from("photo_video_prices")
       .delete()
-      .eq("id", params.id);
+      .eq("id", id);
 
     if (error) throw error;
 
