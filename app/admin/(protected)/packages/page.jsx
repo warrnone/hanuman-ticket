@@ -1,460 +1,387 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { swalSuccess, swalError, swalConfirm } from '@/app/components/Swal';
 
 export default function AdminPackagesPage() {
-  // Mock data - ในระบบจริงจะดึงจาก API/Database
-  const [packages, setPackages] = useState([
-    { id: 1, category: 'World Packages', name: 'World A+', price: 3490, emoji: '🌍', status: 'active', description: 'Premium package with all activities' },
-    { id: 2, category: 'World Packages', name: 'World B+', price: 2990, emoji: '🌍', status: 'active', description: 'Standard package' },
-    { id: 3, category: 'World Packages', name: 'World C+', price: 2490, emoji: '🌍', status: 'active', description: 'Basic package' },
-    { id: 4, category: 'Zipline', name: 'Z10 Platform', price: 1500, emoji: '🪂', status: 'active', description: '10 platforms zipline course' },
-    { id: 5, category: 'Zipline', name: 'Z18 Platform', price: 2200, emoji: '🪂', status: 'active', description: '18 platforms zipline course' },
-    { id: 6, category: 'Adventures', name: 'Sling Shot', price: 350, emoji: '🎯', status: 'active', description: 'Extreme catapult experience' },
-    { id: 7, category: 'Luge', name: 'Luge 1 Ride', price: 790, emoji: '🛼', status: 'active', description: '1 ride down the mountain' },
-    { id: 8, category: 'Photo & Video', name: 'Photo 1 PAX', price: 800, emoji: '📷', status: 'active', description: 'Professional photos for 1 person' },
-  ]);
+  /* ======================
+     STATE
+  ====================== */
+  const [packages, setPackages] = useState([]);
+  const [categories, setCategories] = useState([]);
 
-  const [categories, setCategories] = useState([
-    'World Packages',
-    'Zipline',
-    'Adventures',
-    'Luge',
-    'Photo & Video',
-    'Add-ons'
-  ]);
-
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [formData, setFormData] = useState({
-    category: '',
+    category_id: '',
     name: '',
-    price: '',
-    emoji: '',
     description: '',
-    status: 'active'
+    price: '',
+    status: 'active',
   });
 
-  // Filter packages
-  const filteredPackages = packages.filter(pkg => {
-    const matchCategory = filterCategory === 'all' || pkg.category === filterCategory;
-    const matchSearch = pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       pkg.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchCategory && matchSearch;
-  });
+  /* ======================
+     FETCH DATA
+  ====================== */
+  const fetchPackages = async () => {
+    try {
+      const res = await fetch('/api/admin/packages');
+      const result = await res.json();
 
-  // Handle edit
-  const handleEdit = (pkg) => {
-    setEditingId(pkg.id);
-    setFormData({
-      category: pkg.category,
-      name: pkg.name,
-      price: pkg.price,
-      emoji: pkg.emoji,
-      description: pkg.description,
-      status: pkg.status
-    });
-  };
-
-  // Handle save edit
-  const handleSaveEdit = () => {
-    setPackages(packages.map(pkg => 
-      pkg.id === editingId 
-        ? { ...pkg, ...formData, price: parseFloat(formData.price) }
-        : pkg
-    ));
-    setEditingId(null);
-    setFormData({ category: '', name: '', price: '', emoji: '', description: '', status: 'active' });
-  };
-
-  // Handle add new package
-  const handleAddPackage = () => {
-    const newPackage = {
-      id: Math.max(...packages.map(p => p.id)) + 1,
-      ...formData,
-      price: parseFloat(formData.price)
-    };
-    setPackages([...packages, newPackage]);
-    setShowAddModal(false);
-    setFormData({ category: '', name: '', price: '', emoji: '', description: '', status: 'active' });
-  };
-
-  // Handle delete
-  const handleDelete = (id) => {
-    if (confirm('Are you sure you want to delete this package?')) {
-      setPackages(packages.filter(pkg => pkg.id !== id));
+      if (!res.ok) throw new Error(result.error);
+      setPackages(result.data || []);
+    } catch (err) {
+      console.error(err);
+      swalError('โหลด Packages ไม่สำเร็จ');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Toggle status
-  const toggleStatus = (id) => {
-    setPackages(packages.map(pkg => 
-      pkg.id === id 
-        ? { ...pkg, status: pkg.status === 'active' ? 'inactive' : 'active' }
-        : pkg
-    ));
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/admin/categories');
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error);
+      setCategories(result.data || []);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // Statistics
-  const stats = {
-    total: packages.length,
-    active: packages.filter(p => p.status === 'active').length,
-    inactive: packages.filter(p => p.status === 'inactive').length,
-    totalValue: packages.reduce((sum, p) => sum + p.price, 0)
+  useEffect(() => {
+    fetchPackages();
+    fetchCategories();
+  }, []);
+
+  /* ======================
+     FILTER
+  ====================== */
+  const filteredPackages = packages.filter((pkg) => {
+    const matchCategory =
+      filterCategory === 'all' || pkg.category_id === filterCategory;
+
+    const matchSearch =
+      pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (pkg.description || '')
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    return matchCategory && matchSearch;
+  });
+
+  /* ======================
+     HANDLERS
+  ====================== */
+  const openAdd = () => {
+    setEditingId(null);
+    setFormData({
+      category_id: '',
+      name: '',
+      description: '',
+      price: '',
+      status: 'active',
+    });
+    setShowModal(true);
   };
+
+  const openEdit = (pkg) => {
+    setEditingId(pkg.id);
+    setFormData({
+      category_id: pkg.category_id,
+      name: pkg.name,
+      description: pkg.description ?? '',
+      price: pkg.price,
+      status: pkg.status,
+    });
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.category_id || !formData.name || !formData.price) {
+      swalError('กรุณากรอกข้อมูลให้ครบ');
+      return;
+    }
+
+    const payload = {
+      category_id: formData.category_id,
+      name: formData.name,
+      description: formData.description,
+      price: parseInt(formData.price, 10),
+      status: formData.status,
+    };
+
+    if (Number.isNaN(payload.price)) {
+      swalError('ราคาต้องเป็นตัวเลขเท่านั้น');
+      return;
+    }
+
+    try {
+      let res;
+      if (editingId) {
+        res = await fetch(`/api/admin/packages/${editingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await fetch('/api/admin/packages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+
+      swalSuccess('บันทึกสำเร็จ');
+      setShowModal(false);
+      fetchPackages();
+    } catch (err) {
+      console.error(err);
+      swalError(err.message || 'บันทึกไม่สำเร็จ');
+    }
+  };
+
+  const handleDelete = async (pkg) => {
+    const ok = await swalConfirm(
+      'ลบ Package?',
+      `ต้องการลบ ${pkg.name} ใช่หรือไม่`
+    );
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`/api/admin/packages/${pkg.id}`, {
+        method: 'DELETE',
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+
+      swalSuccess('ลบสำเร็จ');
+      fetchPackages();
+    } catch (err) {
+      console.error(err);
+      swalError('ลบไม่สำเร็จ');
+    }
+  };
+
+  /* ======================
+     RENDER
+  ====================== */
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center gap-6 border border-slate-100">
+          
+          {/* Animated spinner */}
+          <div className="relative w-20 h-20">
+            <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-8 h-8 bg-blue-500 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Text */}
+          <div className="text-center">
+            <h3 className="text-xl font-bold text-slate-800 mb-2">กำลังโหลดข้อมูล</h3>
+            <p className="text-slate-500 text-sm">กรุณารอสักครู่...</p>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-48 h-1 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-[loading_1.5s_ease-in-out_infinite]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* Header */}
-      <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl">🐒</span>
-              <div>
-                <h1 className="text-3xl font-bold">Package Management</h1>
-                <p className="text-orange-100 text-sm">Hanuman World Admin System</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-orange-50 transition-colors flex items-center gap-2"
-            >
-              <span className="text-xl">+</span> Add New Package
-            </button>
-          </div>
-        </div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">📦 Package Management</h1>
+        <button
+          onClick={openAdd}
+          className="bg-orange-600 text-white px-4 py-2 rounded-lg"
+        >
+          + Add Package
+        </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Total Packages</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
-              </div>
-              <div className="text-4xl">📦</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Active</p>
-                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-              </div>
-              <div className="text-4xl">✅</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Inactive</p>
-                <p className="text-2xl font-bold text-red-600">{stats.inactive}</p>
-              </div>
-              <div className="text-4xl">❌</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Total Value</p>
-                <p className="text-2xl font-bold text-orange-600">฿{stats.totalValue.toLocaleString()}</p>
-              </div>
-              <div className="text-4xl">💰</div>
-            </div>
-          </div>
-        </div>
+      {/* FILTER */}
+      <div className="flex gap-4 mb-4">
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="border px-3 py-2 rounded"
+        >
+          <option value="all">All Categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search packages..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Category</label>
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border px-3 py-2 rounded flex-1"
+        />
+      </div>
+
+      {/* TABLE */}
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-3 text-left">Name</th>
+              <th className="p-3">Category</th>
+              <th className="p-3">Price</th>
+              <th className="p-3">Status</th>
+              <th className="p-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredPackages.map((pkg) => (
+              <tr key={pkg.id} className="border-t">
+                <td className="p-3">{pkg.name}</td>
+                <td className="p-3">
+                  {pkg.categories?.name || '-'}
+                </td>
+                <td className="p-3 font-bold text-orange-600">
+                  ฿{pkg.price.toLocaleString()}
+                </td>
+                <td className="p-3">
+                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
+                    pkg.status === 'active' 
+                      ? 'bg-green-100 text-green-700 ring-1 ring-green-600/20' 
+                      : 'bg-red-100 text-red-700 ring-1 ring-red-600/20'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${
+                      pkg.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                    }`}></span>
+                    {pkg.status === 'active' ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="p-3">
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      onClick={() => openEdit(pkg)}
+                      className="group relative px-3 py-2 bg-blue-50 hover:bg-blue-500 text-blue-600 hover:text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <span className="text-sm font-medium">Edit</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => handleDelete(pkg)}
+                      className="group relative px-3 py-2 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span className="text-sm font-medium">Delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-lg p-6">
+            <h2 className="text-xl font-bold mb-4">
+              {editingId ? 'Edit Package' : 'Add Package'}
+            </h2>
+
+            <div className="space-y-3">
               <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                value={formData.category_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, category_id: e.target.value })
+                }
+                className="border w-full px-3 py-2 rounded"
               >
-                <option value="all">All Categories</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                <option value="">Select category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
+
+              <input
+                type="text"
+                placeholder="Package name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="border w-full px-3 py-2 rounded"
+              />
+
+              <textarea
+                placeholder="Description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                className="border w-full px-3 py-2 rounded"
+              />
+
+              <input
+                type="number"
+                placeholder="Price"
+                value={formData.price}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: e.target.value })
+                }
+                className="border w-full px-3 py-2 rounded"
+              />
+
+              <select
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
+                className="border w-full px-3 py-2 rounded"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
             </div>
-          </div>
-        </div>
 
-        {/* Packages Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Package</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPackages.map((pkg) => (
-                  <tr key={pkg.id} className="hover:bg-gray-50">
-                    {editingId === pkg.id ? (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={formData.emoji}
-                              onChange={(e) => setFormData({...formData, emoji: e.target.value})}
-                              className="w-12 px-2 py-1 border rounded text-center"
-                              maxLength={2}
-                            />
-                            <input
-                              type="text"
-                              value={formData.name}
-                              onChange={(e) => setFormData({...formData, name: e.target.value})}
-                              className="flex-1 px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <select
-                            value={formData.category}
-                            onChange={(e) => setFormData({...formData, category: e.target.value})}
-                            className="w-full px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                          >
-                            {categories.map(cat => (
-                              <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            value={formData.description}
-                            onChange={(e) => setFormData({...formData, description: e.target.value})}
-                            className="w-full px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                          />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <input
-                            type="number"
-                            value={formData.price}
-                            onChange={(e) => setFormData({...formData, price: e.target.value})}
-                            className="w-24 px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                          />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <select
-                            value={formData.status}
-                            onChange={(e) => setFormData({...formData, status: e.target.value})}
-                            className="px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                          >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={handleSaveEdit}
-                              className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm"
-                            >
-                              ✓ Save
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500 text-sm"
-                            >
-                              ✕ Cancel
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl">{pkg.emoji}</span>
-                            <div className="font-medium text-gray-900">{pkg.name}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                            {pkg.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {pkg.description}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-lg font-bold text-orange-600">
-                            ฿{pkg.price.toLocaleString()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => toggleStatus(pkg.id)}
-                            className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                              pkg.status === 'active'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {pkg.status === 'active' ? '✓ Active' : '✕ Inactive'}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleEdit(pkg)}
-                              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                            >
-                              ✏️ Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(pkg.id)}
-                              className="text-red-600 hover:text-red-800 font-medium text-sm"
-                            >
-                              🗑️ Delete
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredPackages.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-6xl mb-4">📦</div>
-              <p className="text-lg">No packages found</p>
-              <p className="text-sm mt-2">Try adjusting your filters or add a new package</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Add Package Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl">
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-6 rounded-t-2xl">
-              <h2 className="text-2xl font-bold">Add New Package</h2>
-            </div>
-            
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Select category...</option>
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Emoji</label>
-                  <input
-                    type="text"
-                    value={formData.emoji}
-                    onChange={(e) => setFormData({...formData, emoji: e.target.value})}
-                    placeholder="🎯"
-                    maxLength={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-center text-2xl"
-                  />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Package Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Enter package name"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Enter package description"
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Price (THB)</label>
-                  <input
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    placeholder="0.00"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setFormData({ category: '', name: '', price: '', emoji: '', description: '', status: 'active' });
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddPackage}
-                  className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-lg hover:from-orange-600 hover:to-red-600"
-                >
-                  Add Package
-                </button>
-              </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 bg-gray-300 py-2 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-orange-600 text-white py-2 rounded"
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>

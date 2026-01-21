@@ -54,7 +54,10 @@ export default function CategoriesPage() {
      ADD CATEGORY
   ====================== */
   const addCategory = async () => {
-    if (!newCategory.trim() || isSaving) return;
+    if (!newCategory.trim() || isSaving){
+      swalError("กรุณากรอกชื่อหมวดหมู่");
+      return;
+    };
 
     try {
       setIsSaving(true);
