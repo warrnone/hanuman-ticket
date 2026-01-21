@@ -31,8 +31,10 @@ export default function AdminLayout({ children }) {
       await fetch("/api/logout", { method: "POST" });
     } finally {
       localStorage.removeItem("username");
+      localStorage.removeItem("role");
       swalSuccess("ออกจากระบบแล้ว");
-      router.replace("/admin/login");
+      router.replace("/");
+      router.refresh();
     }
   };
 
@@ -42,9 +44,7 @@ export default function AdminLayout({ children }) {
   const SidebarContent = (
     <>
       <div className="p-6 border-b border-slate-800">
-        {/* ใช้ flex และ items-center เพื่อให้อยู่บรรทัดเดียวกัน */}
         <div className="flex items-center gap-3">
-          
           {/* รูปโลโก้ */}
           <div className="relative w-10 h-10 shrink-0 overflow-hidden rounded-lg shadow-md border border-slate-700 bg-orange-500">
             <Image
@@ -60,13 +60,12 @@ export default function AdminLayout({ children }) {
           {/* กลุ่มข้อความ */}
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-white leading-none">
-              Hanuman Word
+              Hanuman World
             </h1>
             <p className="text-[10px] text-slate-400 uppercase tracking-[0.1em] mt-1">
               Management Ticket System
             </p>
           </div>
-
         </div>
       </div>
 
@@ -94,7 +93,7 @@ export default function AdminLayout({ children }) {
       <div className="p-4 border-t border-slate-800">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-400/10"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition"
         >
           🚪 Logout
         </button>
@@ -103,7 +102,7 @@ export default function AdminLayout({ children }) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-900">
+    <div className="h-screen bg-slate-50 flex text-slate-900 overflow-hidden">
       {/* ================================
           MOBILE OVERLAY
       ================================= */}
@@ -115,11 +114,11 @@ export default function AdminLayout({ children }) {
       )}
 
       {/* ================================
-          SIDEBAR
+          SIDEBAR (Desktop: static, Mobile: fixed)
       ================================= */}
       <aside
         className={`
-          fixed lg:static z-40 top-0 left-0 h-screen w-64
+          fixed lg:static z-40 top-0 left-0 h-full w-64
           bg-slate-900 text-white flex flex-col
           transform transition-transform duration-300
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
@@ -130,13 +129,13 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* ================================
-          MAIN
+          MAIN CONTENT AREA
       ================================= */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* HEADER */}
-        <header className="h-16 lg:h-20 bg-white/80 backdrop-blur border-b px-4 lg:px-8 flex items-center justify-between sticky top-0 z-20">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* HEADER - ปักด้านบน */}
+        <header className="h-16 lg:h-20 bg-white/80 backdrop-blur border-b px-4 lg:px-8 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            {/* HAMBURGER */}
+            {/* HAMBURGER (Mobile only) */}
             <button
               className="lg:hidden text-2xl"
               onClick={() => setSidebarOpen(true)}
@@ -160,7 +159,7 @@ export default function AdminLayout({ children }) {
           </div>
         </header>
 
-        {/* CONTENT */}
+        {/* SCROLLABLE CONTENT */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
