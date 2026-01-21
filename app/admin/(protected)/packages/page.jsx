@@ -17,6 +17,10 @@ export default function AdminPackagesPage() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // 🔹 pagination
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
+
   const [formData, setFormData] = useState({
     category_id: '',
     name: '',
@@ -75,6 +79,17 @@ export default function AdminPackagesPage() {
 
     return matchCategory && matchSearch;
   });
+
+  // 🔹 pagination logic
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredPackages.length / PAGE_SIZE)
+  );
+
+  const paginatedPackages = filteredPackages.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
 
   /* ======================
      HANDLERS
@@ -178,29 +193,13 @@ export default function AdminPackagesPage() {
   ====================== */
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] p-6">
-        <div className="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center gap-6 border border-slate-100">
-          
-          {/* Animated spinner */}
-          <div className="relative w-20 h-20">
-            <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 bg-blue-500 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-
-          {/* Text */}
-          <div className="text-center">
-            <h3 className="text-xl font-bold text-slate-800 mb-2">กำลังโหลดข้อมูล</h3>
-            <p className="text-slate-500 text-sm">กรุณารอสักครู่...</p>
-          </div>
-
-          {/* Progress bar */}
-          <div className="w-48 h-1 bg-slate-200 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-[loading_1.5s_ease-in-out_infinite]"></div>
-          </div>
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
+        <div className="flex gap-2">
+          <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce"></div>
+          <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+          <div className="w-4 h-4 bg-gradient-to-r from-pink-500 to-orange-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
         </div>
+        <p className="text-slate-600 font-medium">กำลังโหลดข้อมูล</p>
       </div>
     );
   }
@@ -221,7 +220,10 @@ export default function AdminPackagesPage() {
       <div className="flex gap-4 mb-4">
         <select
           value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
+          onChange={(e) => {
+            setFilterCategory(e.target.value);
+            setPage(1);
+          }}
           className="border px-3 py-2 rounded"
         >
           <option value="all">All Categories</option>
@@ -236,7 +238,10 @@ export default function AdminPackagesPage() {
           type="text"
           placeholder="Search..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(1);
+          }}
           className="border px-3 py-2 rounded flex-1"
         />
       </div>
@@ -254,47 +259,27 @@ export default function AdminPackagesPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredPackages.map((pkg) => (
+            {paginatedPackages.map((pkg) => (
               <tr key={pkg.id} className="border-t">
                 <td className="p-3">{pkg.name}</td>
-                <td className="p-3">
-                  {pkg.categories?.name || '-'}
-                </td>
+                <td className="p-3">{pkg.categories?.name || '-'}</td>
                 <td className="p-3 font-bold text-orange-600">
                   ฿{pkg.price.toLocaleString()}
                 </td>
-                <td className="p-3">
-                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
-                    pkg.status === 'active' 
-                      ? 'bg-green-100 text-green-700 ring-1 ring-green-600/20' 
-                      : 'bg-red-100 text-red-700 ring-1 ring-red-600/20'
-                  }`}>
-                    <span className={`w-2 h-2 rounded-full ${
-                      pkg.status === 'active' ? 'bg-green-500' : 'bg-red-500'
-                    }`}></span>
-                    {pkg.status === 'active' ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
+                <td className="p-3">{pkg.status}</td>
                 <td className="p-3">
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={() => openEdit(pkg)}
-                      className="group relative px-3 py-2 bg-blue-50 hover:bg-blue-500 text-blue-600 hover:text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+                      className="px-3 py-1 bg-blue-100 text-blue-600 rounded"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      <span className="text-sm font-medium">Edit</span>
+                      Edit
                     </button>
-                    
                     <button
                       onClick={() => handleDelete(pkg)}
-                      className="group relative px-3 py-2 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+                      className="px-3 py-1 bg-red-100 text-red-600 rounded"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      <span className="text-sm font-medium">Delete</span>
+                      Delete
                     </button>
                   </div>
                 </td>
@@ -304,7 +289,30 @@ export default function AdminPackagesPage() {
         </table>
       </div>
 
-      {/* MODAL */}
+      {/* PAGINATION */}
+      <div className="flex justify-between items-center mt-4 text-sm">
+        <span className="text-gray-500">
+          Page {page} / {totalPages}
+        </span>
+        <div className="flex gap-2">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      {/* MODAL (เดิม) */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-lg p-6">
