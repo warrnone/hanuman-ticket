@@ -271,13 +271,13 @@ export default function AdminPackagesPage() {
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={() => openEdit(pkg)}
-                      className="px-3 py-1 bg-blue-100 text-blue-600 rounded"
+                      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium shadow-sm hover:shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 active:scale-95"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(pkg)}
-                      className="px-3 py-1 bg-red-100 text-red-600 rounded"
+                      className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-medium shadow-sm hover:shadow-md hover:from-red-600 hover:to-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95"
                     >
                       Delete
                     </button>

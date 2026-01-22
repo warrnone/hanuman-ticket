@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import CategorySidebar from "./components/CategorySidebar";
 import TopBar from "./components/TopBar";
 import ProductGrid from "./components/ProductGrid";
@@ -8,24 +8,22 @@ import CartPanel from "./components/CartPanel";
 import SurveyModal from "./components/SurveyModal";
 
 export default function SalePage() {
-  const [selectedCategory, setSelectedCategory] = useState("World Packages");
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [showSurvey, setShowSurvey] = useState(false);
+  const [menu, setMenu] = useState([]);
 
-  /* =========================
-     DATA (เหมือนของเดิม)
-  ========================= */
-  const categories = [
-    "World Packages",
-    "Zipline",
-    "Adventures",
-    "Luge",
-    "Photo & Video",
-    "Add-ons",
-  ];
-
-  const menuItems = { /* 👈 ใช้ object เดิมของคุณทั้งก้อน */ };
+  useEffect(() => {
+    fetch("/api/sale/menu")
+      .then((res) => res.json())
+      .then((res) => {
+        setMenu(res.data);
+        if (res.data.length > 0) {
+          setSelectedCategory(res.data[0].name);
+        }
+      });
+  }, []);
 
   /* =========================
      CART LOGIC (เดิม)
@@ -54,7 +52,8 @@ export default function SalePage() {
   const removeFromCart = (id) => {
     setCart(cart.filter((i) => i.id !== id));
   };
-
+  const currentCategory = menu.find((c) => c.name === selectedCategory);
+  const items = currentCategory?.items || [];
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const discount = subtotal * 0.05;
   const tax = (subtotal - discount) * 0.07;
@@ -63,7 +62,7 @@ export default function SalePage() {
   return (
     <div className="flex h-screen bg-gray-100">
       <CategorySidebar
-        categories={categories}
+        categories={menu.map((c) => c.name)}
         selected={selectedCategory}
         onSelect={setSelectedCategory}
       />
@@ -77,7 +76,7 @@ export default function SalePage() {
 
         <ProductGrid
           title={selectedCategory}
-          items={menuItems[selectedCategory] || []}
+          items={items}
           onAdd={addToCart}
         />
       </div>
