@@ -128,7 +128,7 @@ export default function SaleHeader() {
                 priority
               />
               <span className="text-lg font-semibold text-gray-800 dark:text-white">
-                Hanuman Ticket
+                Hanuman Ticket POS
               </span>
             </Link>
 
