@@ -44,7 +44,27 @@ export default function AdminDashboard() {
   };
 
   if (loading) {
-    return <div>Loading dashboard...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          {/* Bouncing Bars Animation */}
+          <div className="flex items-end justify-center gap-2 h-16 mb-6">
+            <div className="w-3 bg-gradient-to-t from-blue-500 to-cyan-500 rounded-full animate-bounce" style={{height: '20px'}}></div>
+            <div className="w-3 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full animate-bounce" style={{height: '30px', animationDelay: '0.1s'}}></div>
+            <div className="w-3 bg-gradient-to-t from-green-500 to-emerald-500 rounded-full animate-bounce" style={{height: '25px', animationDelay: '0.2s'}}></div>
+            <div className="w-3 bg-gradient-to-t from-orange-500 to-yellow-500 rounded-full animate-bounce" style={{height: '35px', animationDelay: '0.3s'}}></div>
+            <div className="w-3 bg-gradient-to-t from-red-500 to-rose-500 rounded-full animate-bounce" style={{height: '20px', animationDelay: '0.4s'}}></div>
+          </div>
+          
+          <h2 className="text-xl font-semibold text-slate-700">
+            Loading Dashboard
+          </h2>
+          <p className="text-slate-500 text-sm mt-2">
+            Please wait...
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
