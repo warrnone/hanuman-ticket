@@ -6,8 +6,15 @@ import TopBar from "./components/TopBar";
 import ProductGrid from "./components/ProductGrid";
 import CartPanel from "./components/CartPanel";
 import SurveyModal from "./components/SurveyModal";
+import LoadingOverlay from "./components/LoadingOverlay";
+import { swalSuccess, swalConfirm } from "@/app/components/Swal";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function SalePage() {
+
+  const router = useRouter();
+  const pathname = usePathname();
+
   /* =========================
      STATE
   ========================= */
@@ -22,22 +29,33 @@ export default function SalePage() {
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [showSurvey, setShowSurvey] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+
+  const loadMenu = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/sale/menu");
+      const json = await res.json();
+
+      setMenu(json.data || []);
+
+      if (json.data && json.data.length > 0) {
+        setSelectedActivity(json.data[0].name);
+      }
+    } catch (err) {
+      console.error("Load sale menu error:", err);
+    } finally {
+      setLoading(false); // ✅ ถูกต้อง
+    }
+  };
 
   /* =========================
      LOAD SALE MENU
   ========================= */
   useEffect(() => {
-    fetch("/api/sale/menu")
-      .then((res) => res.json())
-      .then((res) => {
-        setMenu(res.data || []);
-        if (res.data && res.data.length > 0) {
-          setSelectedActivity(res.data[0].name);
-        }
-      })
-      .catch((err) => {
-        console.error("Load sale menu error:", err);
-      });
+    loadMenu();
   }, []);
 
   /* =========================
@@ -84,6 +102,32 @@ export default function SalePage() {
     return item.type === "PHOTO" || item.type === "VIDEO";
   });
 
+
+  /* ===============================
+    LOGOUT
+  =============================== */
+  const logout = async () => {
+    const result = await swalConfirm(
+      "ออกจากระบบ?",
+      "คุณต้องการออกจากระบบใช่หรือไม่"
+    );
+
+    if (!result.isConfirmed) return;
+
+    try {
+      // 👉 ถ้ายังไม่มี api/logout ให้เปลี่ยนเป็น /api/admin/logout
+      await fetch("/api/logout", { method: "POST" });
+    } catch (e) {
+      console.error("logout error", e);
+    }
+
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    swalSuccess("ออกจากระบบแล้ว");
+    router.replace("/login");
+  };
+
   /* =========================
      TOTALS
   ========================= */
@@ -96,96 +140,100 @@ export default function SalePage() {
   const total = subtotal - discount + tax;
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* =========================
-          LEFT: ACTIVITY SIDEBAR
-      ========================= */}
-      <CategorySidebar
-        categories={menu.map((c) => c.name)}
-        selected={selectedActivity}
-        onSelect={(name) => {
-          setSelectedActivity(name);
-          setSelectedMode("PACKAGE"); // reset mode ทุกครั้ง
-        }}
-      />
-
-      {/* =========================
-          CENTER: CONTENT
-      ========================= */}
-      <div className="flex-1 flex flex-col">
-        <TopBar
-          paymentMethod={paymentMethod}
-          setPaymentMethod={setPaymentMethod}
-          cart={cart}
+    <>
+      {loading && <LoadingOverlay />}
+      <div className="flex h-screen bg-gray-100">
+        {/* =========================
+            LEFT: ACTIVITY SIDEBAR
+        ========================= */}
+        <CategorySidebar
+          categories={menu.map((c) => c.name)}
+          selected={selectedActivity}
+          onSelect={(name) => {
+            setSelectedActivity(name);
+            setSelectedMode("PACKAGE"); // reset mode ทุกครั้ง
+          }}
+          onLogout={logout}
         />
 
-        {/* MODE TABS */}
-        <div className="flex bg-white border-b">
-          <button
-            className={`px-6 py-3 font-medium ${
-              selectedMode === "PACKAGE"
-                ? "border-b-2 border-orange-500 text-orange-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setSelectedMode("PACKAGE")}
-          >
-            📦 Packages
-          </button>
+        {/* =========================
+            CENTER: CONTENT
+        ========================= */}
+        <div className="flex-1 flex flex-col">
+          <TopBar
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            cart={cart}
+          />
 
-          <button
-            className={`px-6 py-3 font-medium ${
-              selectedMode === "PHOTO_VIDEO"
-                ? "border-b-2 border-orange-500 text-orange-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setSelectedMode("PHOTO_VIDEO")}
-          >
-            📷 Photo & Video
-          </button>
+          {/* MODE TABS */}
+          <div className="flex bg-white border-b">
+            <button
+              className={`px-6 py-3 font-medium ${
+                selectedMode === "PACKAGE"
+                  ? "border-b-2 border-orange-500 text-orange-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setSelectedMode("PACKAGE")}
+            >
+              📦 Packages
+            </button>
+
+            <button
+              className={`px-6 py-3 font-medium ${
+                selectedMode === "PHOTO_VIDEO"
+                  ? "border-b-2 border-orange-500 text-orange-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setSelectedMode("PHOTO_VIDEO")}
+            >
+              📷 Photo & Video
+            </button>
+          </div>
+
+          {/* PRODUCT GRID */}
+          <ProductGrid
+            title={selectedActivity}
+            items={items}
+            onAdd={(item) => {
+              // ตอนนี้ยังให้ add ได้เหมือนเดิม
+              // (Photo/Video จะไปต่อด้วย Pax Modal ภายหลัง)
+              addToCart(item);
+            }}
+          />
         </div>
 
-        {/* PRODUCT GRID */}
-        <ProductGrid
-          title={selectedActivity}
-          items={items}
-          onAdd={(item) => {
-            // ตอนนี้ยังให้ add ได้เหมือนเดิม
-            // (Photo/Video จะไปต่อด้วย Pax Modal ภายหลัง)
-            addToCart(item);
-          }}
-        />
-      </div>
-
-      {/* =========================
-          RIGHT: CART
-      ========================= */}
-      <CartPanel
-        cart={cart}
-        paymentMethod={paymentMethod}
-        subtotal={subtotal}
-        discount={discount}
-        tax={tax}
-        total={total}
-        onQty={updateQuantity}
-        onRemove={removeFromCart}
-        onCheckout={() => setShowSurvey(true)}
-        onClear={() => setCart([])}
-      />
-
-      {/* =========================
-          SURVEY / CHECKOUT
-      ========================= */}
-      {showSurvey && (
-        <SurveyModal
+        {/* =========================
+            RIGHT: CART
+        ========================= */}
+        <CartPanel
           cart={cart}
+          paymentMethod={paymentMethod}
+          subtotal={subtotal}
+          discount={discount}
+          tax={tax}
           total={total}
-          onClose={() => setShowSurvey(false)}
-          onComplete={() => {
-            setCart([]);
-            setShowSurvey(false);
-          }}
+          onQty={updateQuantity}
+          onRemove={removeFromCart}
+          onCheckout={() => setShowSurvey(true)}
+          onClear={() => setCart([])}
         />
-      )}
-    </div>
+
+        {/* =========================
+            SURVEY / CHECKOUT
+        ========================= */}
+        {showSurvey && (
+          <SurveyModal
+            cart={cart}
+            total={total}
+            onClose={() => setShowSurvey(false)}
+            onComplete={() => {
+              setCart([]);
+              setShowSurvey(false);
+            }}
+          />
+        )}
+      </div>
+    </>
   );
 }
