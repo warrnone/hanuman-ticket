@@ -1,6 +1,7 @@
 "use client";
 
 export default function CategorySidebar({ categories, selected, onSelect }) {
+  const filteredCategories = categories.filter((cat) => cat !== "Photo & Video");
   return (
     <div className="w-48 bg-gradient-to-b from-orange-700 to-orange-900 text-white overflow-y-auto">
       <div className="p-4">
@@ -14,7 +15,7 @@ export default function CategorySidebar({ categories, selected, onSelect }) {
           </div>
         </div>
 
-        {categories.map((cat) => (
+        {filteredCategories.map((cat) => (
           <button
             key={cat}
             onClick={() => onSelect(cat)}
