@@ -27,6 +27,7 @@ export default function AdminPackagesPage() {
     description: '',
     price: '',
     status: 'active',
+    image_url: "",
   });
 
   /* ======================
@@ -102,6 +103,7 @@ export default function AdminPackagesPage() {
       description: '',
       price: '',
       status: 'active',
+      image_url: '',
     });
     setShowModal(true);
   };
@@ -114,6 +116,7 @@ export default function AdminPackagesPage() {
       description: pkg.description ?? '',
       price: pkg.price,
       status: pkg.status,
+      image_url: pkg.image_url ?? '', // ✅ โหลดรูปเดิม
     });
     setShowModal(true);
   };
@@ -130,6 +133,7 @@ export default function AdminPackagesPage() {
       description: formData.description,
       price: parseInt(formData.price, 10),
       status: formData.status,
+      image_url: formData.image_url,
     };
 
     if (Number.isNaN(payload.price)) {
@@ -185,6 +189,49 @@ export default function AdminPackagesPage() {
     } catch (err) {
       console.error(err);
       swalError('ลบไม่สำเร็จ');
+    }
+  };
+
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+  const handleUploadImage = async (file) => {
+    if (!file) return;
+
+    // ✅ ตรวจชนิดไฟล์
+    if (!file.type.startsWith("image/")) {
+      swalError("กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น");
+      return;
+    }
+
+    // ✅ ตรวจขนาดไฟล์ (20 MB)
+    if (file.size > MAX_FILE_SIZE) {
+      swalError("ขนาดไฟล์ต้องไม่เกิน 20 MB");
+      return;
+    }
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+
+      const res = await fetch("/api/admin/packages/upload", {
+        method: "POST",
+        body: form,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        image_url: data.url,
+      }));
+
+      swalSuccess("อัปโหลดรูปสำเร็จ");
+    } catch (err) {
+      console.error(err);
+      swalError("อัปโหลดรูปไม่สำเร็จ");
     }
   };
 
@@ -319,7 +366,7 @@ export default function AdminPackagesPage() {
           onClick={() => setShowModal(false)}
         >
           <div 
-            className="bg-white rounded-lg w-full max-w-lg p-6"
+            className=" bg-white rounded-lg w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold mb-4">
@@ -370,6 +417,62 @@ export default function AdminPackagesPage() {
                 }
                 className="border w-full px-3 py-2 rounded"
               />
+
+              {/* Upload file  */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Package Image
+                </label>
+
+                {/* Upload Area */}
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleUploadImage(e.target.files[0])}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                  >
+                    <svg
+                      className="w-8 h-8 text-gray-400 mb-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    <span className="text-sm text-gray-600">Click to upload image</span>
+                    <span className="text-xs text-gray-500 mt-1">Max size: 20 MB</span>
+                  </label>
+                </div>
+
+                {/* Preview */}
+                {formData.image_url && (
+                  <div className="relative inline-block">
+                    <img
+                      src={formData.image_url}
+                      alt="preview"
+                      className="w-40 h-40 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, image_url: '' })}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <select
                 value={formData.status}

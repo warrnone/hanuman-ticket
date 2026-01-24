@@ -15,6 +15,7 @@ export async function PATCH(req, { params }) {
       price: body.price != null ? parseInt(body.price, 10) : undefined,
       status: body.status,
       category_id: body.category_id,
+      image_url : body.image_url ?? null,
     };
 
     if (payload.price != null && Number.isNaN(payload.price)) {
