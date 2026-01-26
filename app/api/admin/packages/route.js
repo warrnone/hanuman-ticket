@@ -14,6 +14,7 @@ export async function GET() {
         description,
         price,
         status,
+        image_url,
         category_id,
         categories (
           id,
@@ -54,6 +55,7 @@ export async function POST(req) {
       description: body.description ?? null,
       price: parseInt(body.price, 10),
       status: body.status ?? "active",
+      image_url: body.image_url ?? null, // ✅ เพิ่ม image_url
     };
 
     if (Number.isNaN(payload.price)) {
