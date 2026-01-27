@@ -82,6 +82,10 @@ export default function SalePage() {
     return item.type === "PHOTO" || item.type === "VIDEO";
   });
 
+  const hasPhotoVideo = (currentActivity?.items || []).some(
+     (item) => item.type === "PHOTO" || item.type === "VIDEO"
+  );
+
   /* ========================= LOGOUT ========================= */
   const logout = async () => {
     const result = await swalConfirm(
@@ -159,30 +163,32 @@ export default function SalePage() {
             </select>
           </div>
 
-          {/* MODE TABS */}
-          <div className="flex bg-white border-b">
-            <button
-              className={`flex-1 lg:flex-none px-4 lg:px-6 py-3 font-medium text-sm lg:text-base ${
-                selectedMode === "PACKAGE"
-                  ? "border-b-2 border-orange-500 text-orange-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setSelectedMode("PACKAGE")}
-            >
-              📦 Packages
-            </button>
+          {/* 👉 MODE TABS - แสดงเฉพาะเมื่อมี Photo/Video */}
+          {hasPhotoVideo && (
+            <div className="flex bg-white border-b">
+              <button
+                className={`flex-1 lg:flex-none px-4 lg:px-6 py-3 font-medium text-sm lg:text-base ${
+                  selectedMode === "PACKAGE"
+                    ? "border-b-2 border-orange-500 text-orange-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setSelectedMode("PACKAGE")}
+              >
+                📦 Packages
+              </button>
 
-            <button
-              className={`flex-1 lg:flex-none px-4 lg:px-6 py-3 font-medium text-sm lg:text-base ${
-                selectedMode === "PHOTO_VIDEO"
-                  ? "border-b-2 border-orange-500 text-orange-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setSelectedMode("PHOTO_VIDEO")}
-            >
-              📷 Photo & Video
-            </button>
-          </div>
+              <button
+                className={`flex-1 lg:flex-none px-4 lg:px-6 py-3 font-medium text-sm lg:text-base ${
+                  selectedMode === "PHOTO_VIDEO"
+                    ? "border-b-2 border-orange-500 text-orange-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setSelectedMode("PHOTO_VIDEO")}
+              >
+                📷 Photo & Video
+              </button>
+            </div>
+          )}
 
           {/* PRODUCT GRID */}
           <ProductGrid
