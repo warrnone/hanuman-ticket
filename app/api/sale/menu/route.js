@@ -22,7 +22,7 @@ export async function GET() {
     const { data: packages, error: pkgError } =
       await supabaseAdmin
         .from("packages")
-        .select("id, name, price, category_id")
+        .select("id, name, price, category_id , image_url")
         .eq("status", "active");
 
     if (pkgError) throw pkgError;
@@ -60,7 +60,7 @@ export async function GET() {
           name: p.name,
           price: p.price,
           type: "PACKAGE",
-          image: "📦",
+          image: p.image_url ?? null,
           description: "",
         }));
 

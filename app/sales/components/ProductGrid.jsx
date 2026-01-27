@@ -15,8 +15,16 @@ export default function ProductGrid({ title, items, onAdd }) {
               onClick={() => onAdd(item)}
               className="bg-white rounded-xl shadow hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-orange-500"
             >
-              <div className="aspect-square bg-orange-100 flex items-center justify-center text-6xl">
-                {item.image}
+              <div className="aspect-square bg-orange-100 flex items-center justify-center">
+                {typeof item.image === "string" && item.image.startsWith("http") ? (
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-full object-cover rounded-t-xl"
+                  />
+                ) : (
+                  <span className="text-6xl">{item.image}</span>
+                )}
               </div>
               <div className="p-4">
                 <h3 className="font-bold text-sm">{item.name}</h3>
