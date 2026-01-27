@@ -8,59 +8,44 @@ import CartPanel from "./components/CartPanel";
 import SurveyModal from "./components/SurveyModal";
 import LoadingOverlay from "./components/LoadingOverlay";
 import { swalSuccess, swalConfirm } from "@/app/components/Swal";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function SalePage() {
-
   const router = useRouter();
-  const pathname = usePathname();
 
-  /* =========================
-     STATE
-  ========================= */
+  /* ========================= STATE ========================= */
   const [menu, setMenu] = useState([]);
-
-  // activity = Zipline / Luge / Roller / Sling Shot
   const [selectedActivity, setSelectedActivity] = useState(null);
-
-  // PACKAGE | PHOTO_VIDEO
   const [selectedMode, setSelectedMode] = useState("PACKAGE");
-
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [showSurvey, setShowSurvey] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  
+  // 👉 เพิ่ม state สำหรับ toggle cart บน tablet/mobile
+  const [showCart, setShowCart] = useState(false);
 
   const loadMenu = async () => {
     try {
       setLoading(true);
-
       const res = await fetch("/api/sale/menu");
       const json = await res.json();
-
       setMenu(json.data || []);
-
       if (json.data && json.data.length > 0) {
         setSelectedActivity(json.data[0].name);
       }
     } catch (err) {
       console.error("Load sale menu error:", err);
     } finally {
-      setLoading(false); // ✅ ถูกต้อง
+      setLoading(false);
     }
   };
 
-  /* =========================
-     LOAD SALE MENU
-  ========================= */
   useEffect(() => {
     loadMenu();
   }, []);
 
-  /* =========================
-     CART LOGIC
-  ========================= */
+  /* ========================= CART LOGIC ========================= */
   const addToCart = (item) => {
     const found = cart.find((c) => c.id === item.id);
     if (found) {
@@ -88,13 +73,8 @@ export default function SalePage() {
     setCart(cart.filter((i) => i.id !== id));
   };
 
-  /* =========================
-     CURRENT ACTIVITY + ITEMS
-  ========================= */
-  const currentActivity = menu.find(
-    (c) => c.name === selectedActivity
-  );
-
+  /* ========================= CURRENT ACTIVITY + ITEMS ========================= */
+  const currentActivity = menu.find((c) => c.name === selectedActivity);
   const items = (currentActivity?.items || []).filter((item) => {
     if (selectedMode === "PACKAGE") {
       return item.type === "PACKAGE";
@@ -102,20 +82,15 @@ export default function SalePage() {
     return item.type === "PHOTO" || item.type === "VIDEO";
   });
 
-
-  /* ===============================
-    LOGOUT
-  =============================== */
+  /* ========================= LOGOUT ========================= */
   const logout = async () => {
     const result = await swalConfirm(
       "ออกจากระบบ?",
       "คุณต้องการออกจากระบบใช่หรือไม่"
     );
-
     if (!result.isConfirmed) return;
 
     try {
-      // 👉 ถ้ายังไม่มี api/logout ให้เปลี่ยนเป็น /api/admin/logout
       await fetch("/api/logout", { method: "POST" });
     } catch (e) {
       console.error("logout error", e);
@@ -123,14 +98,11 @@ export default function SalePage() {
 
     localStorage.removeItem("user");
     localStorage.removeItem("role");
-
     swalSuccess("ออกจากระบบแล้ว");
     router.replace("/login");
   };
 
-  /* =========================
-     TOTALS
-  ========================= */
+  /* ========================= TOTALS ========================= */
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
@@ -142,34 +114,55 @@ export default function SalePage() {
   return (
     <>
       {loading && <LoadingOverlay />}
-      <div className="flex h-screen bg-gray-100">
-        {/* =========================
-            LEFT: ACTIVITY SIDEBAR
-        ========================= */}
-        <CategorySidebar
-          categories={menu.map((c) => c.name)}
-          selected={selectedActivity}
-          onSelect={(name) => {
-            setSelectedActivity(name);
-            setSelectedMode("PACKAGE"); // reset mode ทุกครั้ง
-          }}
-          onLogout={logout}
-        />
+      <div className="flex h-screen bg-gray-100 overflow-hidden">
+        {/* ========================= LEFT: ACTIVITY SIDEBAR ========================= */}
+        {/* 👉 ซ่อน sidebar บน tablet/mobile, แสดงเฉพาะ desktop */}
+        <div className="hidden lg:block">
+          <CategorySidebar
+            categories={menu.map((c) => c.name)}
+            selected={selectedActivity}
+            onSelect={(name) => {
+              setSelectedActivity(name);
+              setSelectedMode("PACKAGE");
+            }}
+            onLogout={logout}
+          />
+        </div>
 
-        {/* =========================
-            CENTER: CONTENT
-        ========================= */}
-        <div className="flex-1 flex flex-col">
+        {/* ========================= CENTER: CONTENT ========================= */}
+        <div className="flex-1 flex flex-col min-w-0">
           <TopBar
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
             cart={cart}
+            onCartClick={() => setShowCart(!showCart)} // 👉 เพิ่ม prop
+            onLogout={logout}
           />
+
+          {/* 👉 Dropdown สำหรับเลือก Activity บน tablet/mobile */}
+          <div className="lg:hidden px-4 py-3 bg-white border-b">
+            <select
+              value={selectedActivity || ""}
+              onChange={(e) => {
+                setSelectedActivity(e.target.value);
+                setSelectedMode("PACKAGE");
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-base"
+            >
+              {menu
+                .filter((c) => c.name !== "Photo & Video")
+                .map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+          </div>
 
           {/* MODE TABS */}
           <div className="flex bg-white border-b">
             <button
-              className={`px-6 py-3 font-medium ${
+              className={`flex-1 lg:flex-none px-4 lg:px-6 py-3 font-medium text-sm lg:text-base ${
                 selectedMode === "PACKAGE"
                   ? "border-b-2 border-orange-500 text-orange-600"
                   : "text-gray-500 hover:text-gray-700"
@@ -180,7 +173,7 @@ export default function SalePage() {
             </button>
 
             <button
-              className={`px-6 py-3 font-medium ${
+              className={`flex-1 lg:flex-none px-4 lg:px-6 py-3 font-medium text-sm lg:text-base ${
                 selectedMode === "PHOTO_VIDEO"
                   ? "border-b-2 border-orange-500 text-orange-600"
                   : "text-gray-500 hover:text-gray-700"
@@ -196,32 +189,53 @@ export default function SalePage() {
             title={selectedActivity}
             items={items}
             onAdd={(item) => {
-              // ตอนนี้ยังให้ add ได้เหมือนเดิม
-              // (Photo/Video จะไปต่อด้วย Pax Modal ภายหลัง)
               addToCart(item);
+              // 👉 เปิด cart panel อัตโนมัติบน tablet เมื่อเพิ่มสินค้า
+              if (window.innerWidth < 1024) {
+                setShowCart(true);
+              }
             }}
           />
         </div>
 
-        {/* =========================
-            RIGHT: CART
-        ========================= */}
-        <CartPanel
-          cart={cart}
-          paymentMethod={paymentMethod}
-          subtotal={subtotal}
-          discount={discount}
-          tax={tax}
-          total={total}
-          onQty={updateQuantity}
-          onRemove={removeFromCart}
-          onCheckout={() => setShowSurvey(true)}
-          onClear={() => setCart([])}
-        />
+        {/* ========================= RIGHT: CART ========================= */}
+        {/* 👉 Desktop: แสดงตลอด, Tablet/Mobile: แสดงเป็น overlay เมื่อ showCart = true */}
+        <div
+          className={`
+            fixed lg:relative
+            inset-y-0 right-0
+            w-full sm:w-96 lg:w-80 xl:w-96
+            bg-white
+            transform transition-transform duration-300 ease-in-out
+            lg:transform-none
+            z-40
+            ${showCart ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
+          `}
+        >
+          <CartPanel
+            cart={cart}
+            paymentMethod={paymentMethod}
+            subtotal={subtotal}
+            discount={discount}
+            tax={tax}
+            total={total}
+            onQty={updateQuantity}
+            onRemove={removeFromCart}
+            onCheckout={() => setShowSurvey(true)}
+            onClear={() => setCart([])}
+            onClose={() => setShowCart(false)} // 👉 เพิ่ม prop สำหรับปิด cart บน mobile
+          />
+        </div>
 
-        {/* =========================
-            SURVEY / CHECKOUT
-        ========================= */}
+        {/* 👉 Overlay สำหรับ mobile/tablet */}
+        {showCart && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+            onClick={() => setShowCart(false)}
+          />
+        )}
+
+        {/* ========================= SURVEY / CHECKOUT ========================= */}
         {showSurvey && (
           <SurveyModal
             cart={cart}

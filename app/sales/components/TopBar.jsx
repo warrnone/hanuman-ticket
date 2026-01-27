@@ -1,35 +1,132 @@
 "use client";
 
-export default function TopBar({ paymentMethod, setPaymentMethod, cart }) {
-  const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+
+export default function TopBar({ paymentMethod, setPaymentMethod, cart, onCartClick, onLogout }) {
+  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  /* ========================= SETTINGS DROPDOWN STATE ========================= */
+  const [openMenu, setOpenMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
-    <div className="bg-white p-4 shadow-sm border-b flex justify-between items-center">
-      <div className="relative max-w-md w-full">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">
-          🔍
-        </span>
-        <input
-          type="text"
-          placeholder="Search packages..."
-          className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
-        />
+    <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+      {/* Left: Logo & Title (แสดงบน tablet/mobile) */}
+      <div className="flex items-center gap-3 lg:hidden">
+        <Link
+          href="/sales"
+          className="flex items-center gap-2 hover:opacity-90 transition"
+        >
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow">
+            <Image
+              src="/hanuman-logo.jpg"
+              alt="Hanuman Ticket"
+              width={36}
+              height={36}
+              className="rounded-lg"
+              priority
+            />
+          </div>
+
+          <div className="hidden md:block text-sm leading-tight">
+            <div className="font-bold">Hanuman Ticket</div>
+            <div className="text-xs opacity-80">POS GRA</div>
+          </div>
+        </Link>
       </div>
 
-      <div className="flex items-center gap-3 ml-4">
+      {/* Center/Left: Payment Method */}
+      <div className="hidden sm:flex items-center gap-2">
+        <span className="text-sm text-gray-600">Payment:</span>
         <select
           value={paymentMethod}
           onChange={(e) => setPaymentMethod(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
+          className="px-3 py-1.5 border border-gray-300 rounded text-sm"
         >
           <option value="CASH">💵 CASH</option>
           <option value="CARD">💳 CARD</option>
-          <option value="QR">📱 QR PAY</option>
+          <option value="PROMPTPAY">📱 PROMPTPAY</option>
         </select>
+      </div>
 
-        <div className="bg-orange-100 px-3 py-1 rounded-full text-sm font-medium">
-          🛒 {totalItems} items
+      {/* Right: Menu (tablet/mobile only) */}
+      <div className="lg:hidden flex items-center gap-2">
+        {/* Settings Menu Dropdown */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setOpenMenu(!openMenu)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            aria-label="Menu"
+          >
+            <span className="text-2xl">⚙️</span>
+          </button>
+
+          {/* Dropdown Menu */}
+          {openMenu && (
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl overflow-hidden z-50 border border-gray-200">
+              <button
+                onClick={() => {
+                  setOpenMenu(false);
+                  window.location.href = "/sales/settings/pin";
+                }}
+                className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition flex items-center gap-3"
+              >
+                <span>🔢</span>
+                <span>Change PIN</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setOpenMenu(false);
+                  window.location.href = "/sales/settings/password";
+                }}
+                className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition flex items-center gap-3"
+              >
+                <span>🔐</span>
+                <span>Change Password</span>
+              </button>
+
+              <div className="border-t border-gray-200"></div>
+
+              <button
+                onClick={() => {
+                  setOpenMenu(false);
+                  onLogout();
+                }}
+                className="block w-full text-left px-4 py-3 text-sm hover:bg-red-50 text-red-600 transition flex items-center gap-3"
+              >
+                <span>🚪</span>
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Cart Button */}
+        <button
+          onClick={onCartClick}
+          className="relative px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center gap-2 transition"
+        >
+          <span>🛒</span>
+          <span className="hidden sm:inline">Cart</span>
+          {itemCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+              {itemCount}
+            </span>
+          )}
+        </button>
       </div>
     </div>
   );
