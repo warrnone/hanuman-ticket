@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-export default function TopBar({ paymentMethod, setPaymentMethod, cart, onCartClick, onLogout }) {
+export default function TopBar({  cart, onCartClick, onLogout }) {
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   /* ========================= SETTINGS DROPDOWN STATE ========================= */
@@ -47,20 +47,6 @@ export default function TopBar({ paymentMethod, setPaymentMethod, cart, onCartCl
         </Link>
       </div>
 
-      {/* Center/Left: Payment Method */}
-      <div className="hidden sm:flex items-center gap-2">
-        <span className="text-sm text-gray-600">Payment:</span>
-        <select
-          value={paymentMethod}
-          onChange={(e) => setPaymentMethod(e.target.value)}
-          className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-        >
-          <option value="CASH">💵 CASH</option>
-          <option value="CARD">💳 CARD</option>
-          <option value="PROMPTPAY">📱 PROMPTPAY</option>
-        </select>
-      </div>
-
       {/* Right: Menu (tablet/mobile only) */}
       <div className="lg:hidden flex items-center gap-2">
         {/* Settings Menu Dropdown */}
@@ -76,17 +62,6 @@ export default function TopBar({ paymentMethod, setPaymentMethod, cart, onCartCl
           {/* Dropdown Menu */}
           {openMenu && (
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl overflow-hidden z-50 border border-gray-200">
-              <button
-                onClick={() => {
-                  setOpenMenu(false);
-                  window.location.href = "/sales/settings/pin";
-                }}
-                className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition flex items-center gap-3"
-              >
-                <span>🔢</span>
-                <span>Change PIN</span>
-              </button>
-
               <button
                 onClick={() => {
                   setOpenMenu(false);

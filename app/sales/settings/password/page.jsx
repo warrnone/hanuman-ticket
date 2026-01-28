@@ -120,7 +120,7 @@ export default function ChangePasswordPage() {
         return;
       }
 
-      setSuccess("เปลี่ยนรหัสผ่านสำเร็จ กำลังออกจากระบบ...");
+      setSuccess("Password changed successfully. Logging out...");
 
       await fetch("/api/logout", { method: "POST" });
       localStorage.clear();
@@ -148,12 +148,12 @@ export default function ChangePasswordPage() {
         {/* HEADER */}
         <div className="mb-6 text-center">
           <h1 className="text-xl font-semibold text-gray-800 dark:text-white">
-            🔐 ตั้งรหัสผ่านใหม่
+            🔐 Set a new password
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             {step === 1
-              ? "กรอกรหัสผ่านใหม่ 6 หลัก"
-              : "กรอกรหัสผ่านอีกครั้งเพื่อยืนยัน"}
+              ? "Set a 6-digit passcode"
+              : "Confirm your password"}
           </p>
         </div>
 

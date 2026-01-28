@@ -3,7 +3,6 @@
 import CartItem from "./CartItem";
 
 export default function CartPanel({cart,
-  paymentMethod,
   subtotal,
   discount,
   tax,
@@ -19,7 +18,7 @@ export default function CartPanel({cart,
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between">
         <h2 className="font-bold text-lg">
-          🧾 Cart ({paymentMethod})
+          🧾 Cart 
         </h2>
         {/* ปุ่ม Close สำหรับ mobile/tablet */}
         {onClose && (
@@ -58,14 +57,14 @@ export default function CartPanel({cart,
             <span>Subtotal</span>
             <span>฿{subtotal.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-sm text-green-600">
+          {/* <div className="flex justify-between text-sm text-green-600">
             <span>Discount</span>
             <span>-฿{discount.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span>VAT</span>
             <span>฿{tax.toFixed(2)}</span>
-          </div>
+          </div> */}
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
             <span className="text-orange-600">

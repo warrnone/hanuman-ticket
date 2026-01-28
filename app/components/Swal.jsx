@@ -35,9 +35,9 @@ export const swalConfirm = (title, text = "") => {
     title,
     text,
     showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "ยืนยัน",
-    cancelButtonText: "ยกเลิก",
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Confirm",
+    cancelButtonText: "Cancel",
   });
 };

@@ -162,13 +162,6 @@
               `}
             >
               <button
-                onClick={() => router.push("/sales/settings/pin")}
-                className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-100"
-              >
-                🔢 Change PIN
-              </button>
-
-              <button
                 onClick={() => router.push("/sales/settings/password")}
                 className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-100"
               >

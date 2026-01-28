@@ -19,6 +19,9 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState(null);
+  const [remember , setRemember] = useState(false);
+
+  const savedLogin = JSON.parse(localStorage.getItem("remember_login") || "null");
 
   // ======================
   // CHECK ROLE (ต้องเลือก role มาก่อน)
@@ -30,6 +33,11 @@ export default function LoginPage() {
       return;
     }
     setRole(storedRole);
+
+    if (savedLogin?.username && savedLogin?.role === storedRole) {
+      setUsername(savedLogin.username);
+      setRemember(true);
+    }
   }, [router]);
 
   // ======================
@@ -47,6 +55,16 @@ export default function LoginPage() {
         role, // "admin" | "sales"
       });
 
+      // 👉 REMEMBER LOGIN (username + role เท่านั้น)
+      if (remember) {
+        localStorage.setItem(
+          "remember_login",
+          JSON.stringify({ username, role })
+        );
+      } else {
+        localStorage.removeItem("remember_login");
+      }
+
       // ✅ cookie ถูกตั้งโดย API แล้ว
       if (role === "admin") {
         router.replace("/admin");
@@ -58,6 +76,7 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
 
   // ======================
   // UI
@@ -119,6 +138,19 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           disabled={loading}
         />
+
+
+        <div className="flex items-center gap-2 mb-4">
+          <input
+            type="checkbox"
+            id="remember"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <label htmlFor="remember" className="text-sm text-gray-600">
+            Remember me
+          </label>
+        </div>
 
         {/* ERROR */}
         {error && (

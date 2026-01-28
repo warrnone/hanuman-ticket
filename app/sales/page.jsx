@@ -18,7 +18,6 @@ export default function SalePage() {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedMode, setSelectedMode] = useState("PACKAGE");
   const [cart, setCart] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [showSurvey, setShowSurvey] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -89,8 +88,8 @@ export default function SalePage() {
   /* ========================= LOGOUT ========================= */
   const logout = async () => {
     const result = await swalConfirm(
-      "ออกจากระบบ?",
-      "คุณต้องการออกจากระบบใช่หรือไม่"
+      "Logout?",
+      "Are you sure you want to log out?"
     );
     if (!result.isConfirmed) return;
 
@@ -102,18 +101,27 @@ export default function SalePage() {
 
     localStorage.removeItem("user");
     localStorage.removeItem("role");
-    swalSuccess("ออกจากระบบแล้ว");
+    swalSuccess("Logged out successfully");
     router.replace("/login");
   };
+
+  /* ========================= TOTALS vat , discount ========================= */
+  // const subtotal = cart.reduce(
+  //   (sum, item) => sum + item.price * item.quantity,
+  //   0
+  // );
+  // const discount = subtotal * 0.05;
+  // const tax = (subtotal - discount) * 0.07;
+  // const total = subtotal - discount + tax;
 
   /* ========================= TOTALS ========================= */
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const discount = subtotal * 0.05;
-  const tax = (subtotal - discount) * 0.07;
-  const total = subtotal - discount + tax;
+  const discount = 0;
+  const tax = 0;
+  const total = subtotal;
 
   return (
     <>
@@ -136,8 +144,6 @@ export default function SalePage() {
         {/* ========================= CENTER: CONTENT ========================= */}
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar
-            paymentMethod={paymentMethod}
-            setPaymentMethod={setPaymentMethod}
             cart={cart}
             onCartClick={() => setShowCart(!showCart)} // 👉 เพิ่ม prop
             onLogout={logout}
@@ -220,7 +226,6 @@ export default function SalePage() {
         >
           <CartPanel
             cart={cart}
-            paymentMethod={paymentMethod}
             subtotal={subtotal}
             discount={discount}
             tax={tax}
