@@ -21,8 +21,6 @@ export default function LoginPage() {
   const [role, setRole] = useState(null);
   const [remember , setRemember] = useState(false);
 
-  const savedLogin = JSON.parse(localStorage.getItem("remember_login") || "null");
-
   // ======================
   // CHECK ROLE (ต้องเลือก role มาก่อน)
   // ======================
@@ -32,13 +30,18 @@ export default function LoginPage() {
       router.replace("/"); // หน้าเลือก role
       return;
     }
+
     setRole(storedRole);
+
+    // ✅ อ่าน localStorage หลัง mount
+    const savedLogin = JSON.parse(localStorage.getItem("remember_login") || "null");
 
     if (savedLogin?.username && savedLogin?.role === storedRole) {
       setUsername(savedLogin.username);
       setRemember(true);
     }
   }, [router]);
+
 
   // ======================
   // LOGIN HANDLER
@@ -76,7 +79,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
 
   // ======================
   // UI
