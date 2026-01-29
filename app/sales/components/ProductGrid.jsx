@@ -24,7 +24,7 @@ export default function ProductGrid({ title, items, onAdd }) {
               `}
             >
               {/* IMAGE */}
-              <div className="aspect-[3/4] bg-black flex items-center justify-center rounded-t-2xl overflow-hidden">
+              <div className="aspect-[3/4] bg-gray-100 flex items-center justify-center rounded-t-2xl overflow-hidden">
                 {typeof item.image === "string" && item.image.startsWith("http") ? (
                   <img
                     src={item.image}

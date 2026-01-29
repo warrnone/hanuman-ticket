@@ -143,7 +143,8 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex justify-center pt-16 px-4">
-      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-lg border dark:border-gray-700 p-6">
+      <div className="w-full max-w-md bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+
 
         {/* HEADER */}
         <div className="mb-6 text-center">
