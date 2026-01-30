@@ -1,6 +1,28 @@
 "use client";
 
 export default function SurveyModal({ cart, total, onClose, onComplete }) {
+
+  const onComplete = async () => {
+    const res = await fetch("/api/sales/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: cart.map(i => ({
+          item_id: i.id,
+          item_type: i.type,       // package / photo / video
+          item_code: i.code,       // code ของฝั่งระบบเค้า
+          item_name: i.name,
+          price: i.price,
+          quantity: i.quantity
+        }))
+      })
+    });
+
+    const data = await res.json();
+
+    // data.order_code เอาไปโชว์ให้ลูกค้า
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl max-w-xl w-full p-6">
