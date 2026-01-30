@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { swalSuccess , swalError} from "../../../components/Swal";
 
 
 const LENGTH = 6;
@@ -115,12 +116,12 @@ export default function ChangePasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "เปลี่ยนรหัสผ่านไม่สำเร็จ");
+        swalError(data.error || "เปลี่ยนรหัสผ่านไม่สำเร็จ");
         setLoading(false);
         return;
       }
 
-      setSuccess("Password changed successfully. Logging out...");
+      swalSuccess("Password changed successfully. Logging out...");
 
       await fetch("/api/logout", { method: "POST" });
       localStorage.clear();
@@ -129,7 +130,7 @@ export default function ChangePasswordPage() {
         router.replace("/login");
       }, 1500);
     } catch {
-      setError("เกิดข้อผิดพลาดของระบบ");
+      swalError("เกิดข้อผิดพลาดของระบบ");
       setLoading(false);
     }
   };

@@ -7,7 +7,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-prompt)"],
+        sans: ["var(--font-prompt)", "sans-serif"], // หรือ --font-inter
         mono: ["var(--font-mono)"],
       },
     },
@@ -15,4 +15,3 @@ module.exports = {
   plugins: [],
   darkMode: "class",
 }
-
