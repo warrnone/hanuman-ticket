@@ -39,7 +39,7 @@ export async function POST(req) {
       (ใช้ username เป็นรหัสพนักงาน)
     ===================================== */
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
 
     // ❗สมมติว่าตอน login คุณ set cookie เป็น user_id ไว้แล้ว
     const staffId = cookieStore.get("user_id")?.value;
@@ -105,7 +105,7 @@ export async function POST(req) {
         .insert({
           order_code: orderCode,
           staff_id: staff.id,
-          staff_code: staffCode,   // ← ใช้ username ตรงนี้
+          staff_code: staffCode,
           total_amount: totalAmount,
           status: "pending",
         })
@@ -165,7 +165,67 @@ export async function POST(req) {
     }
 
     /* =====================================
-      5. response
+      5. send to Hanuman API
+    ===================================== */
+
+    let externalRef = null;
+
+    try {
+
+      const hanumanRes = await fetch(
+        process.env.HANUMAN_API_URL,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.HANUMAN_API_KEY}`,
+          },
+          body: JSON.stringify({
+            order_code: orderRow.order_code,
+            staff_code: staffCode,
+            total_amount: totalAmount,
+            items: orderItemsPayload.map(i => ({
+              item_code: i.item_code,
+              item_name: i.item_name,
+              price: i.price,
+              quantity: i.quantity,
+            })),
+          }),
+        }
+      );
+
+      const hanumanData = await hanumanRes.json();
+
+      if (!hanumanRes.ok) {
+        throw new Error(hanumanData?.error || "Hanuman API failed");
+      }
+
+      externalRef = hanumanData?.ref ?? null;
+
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          status: "sent",
+          external_ref: externalRef,
+          error_message: null,
+        })
+        .eq("id", orderRow.id);
+
+    } catch (err) {
+
+      console.error("Hanuman API error:", err);
+
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          status: "error",
+          error_message: err.message,
+        })
+        .eq("id", orderRow.id);
+    }
+
+    /* =====================================
+      6. response
     ===================================== */
 
     return NextResponse.json({
@@ -175,7 +235,7 @@ export async function POST(req) {
     });
 
   } catch (err) {
-    console.error("POST /api/sales/orders error:", err);
+    console.error("POST /api/sale/orders error:", err);
 
     return NextResponse.json(
       { error: err.message || "Internal server error" },

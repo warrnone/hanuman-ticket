@@ -1,5 +1,5 @@
 export async function createOrder(cart) {
-  const res = await fetch("/api/sales/orders", {
+  const res = await fetch("/api/sale/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -13,6 +13,16 @@ export async function createOrder(cart) {
       }))
     })
   });
+
+  // 🔴 ถ้า session หมดอายุ
+  if (res.status === 401) {
+    // เคลียร์ role ที่คุณเคยเก็บไว้
+    localStorage.removeItem("role");
+
+    // เด้งไปหน้าเลือก role / login
+    window.location.href = "/";
+    return;
+  }
 
   const data = await res.json();
 
