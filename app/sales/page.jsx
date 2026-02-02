@@ -106,22 +106,14 @@ export default function SalePage() {
   };
 
   /* ========================= TOTALS vat , discount ========================= */
-  // const subtotal = cart.reduce(
-  //   (sum, item) => sum + item.price * item.quantity,
-  //   0
-  // );
-  // const discount = subtotal * 0.05;
-  // const tax = (subtotal - discount) * 0.07;
-  // const total = subtotal - discount + tax;
-
-  /* ========================= TOTALS ========================= */
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const discount = 0;
-  const tax = 0;
-  const total = subtotal;
+  const discount = subtotal * 0.05;
+  const tax = (subtotal - discount) * 0.07;
+  const total = subtotal - discount + tax;
+
 
   return (
     <>
