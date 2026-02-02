@@ -1,8 +1,12 @@
-export async function createOrder(cart) {
+export async function createOrder(cart , survey) {
   const res = await fetch("/api/sale/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      guest_name: survey.guest_name,
+      service_date: survey.service_date,
+      adult_count: survey.adult_count,
+      child_count: survey.child_count,
       items: cart.map(i => ({
         item_id: i.id,
         item_type: i.type,     // package | photo | video

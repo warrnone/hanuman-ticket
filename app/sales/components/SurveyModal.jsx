@@ -2,26 +2,47 @@
 
 import { useState } from "react";
 import { createOrder } from "../lib/createOrder";
+import {swalSuccess , swalError} from "../../components/Swal";
 
 export default function SurveyModal({ cart, total, onClose, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [orderCode, setOrderCode] = useState(null);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [serviceDate, setServiceDate] = useState("");
+  const [adult, setAdult] = useState(1);
+  const [child, setChild] = useState(0);
+
 
   const handleComplete = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const data = await createOrder(cart);
+      if(!serviceDate){
+        setError("Please Select service date");
+        return;
+      }
+
+      const data = await createOrder(cart,{
+        guest_name: guestName || "Walk-in",
+        service_date: serviceDate,
+        adult_count: adult,
+        child_count: child
+      });
       if (!data) return;
 
-      setOrderCode(data.order_code);
-      setShowSuccess(true);
+      // แสดง success message
+      await swalSuccess(`Order Completed!\nOrder Code: ${data.order_code}`);
+      
+      // ปิด modal
+      onClose();
+      
+      // เรียก callback ถ้ามี
+      onComplete?.();
 
     } catch (err) {
       setError(err.message);
+      swalError(err.message);
     } finally {
       setLoading(false);
     }
@@ -36,6 +57,55 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
           <h2 className="text-xl font-bold mb-4 text-center">
             Customer Information
           </h2>
+
+          <div className="space-y-3 mb-4">
+            <div>
+              <label className="text-sm font-medium"><span className="text-red-600">*</span> Guest / Group name</label>
+              <input
+                type="text"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="Name"
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Service date</label>
+              <input
+                type="date"
+                value={serviceDate}
+                onChange={(e) => setServiceDate(e.target.value)}
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-sm font-medium">Adult</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={adult}
+                  onChange={(e) => setAdult(Number(e.target.value))}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="flex-1">
+                <label className="text-sm font-medium">Child</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={child}
+                  onChange={(e) => setChild(Number(e.target.value))}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+          </div>
+
 
           <div className="space-y-2 text-sm mb-4">
             {cart.map((i) => (
@@ -80,36 +150,6 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
           </div>
         </div>
       </div>
-
-      {/* Success Modal */}
-      {showSuccess && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full text-center">
-            <h3 className="text-xl font-bold text-green-600 mb-2">
-              ✓ Order Completed!
-            </h3>
-
-            <p className="text-gray-700 mb-4">
-              Order Code
-            </p>
-
-            <div className="text-3xl font-bold tracking-widest text-blue-600 mb-6">
-              {orderCode}
-            </div>
-
-            <button
-              onClick={() => {
-                setShowSuccess(false);
-                onClose();
-                onComplete?.();
-              }}
-              className="w-full bg-blue-600 text-white py-2 rounded font-bold"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

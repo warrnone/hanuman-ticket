@@ -5,6 +5,10 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 /*
   body example
   {
+    guest_name,
+    service_date,
+    adult_count,
+    child_count,
     items: [
       {
         item_id,
@@ -18,14 +22,17 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
   }
 */
 
-function generate4DigitCode() {
-  return Math.floor(1000 + Math.random() * 9000).toString();
-}
-
 export async function POST(req) {
   try {
     const body = await req.json();
-    const items = body.items || [];
+
+    const {
+      items = [],
+      guest_name,
+      service_date,
+      adult_count,
+      child_count,
+    } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -34,14 +41,18 @@ export async function POST(req) {
       );
     }
 
+    if (!service_date) {
+      return NextResponse.json(
+        { error: "Missing service_date" },
+        { status: 400 }
+      );
+    }
+
     /* =====================================
       1. get staff from cookie
-      (ใช้ username เป็นรหัสพนักงาน)
     ===================================== */
 
     const cookieStore = await cookies();
-
-    // ❗สมมติว่าตอน login คุณ set cookie เป็น user_id ไว้แล้ว
     const staffId = cookieStore.get("user_id")?.value;
 
     if (!staffId) {
@@ -72,7 +83,6 @@ export async function POST(req) {
       );
     }
 
-    // ✅ ใช้ username เป็น staff_code
     const staffCode = staff.username;
 
     if (!staffCode) {
@@ -91,39 +101,33 @@ export async function POST(req) {
     }, 0);
 
     /* =====================================
-      3. create order (retry กัน code ชน)
+      3. create order (NO order_code)
     ===================================== */
 
-    let orderRow = null;
-    let lastError = null;
-
-    for (let i = 0; i < 10; i++) {
-      const orderCode = generate4DigitCode();
-
-      const { data, error } = await supabaseAdmin
+    const { data: orderRow, error: orderError } =
+      await supabaseAdmin
         .from("orders")
         .insert({
-          order_code: orderCode,
           staff_id: staff.id,
           staff_code: staffCode,
+
+          guest_name: guest_name || "Walk-in",
+          service_date,
+          adult_count: Number(adult_count) || 0,
+          child_count: Number(child_count) || 0,
+
           total_amount: totalAmount,
-          status: "pending",
+
+          payment_status: "pending",
+          checkin_status: "not_checked_in",
         })
         .select()
         .single();
 
-      if (!error) {
-        orderRow = data;
-        break;
-      }
-
-      lastError = error;
-    }
-
-    if (!orderRow) {
-      console.error("Create order failed:", lastError);
+    if (orderError || !orderRow) {
+      console.error("Create order failed:", orderError);
       return NextResponse.json(
-        { error: "Cannot generate order code" },
+        { error: "Create order failed" },
         { status: 500 }
       );
     }
@@ -152,7 +156,7 @@ export async function POST(req) {
     if (itemsError) {
       console.error("Insert order_items error:", itemsError);
 
-      // rollback
+      // rollback order
       await supabaseAdmin
         .from("orders")
         .delete()
@@ -165,7 +169,7 @@ export async function POST(req) {
     }
 
     /* =====================================
-      5. send to Hanuman API
+      5. send to Partner (Hanuman API)
     ===================================== */
 
     let externalRef = null;
@@ -181,7 +185,11 @@ export async function POST(req) {
             Authorization: `Bearer ${process.env.HANUMAN_API_KEY}`,
           },
           body: JSON.stringify({
-            order_code: orderRow.order_code,
+            external_order_id: orderRow.id,
+            guest_name: orderRow.guest_name,
+            service_date: orderRow.service_date,
+            adult: orderRow.adult_count,
+            child: orderRow.child_count,
             staff_code: staffCode,
             total_amount: totalAmount,
             items: orderItemsPayload.map(i => ({
@@ -205,38 +213,31 @@ export async function POST(req) {
       await supabaseAdmin
         .from("orders")
         .update({
-          status: "sent",
+          payment_status: "pending",
           external_ref: externalRef,
           error_message: null,
         })
         .eq("id", orderRow.id);
 
     } catch (err) {
-
       console.error("Hanuman API error:", err);
-
       await supabaseAdmin
         .from("orders")
         .update({
-          status: "error",
           error_message: err.message,
         })
         .eq("id", orderRow.id);
     }
-
     /* =====================================
       6. response
     ===================================== */
-
     return NextResponse.json({
       success: true,
       order_id: orderRow.id,
-      order_code: orderRow.order_code,
     });
 
   } catch (err) {
     console.error("POST /api/sale/orders error:", err);
-
     return NextResponse.json(
       { error: err.message || "Internal server error" },
       { status: 500 }
