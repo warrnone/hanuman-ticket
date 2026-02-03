@@ -2,21 +2,7 @@
 
 import CartItem from "./CartItem";
 
-export default function CartPanel({cart,
-  subtotal,
-  discount,
-  tax,
-  total,
-  onQty,
-  onRemove,
-  onCheckout,
-  onClear,
-  onClose,
-  discountRate,
-  vatRate,
-  enableDiscount,
-}) {
-
+export default function CartPanel({cart,subtotal,discount,tax,total,onQty,onRemove,onCheckout,onClear,onClose,discountRate,vatRate,enableDiscount,}) {
   const money = (n) =>
     n.toLocaleString("th-TH", {
       minimumFractionDigits: 2,
@@ -25,11 +11,10 @@ export default function CartPanel({cart,
 
   return (
     <div className="flex flex-col h-full w-full bg-white shadow-xl border-l">
-      {/* Header */}
+      {/* ================= HEADER ================= */}
       <div className="p-4 border-b flex items-center justify-between">
-        <h2 className="font-bold text-lg">
-          🧾 Cart 
-        </h2>
+        <h2 className="font-bold text-lg">🧾 Cart</h2>
+
         {/* ปุ่ม Close สำหรับ mobile/tablet */}
         {onClose && (
           <button
@@ -42,7 +27,7 @@ export default function CartPanel({cart,
         )}
       </div>
 
-      {/* Cart Items */}
+      {/* ================= CART ITEMS ================= */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {cart.length === 0 ? (
           <p className="text-gray-400 text-center mt-20">
@@ -60,21 +45,22 @@ export default function CartPanel({cart,
         )}
       </div>
 
-      {/* Summary & Checkout */}
+      {/* ================= SUMMARY ================= */}
       {cart.length > 0 && (
         <div className="border-t p-4 space-y-2 bg-gray-50">
           <div className="flex justify-between text-sm">
             <span>Subtotal</span>
-            <span>{subtotal.toLocaleString()}฿</span>
+            <span>{money(subtotal)}฿</span>
           </div>
 
-          {/* VAT , Discount  */}
+          {/* VAT , Discount */}
           {enableDiscount && (
             <>
               <div className="flex justify-between text-sm text-green-600">
                 <span>Discount {discountRate}%</span>
                 <span>-{money(discount)}฿</span>
               </div>
+
               <div className="flex justify-between text-sm">
                 <span>VAT {vatRate}%</span>
                 <span>{money(tax)}฿</span>
@@ -95,6 +81,7 @@ export default function CartPanel({cart,
           >
             CHECKOUT
           </button>
+
           <button
             onClick={onClear}
             className="w-full bg-gray-200 hover:bg-gray-300 py-2 rounded-lg transition-colors"

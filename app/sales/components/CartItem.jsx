@@ -1,6 +1,26 @@
 "use client";
 
 export default function CartItem({ item, onQty, onRemove }) {
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+
+    // ปล่อยให้ลบค่าในช่องได้ชั่วคราว
+    if (value === "") return;
+
+    const newQty = Number(value);
+
+    if (!Number.isInteger(newQty)) return;
+    if (newQty < 1) return;
+
+    // ใช้ onQty แบบ delta เหมือนเดิม
+    const delta = newQty - item.quantity;
+
+    if (delta !== 0) {
+      onQty(item.id, delta);
+    }
+  };
+
   return (
     <div className="p-4 rounded-lg border hover:border-orange-300 bg-white shadow-sm">
       <div className="flex justify-between mb-2">
@@ -10,6 +30,7 @@ export default function CartItem({ item, onQty, onRemove }) {
             {item.price.toLocaleString()}฿ × {item.quantity}
           </div>
         </div>
+
         <div className="font-bold text-orange-600">
           {(item.price * item.quantity).toLocaleString()}฿
         </div>
@@ -23,7 +44,15 @@ export default function CartItem({ item, onQty, onRemove }) {
           >
             −
           </button>
-          <span className="w-8 text-center">{item.quantity}</span>
+
+          <input
+            type="number"
+            min="1"
+            value={item.quantity}
+            onChange={handleChange}
+            className="w-12 h-8 text-center border rounded text-sm"
+          />
+
           <button
             onClick={() => onQty(item.id, 1)}
             className="w-8 h-8 bg-orange-500 text-white rounded"
@@ -31,7 +60,14 @@ export default function CartItem({ item, onQty, onRemove }) {
             +
           </button>
         </div>
-        <button onClick={() => onRemove(item.id)}>🗑️</button>
+
+        <button
+          onClick={() => onRemove(item.id)}
+          className="text-gray-500 hover:text-red-500"
+          title="Remove"
+        >
+          🗑️
+        </button>
       </div>
     </div>
   );
