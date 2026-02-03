@@ -12,6 +12,8 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
   const [adult, setAdult] = useState(1);
   const [child, setChild] = useState(0);
 
+  console.log(total);
+  
 
   const handleComplete = async () => {
     try {

@@ -48,10 +48,6 @@ export default function SalePage() {
     }
   };
 
-  useEffect(() => {
-    loadPricing();
-  });
-
   const loadMenu = async () => {
     try {
       setLoading(true);
@@ -70,6 +66,7 @@ export default function SalePage() {
 
   useEffect(() => {
     loadMenu();
+    loadPricing();
   }, []);
 
   /* ========================= CART LOGIC ========================= */
