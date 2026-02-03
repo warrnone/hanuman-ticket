@@ -58,7 +58,7 @@ export default function CartPanel({cart,
         <div className="border-t p-4 space-y-2 bg-gray-50">
           <div className="flex justify-between text-sm">
             <span>Subtotal</span>
-            <span>฿{subtotal.toLocaleString()}</span>
+            <span>{subtotal.toLocaleString()}฿</span>
           </div>
 
           {/* VAT , Discount  */}
@@ -66,11 +66,11 @@ export default function CartPanel({cart,
             <>
               <div className="flex justify-between text-sm text-green-600">
                 <span>Discount {discountRate}%</span>
-                <span>-฿{discount.toFixed(2)}</span>
+                <span>-{discount.toFixed(2)}฿</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>VAT {vatRate}%</span>
-                <span>฿{tax.toFixed(2)}</span>
+                <span>{tax.toFixed(2)}฿</span>
               </div>
             </>
           )}
@@ -78,7 +78,7 @@ export default function CartPanel({cart,
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
             <span className="text-orange-600">
-              ฿{total.toFixed(2)}
+              {total.toFixed(2)}฿
             </span>
           </div>
 

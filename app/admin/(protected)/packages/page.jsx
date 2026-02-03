@@ -311,7 +311,7 @@ export default function AdminPackagesPage() {
                 <td className="p-3">{pkg.name}</td>
                 <td className="p-3">{pkg.categories?.name || '-'}</td>
                 <td className="p-3 font-bold text-orange-600">
-                  ฿{pkg.price.toLocaleString()}
+                  {pkg.price.toLocaleString()}฿
                 </td>
                 <td className="p-3">{pkg.status}</td>
                 <td className="p-3">

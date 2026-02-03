@@ -263,7 +263,7 @@ export default function AdminPhotoVideoPage() {
                   </td>
                   <td className="p-3">{rule.pax_min} – {rule.pax_max}</td>
                   <td className="p-3 font-bold text-purple-600">
-                    ฿{Number(rule.price).toLocaleString()}
+                    {Number(rule.price).toLocaleString()}฿
                   </td>
                   <td className="p-3 text-center">
                     <div className="flex gap-3">

@@ -64,7 +64,7 @@ export default function ProductGrid({ title, items, onAdd }) {
                   {/* Price */}
                   <div>
                     <span className="text-orange-600 font-bold text-xl">
-                      ฿{item.price.toLocaleString()}
+                      {item.price.toLocaleString()}฿
                     </span>
                   </div>
 

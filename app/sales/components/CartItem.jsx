@@ -7,11 +7,11 @@ export default function CartItem({ item, onQty, onRemove }) {
         <div>
           <strong className="text-sm">{item.name}</strong>
           <div className="text-xs text-gray-500">
-            ฿{item.price.toLocaleString()} × {item.quantity}
+            {item.price.toLocaleString()}฿ × {item.quantity}
           </div>
         </div>
         <div className="font-bold text-orange-600">
-          ฿{(item.price * item.quantity).toLocaleString()}
+          {(item.price * item.quantity).toLocaleString()}฿
         </div>
       </div>
 

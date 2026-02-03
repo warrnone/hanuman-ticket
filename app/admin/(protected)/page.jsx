@@ -84,7 +84,7 @@ export default function AdminDashboard() {
         <StatCard title="Orders Today" value={stats.ordersToday} emoji="🧾" />
         <StatCard
           title="Revenue Today"
-          value={`฿${stats.revenueToday.toLocaleString()}`}
+          value={`${stats.revenueToday.toLocaleString()}฿`}
           emoji="💰"
         />
       </div>

@@ -81,7 +81,7 @@ export default function SalePage() {
                 </div>
                 <div className="font-medium">{p.name}</div>
                 <div className="text-orange-600 font-bold">
-                  ฿{p.price.toLocaleString()}
+                  {p.price.toLocaleString()}฿
                 </div>
               </button>
             )
@@ -105,7 +105,7 @@ export default function SalePage() {
                 className="flex justify-between border-b pb-2"
               >
                 <span>{item.name}</span>
-                <span>฿{item.price.toLocaleString()}</span>
+                <span>{item.price.toLocaleString()}฿</span>
               </div>
             ))
           )}
@@ -115,7 +115,7 @@ export default function SalePage() {
         <div className="border-t pt-4 space-y-2">
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
-            <span>฿{total.toLocaleString()}</span>
+            <span>{total.toLocaleString()}฿</span>
           </div>
 
           <button className="w-full bg-orange-500 text-white py-3 rounded-xl text-lg font-semibold hover:bg-orange-600">

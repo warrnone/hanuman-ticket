@@ -114,7 +114,7 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
               <div key={i.id} className="flex justify-between">
                 <span>{i.name} × {i.quantity}</span>
                 <span>
-                  ฿{(i.price * i.quantity).toLocaleString()}
+                  {(i.price * i.quantity).toLocaleString()}฿
                 </span>
               </div>
             ))}
@@ -122,7 +122,7 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
             <div className="border-t pt-2 font-bold flex justify-between">
               <span>Total</span>
               <span className="text-blue-600">
-                ฿{total.toFixed(2)}
+                {total.toFixed(2)}฿
               </span>
             </div>
           </div>
