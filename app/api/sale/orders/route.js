@@ -244,3 +244,49 @@ export async function POST(req) {
     );
   }
 }
+/**
+ * 
+ * ✅ สิ่งที่ “ระบบเรา POST ไปหาเค้า”
+
+    Endpoint (ฝั่งเค้า)
+
+    POST <HANUMAN_API_URL>
+    Authorization: Bearer <HANUMAN_API_KEY>
+    Body :
+    {
+      "external_order_id": "uuid จาก orders.id ของเรา",
+
+      "guest_name": "Somchai / Walk-in / Group A",
+      "service_date": "2026-02-02",
+
+      "adult": 2,
+      "child": 1,
+
+      "staff_code": "STAFF01",
+      "total_amount": 1990,
+
+      "items": [
+        {
+          "item_code": "WD_PLUS",
+          "item_name": "World D+",
+          "price": 1990,
+          "quantity": 1
+        },
+        {
+          "item_code": "WD_PLUS",
+          "item_name": "World D+",
+          "price": 1990,
+          "quantity": 1
+        }
+      ]
+    }
+ * 
+ * 
+ * 🟢 สรุปจำง่าย
+    เหตุการณ์	ใช้ API อะไร
+    ส่งรายการให้ partner	     เรา → POST
+    จ่ายเงิน	                 เค้า → POST กลับ
+    เช็คอิน	                  เค้า → POST กลับ
+    GET จากเค้า	❌ ไม่จำเป็น
+ * 
+ */
