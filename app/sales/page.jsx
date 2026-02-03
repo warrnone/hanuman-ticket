@@ -24,6 +24,34 @@ export default function SalePage() {
   // 👉 เพิ่ม state สำหรับ toggle cart บน tablet/mobile
   const [showCart, setShowCart] = useState(false);
 
+  //  pricing setting (Vat / Discount)
+  const [pricing, setPricing] = useState({
+    vat_rate: 7,
+    discount_rate: 5,
+    enable_discount: true,
+  });
+
+  const loadPricing = async () => {
+    try {
+      const res = await fetch("/api/admin/settings");
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      setPricing({
+        vat_rate: Number(data.vat_rate),
+        discount_rate: Number(data.discount_rate),
+        enable_discount: Boolean(data.enable_discount),
+      });
+    } catch (err) {
+      console.error("load pricing failed", err);
+    }
+  };
+
+  useEffect(() => {
+    loadPricing();
+  });
+
   const loadMenu = async () => {
     try {
       setLoading(true);
@@ -106,12 +134,9 @@ export default function SalePage() {
   };
 
   /* ========================= TOTALS vat , discount ========================= */
-  const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const discount = subtotal * 0.05;
-  const tax = (subtotal - discount) * 0.07;
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity , 0);
+  const discount = pricing.enable_discount ? subtotal * (pricing.discount_rate / 100) : 0;
+  const tax = (subtotal - discount) * (pricing.vat_rate / 100);
   const total = subtotal - discount + tax;
 
 
@@ -227,6 +252,9 @@ export default function SalePage() {
             onCheckout={() => setShowSurvey(true)}
             onClear={() => setCart([])}
             onClose={() => setShowCart(false)} // 👉 เพิ่ม prop สำหรับปิด cart บน mobile
+            discountRate={pricing.discount_rate}
+            vatRate={pricing.vat_rate}
+            enableDiscount={pricing.enable_discount}
           />
         </div>
 

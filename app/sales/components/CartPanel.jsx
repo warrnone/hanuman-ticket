@@ -11,7 +11,10 @@ export default function CartPanel({cart,
   onRemove,
   onCheckout,
   onClear,
-  onClose
+  onClose,
+  discountRate,
+  vatRate,
+  enableDiscount,
 }) {
   return (
     <div className="flex flex-col h-full w-full bg-white shadow-xl border-l">
@@ -57,14 +60,21 @@ export default function CartPanel({cart,
             <span>Subtotal</span>
             <span>฿{subtotal.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-sm text-green-600">
-            <span>Discount</span>
-            <span>-฿{discount.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>VAT</span>
-            <span>฿{tax.toFixed(2)}</span>
-          </div>
+
+          {/* VAT , Discount  */}
+          {enableDiscount && (
+            <>
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Discount {discountRate}%</span>
+                <span>-฿{discount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>VAT {vatRate}%</span>
+                <span>฿{tax.toFixed(2)}</span>
+              </div>
+            </>
+          )}
+
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
             <span className="text-orange-600">
