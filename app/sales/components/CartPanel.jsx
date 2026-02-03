@@ -16,6 +16,13 @@ export default function CartPanel({cart,
   vatRate,
   enableDiscount,
 }) {
+
+  const money = (n) =>
+    n.toLocaleString("th-TH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   return (
     <div className="flex flex-col h-full w-full bg-white shadow-xl border-l">
       {/* Header */}
@@ -66,11 +73,11 @@ export default function CartPanel({cart,
             <>
               <div className="flex justify-between text-sm text-green-600">
                 <span>Discount {discountRate}%</span>
-                <span>-{discount.toFixed(2)}฿</span>
+                <span>-{money(discount)}฿</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>VAT {vatRate}%</span>
-                <span>{tax.toFixed(2)}฿</span>
+                <span>{money(tax)}฿</span>
               </div>
             </>
           )}
@@ -78,7 +85,7 @@ export default function CartPanel({cart,
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
             <span className="text-orange-600">
-              {total.toFixed(2)}฿
+              {money(total)}฿
             </span>
           </div>
 
