@@ -12,9 +12,6 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
   const [adult, setAdult] = useState(1);
   const [child, setChild] = useState(0);
 
-  console.log(total);
-  
-
   const handleComplete = async () => {
     try {
       setLoading(true);
@@ -49,6 +46,12 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
       setLoading(false);
     }
   };
+
+  const money = (n) =>
+    n.toLocaleString("th-TH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+  });
 
   return (
     <>
@@ -122,7 +125,7 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
             <div className="border-t pt-2 font-bold flex justify-between">
               <span>Total</span>
               <span className="text-blue-600">
-                {total.toFixed(2)}฿
+                {money(total)}฿
               </span>
             </div>
           </div>
