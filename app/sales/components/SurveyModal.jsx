@@ -4,7 +4,19 @@ import { useState } from "react";
 import { createOrder } from "../lib/createOrder";
 import {swalSuccess , swalError} from "../../components/Swal";
 
-export default function SurveyModal({ cart, total, onClose, onComplete }) {
+export default function SurveyModal({ 
+  cart,
+  // 💰 money breakdown
+  subtotal,
+  discount,
+  tax,
+  total,
+  vatRate,
+  discountRate,
+  // control
+  onClose,
+  onComplete,
+ }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [guestName, setGuestName] = useState("");
@@ -26,7 +38,14 @@ export default function SurveyModal({ cart, total, onClose, onComplete }) {
         guest_name: guestName || "Walk-in",
         service_date: serviceDate,
         adult_count: adult,
-        child_count: child
+        child_count: child,
+        // ✅ money breakdown (สำคัญมาก)
+        subtotal_amount: subtotal,
+        discount_amount: discount,
+        vat_amount: tax,
+        total_amount: total,
+        vat_rate: vatRate,
+        discount_rate: discountRate,
       });
       if (!data) return;
 

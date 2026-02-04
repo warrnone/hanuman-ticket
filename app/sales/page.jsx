@@ -131,10 +131,11 @@ export default function SalePage() {
   };
 
   /* ========================= TOTALS vat , discount ========================= */
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity , 0);
-  const discount = pricing.enable_discount ? subtotal * (pricing.discount_rate / 100) : 0;
-  const tax = (subtotal - discount) * (pricing.vat_rate / 100);
-  const total = subtotal - discount + tax;
+  const round2 = (n) => Math.round(n * 100) / 100;
+  const subtotal = round2(cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
+  const discount = pricing.enable_discount ? round2(subtotal * pricing.discount_rate / 100) : 0;
+  const tax = round2((subtotal - discount) * pricing.vat_rate / 100);
+  const total = round2(subtotal - discount + tax);
 
 
   return (
@@ -267,7 +268,13 @@ export default function SalePage() {
         {showSurvey && (
           <SurveyModal
             cart={cart}
+            // ✅ ส่ง breakdown เงินให้ครบ
+            subtotal={subtotal}
+            discount={discount}
+            tax={tax}
             total={total}
+            vatRate={pricing.vat_rate}
+            discountRate={pricing.discount_rate}
             onClose={() => setShowSurvey(false)}
             onComplete={() => {
               setCart([]);
