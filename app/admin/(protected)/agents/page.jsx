@@ -3,75 +3,83 @@
 import { useEffect, useState } from "react";
 import { swalSuccess, swalError, swalConfirm } from "@/app/components/Swal";
 
-export default function AdminTaxiPage() {
+export default function AdminAgentsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [taxis, setTaxis] = useState([]);
+  const [agents, setAgents] = useState([]);
+
   const [form, setForm] = useState({
-    car_number: "",
-    plate_color: "YELLOW", // YELLOW | GREEN
-    vehicle_type: "TAXI",  // TAXI | VAN
+    name: "",
+    agent_type: "TAXI", // TAXI | TOUR | HOTEL | COMPANY
+    commission_rate: 0,
+    status: "ACTIVE",
   });
 
   /* =========================
-     LOAD TAXI LIST
+     LOAD AGENTS
   ========================= */
-  const loadTaxis = async () => {
+  const loadAgents = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/taxi");
-      if (!res.ok) throw new Error("Load taxi failed");
+      const res = await fetch("/api/admin/agents");
+      if (!res.ok) throw new Error("Load agents failed");
 
-      const data = await res.json();
-      setTaxis(data.data || []);
+      const json = await res.json();
+      setAgents(json.data || []);
     } catch (err) {
       console.error(err);
-      swalError("ไม่สามารถโหลดข้อมูล Taxi ได้");
+      swalError("ไม่สามารถโหลดข้อมูล Agent ได้");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // loadTaxis();
+    // loadAgents();
   }, []);
 
   /* =========================
-     ADD TAXI
+     ADD AGENT
   ========================= */
-  const addTaxi = async () => {
-    if (!form.car_number.trim()) {
-      swalError("กรุณากรอกเลขทะเบียนรถ");
+  const addAgent = async () => {
+    if (!form.name.trim()) {
+      swalError("กรุณากรอกชื่อ Agent");
       return;
     }
 
     const ok = await swalConfirm(
-      "เพิ่ม Taxi",
-      `ต้องการเพิ่มรถ ${form.car_number} ใช่หรือไม่`
+      "เพิ่ม Agent",
+      `ต้องการเพิ่ม Agent "${form.name}" ใช่หรือไม่`
     );
     if (!ok.isConfirmed) return;
 
     try {
       setSaving(true);
 
-      const res = await fetch("/api/admin/taxi", {
+      const res = await fetch("/api/admin/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          car_number: form.car_number.trim(),
-          plate_color: form.plate_color,
-          vehicle_type: form.vehicle_type,
+          name: form.name.trim(),
+          agent_type: form.agent_type,
+          commission_rate: Number(form.commission_rate),
+          status: form.status,
         }),
       });
 
-      if (!res.ok) throw new Error("Add taxi failed");
+      if (!res.ok) throw new Error("Add agent failed");
 
-      swalSuccess("เพิ่ม Taxi สำเร็จ");
-      setForm({ car_number: "", plate_color: "YELLOW", vehicle_type: "TAXI" });
-      loadTaxis();
+      swalSuccess("เพิ่ม Agent สำเร็จ");
+      setForm({
+        name: "",
+        agent_type: "TAXI",
+        commission_rate: 0,
+        status: "ACTIVE",
+      });
+      loadAgents();
     } catch (err) {
       console.error(err);
-      swalError("เพิ่ม Taxi ไม่สำเร็จ");
+      swalError("เพิ่ม Agent ไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
@@ -80,23 +88,23 @@ export default function AdminTaxiPage() {
   /* =========================
      TOGGLE STATUS
   ========================= */
-  const toggleStatus = async (taxi) => {
+  const toggleStatus = async (agent) => {
     const ok = await swalConfirm(
-      taxi.status === "ACTIVE" ? "ปิดใช้งาน Taxi" : "เปิดใช้งาน Taxi",
-      taxi.car_number
+      agent.status === "ACTIVE" ? "ปิดใช้งาน Agent" : "เปิดใช้งาน Agent",
+      agent.name
     );
     if (!ok.isConfirmed) return;
 
     try {
-      await fetch(`/api/admin/taxi/${taxi.id}`, {
+      await fetch(`/api/admin/agents/${agent.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: taxi.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+          status: agent.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
         }),
       });
 
-      loadTaxis();
+      loadAgents();
     } catch (err) {
       console.error(err);
       swalError("อัปเดตสถานะไม่สำเร็จ");
@@ -109,95 +117,97 @@ export default function AdminTaxiPage() {
           HEADER
       ========================= */}
       <div>
-        <h1 className="text-2xl font-bold">🚕 Taxi Registration</h1>
+        <h1 className="text-2xl font-bold">🤝 Agent Management</h1>
         <p className="text-sm text-slate-500">
-          ลงทะเบียน Taxi / Van (ป้ายเหลือง, ป้ายเขียว)
+          จัดการ Agent / Partner สำหรับ Commission
         </p>
       </div>
 
       {/* =========================
-          ADD FORM
+          ADD AGENT FORM
       ========================= */}
       <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4 max-w-xl">
         <div>
-          <label className="text-sm font-medium">เลขทะเบียนรถ</label>
+          <label className="text-sm font-medium">ชื่อ Agent</label>
           <input
-            value={form.car_number}
+            value={form.name}
             onChange={(e) =>
-              setForm((f) => ({ ...f, car_number: e.target.value }))
+              setForm((f) => ({ ...f, name: e.target.value }))
             }
             className="w-full border rounded px-3 py-2"
-            placeholder="เช่น ฆฉ-2357"
+            placeholder="เช่น Somchai Taxi / Green Van Phuket"
           />
         </div>
 
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="text-sm font-medium">ป้าย</label>
+            <label className="text-sm font-medium">ประเภท Agent</label>
             <select
-              value={form.plate_color}
+              value={form.agent_type}
               onChange={(e) =>
-                setForm((f) => ({ ...f, plate_color: e.target.value }))
-              }
-              className="w-full border rounded px-3 py-2"
-            >
-              <option value="YELLOW">🟨 ป้ายเหลือง</option>
-              <option value="GREEN">🟩 ป้ายเขียว</option>
-            </select>
-          </div>
-
-          <div className="flex-1">
-            <label className="text-sm font-medium">ประเภทรถ</label>
-            <select
-              value={form.vehicle_type}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, vehicle_type: e.target.value }))
+                setForm((f) => ({ ...f, agent_type: e.target.value }))
               }
               className="w-full border rounded px-3 py-2"
             >
               <option value="TAXI">Taxi</option>
-              <option value="VAN">Van</option>
+              <option value="TOUR">Tour Agent</option>
+              <option value="HOTEL">Hotel</option>
+              <option value="COMPANY">Company</option>
             </select>
+          </div>
+
+          <div className="flex-1">
+            <label className="text-sm font-medium">Commission (%)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.commission_rate}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, commission_rate: e.target.value }))
+              }
+              className="w-full border rounded px-3 py-2"
+            />
           </div>
         </div>
 
         <button
-          onClick={addTaxi}
+          onClick={addAgent}
           disabled={saving}
           className="w-full bg-orange-500 text-white py-2 rounded font-medium"
         >
-          {saving ? "Saving..." : "Add Taxi"}
+          {saving ? "Saving..." : "Add Agent"}
         </button>
       </div>
 
       {/* =========================
-          TAXI LIST
+          AGENT LIST
       ========================= */}
       <div className="bg-white rounded-xl border shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-slate-100">
             <tr>
-              <th className="p-3 text-left">ทะเบียน</th>
-              <th className="p-3">ป้าย</th>
+              <th className="p-3 text-left">ชื่อ</th>
               <th className="p-3">ประเภท</th>
+              <th className="p-3">Commission</th>
               <th className="p-3">สถานะ</th>
               <th className="p-3"></th>
             </tr>
           </thead>
           <tbody>
-            {taxis.map((t) => (
-              <tr key={t.id} className="border-t">
-                <td className="p-3 font-medium">{t.car_number}</td>
+            {agents.map((a) => (
+              <tr key={a.id} className="border-t">
+                <td className="p-3 font-medium">{a.name}</td>
+                <td className="p-3 text-center">{a.agent_type}</td>
                 <td className="p-3 text-center">
-                  {t.plate_color === "YELLOW" ? "🟨" : "🟩"}
+                  {Number(a.commission_rate).toFixed(2)}%
                 </td>
-                <td className="p-3 text-center">{t.vehicle_type}</td>
                 <td className="p-3 text-center">
-                  {t.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
+                  {a.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
                 </td>
                 <td className="p-3 text-right">
                   <button
-                    onClick={() => toggleStatus(t)}
+                    onClick={() => toggleStatus(a)}
                     className="text-blue-600 hover:underline"
                   >
                     Toggle
@@ -205,10 +215,10 @@ export default function AdminTaxiPage() {
                 </td>
               </tr>
             ))}
-            {taxis.length === 0 && !loading && (
+            {agents.length === 0 && !loading && (
               <tr>
                 <td colSpan={5} className="p-6 text-center text-slate-400">
-                  No taxi registered
+                  No agents registered
                 </td>
               </tr>
             )}

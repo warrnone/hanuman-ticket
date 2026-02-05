@@ -81,9 +81,19 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center space-x-2 text-slate-500">
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
-        <span className="text-sm font-medium">Loading settings...</span>
+      <div className="flex min-h-[200px] items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative">
+            {/* Outer ring */}
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-200 border-t-blue-500" />
+            {/* Inner ring */}
+            <div className="absolute inset-0 m-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-purple-400 animation-delay-150" />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-semibold text-slate-700">Loading settings</p>
+            <p className="text-sm text-slate-400">Please wait a moment...</p>
+          </div>
+        </div>
       </div>
     );
   }
