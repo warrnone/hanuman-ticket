@@ -23,6 +23,7 @@ export default function SurveyModal({
   const [serviceDate, setServiceDate] = useState("");
   const [adult, setAdult] = useState(1);
   const [child, setChild] = useState(0);
+  const today = new Date().toISOString().split("T")[0];
 
   const handleComplete = async () => {
     try {
@@ -31,6 +32,11 @@ export default function SurveyModal({
 
       if(!serviceDate){
         setError("Please Select service date");
+        return;
+      }
+
+      if (serviceDate < today) {
+        setError("Service date must be today or in the future");
         return;
       }
 
@@ -99,6 +105,7 @@ export default function SurveyModal({
               <input
                 type="date"
                 value={serviceDate}
+                min={today}
                 onChange={(e) => setServiceDate(e.target.value)}
                 className="w-full border rounded px-3 py-2 text-sm"
               />
