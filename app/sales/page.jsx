@@ -27,6 +27,7 @@ export default function SalePage() {
   //  pricing setting (Vat / Discount)
   const [pricing, setPricing] = useState({
     vat_rate: 7,
+    enable_vat: false,      
     discount_rate: 5,
     enable_discount: true,
   });
@@ -40,6 +41,7 @@ export default function SalePage() {
 
       setPricing({
         vat_rate: Number(data.vat_rate),
+        enable_vat: Boolean(data.enable_vat), 
         discount_rate: Number(data.discount_rate),
         enable_discount: Boolean(data.enable_discount),
       });
@@ -134,7 +136,7 @@ export default function SalePage() {
   const round2 = (n) => Math.round(n * 100) / 100;
   const subtotal = round2(cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
   const discount = pricing.enable_discount ? round2(subtotal * pricing.discount_rate / 100) : 0;
-  const tax = round2((subtotal - discount) * pricing.vat_rate / 100);
+  const tax = pricing.enable_vat ? round2((subtotal - discount) * pricing.vat_rate / 100) : 0;
   const total = round2(subtotal - discount + tax);
 
 
@@ -253,6 +255,7 @@ export default function SalePage() {
             discountRate={pricing.discount_rate}
             vatRate={pricing.vat_rate}
             enableDiscount={pricing.enable_discount}
+            enableVat={pricing.enable_vat}
           />
         </div>
 

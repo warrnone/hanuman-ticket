@@ -2,7 +2,7 @@
 
 import CartItem from "./CartItem";
 
-export default function CartPanel({cart,subtotal,discount,tax,total,onQty,onRemove,onCheckout,onClear,onClose,discountRate,vatRate,enableDiscount,}) {
+export default function CartPanel({cart,subtotal,discount,tax,total,onQty,onRemove,onCheckout,onClear,onClose,discountRate,vatRate,enableDiscount,enableVat,}) {
   const money = (n) =>
     n.toLocaleString("th-TH", {
       minimumFractionDigits: 2,
@@ -53,20 +53,22 @@ export default function CartPanel({cart,subtotal,discount,tax,total,onQty,onRemo
             <span>{money(subtotal)}฿</span>
           </div>
 
-          {/* VAT , Discount */}
+          {/* Discount */}
           {enableDiscount && (
-            <>
-              <div className="flex justify-between text-sm text-green-600">
-                <span>Discount {discountRate}%</span>
-                <span>-{money(discount)}฿</span>
-              </div>
-
-              <div className="flex justify-between text-sm">
-                <span>VAT {vatRate}%</span>
-                <span>{money(tax)}฿</span>
-              </div>
-            </>
+            <div className="flex justify-between text-sm text-green-600">
+              <span>Discount {discountRate}%</span>
+              <span>-{money(discount)}฿</span>
+            </div>
           )}
+
+          {/* VAT */}
+          {enableVat && (
+            <div className="flex justify-between text-sm">
+              <span>VAT {vatRate}%</span>
+              <span>{money(tax)}฿</span>
+            </div>
+          )}
+
 
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>

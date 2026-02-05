@@ -8,22 +8,28 @@ export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
       .from("system_settings")
-      .select("vat_rate, discount_rate, enable_discount")
+      .select("vat_rate, enable_vat, discount_rate, enable_discount")
       .eq("id", 1)
-      .maybeSingle(); // 👈 สำคัญ
+      .maybeSingle(); // 👈 มีได้ 0 หรือ 1 แถว
 
     if (error) throw error;
 
-    // ✅ ถ้ายังไม่มี record ให้คืนค่า default ไปก่อน
+    // ✅ ถ้ายังไม่มี record → ส่ง default
     if (!data) {
       return NextResponse.json({
         vat_rate: 7,
+        enable_vat: false,        // 👈 สำคัญ
         discount_rate: 5,
         enable_discount: true,
       });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      vat_rate: Number(data.vat_rate),
+      enable_vat: Boolean(data.enable_vat),
+      discount_rate: Number(data.discount_rate),
+      enable_discount: Boolean(data.enable_discount),
+    });
 
   } catch (err) {
     console.error("GET settings error:", err);
@@ -45,6 +51,7 @@ export async function POST(req) {
 
     const {
       vat_rate,
+      enable_vat,          // 👈 เพิ่ม
       discount_rate,
       enable_discount,
     } = body;
@@ -57,8 +64,9 @@ export async function POST(req) {
     }
 
     const payload = {
-      id: 1, // 👈 fix ให้มีแถวเดียว
+      id: 1, // 👈 บังคับให้มีแถวเดียว
       vat_rate: Number(vat_rate),
+      enable_vat: Boolean(enable_vat),        // 👈 เพิ่ม
       discount_rate: Number(discount_rate),
       enable_discount: Boolean(enable_discount),
       updated_at: new Date().toISOString(),
@@ -70,9 +78,7 @@ export async function POST(req) {
         onConflict: "id",
       });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     return NextResponse.json({ success: true });
 

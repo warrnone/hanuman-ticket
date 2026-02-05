@@ -9,27 +9,26 @@ export default function AdminSettingsPage() {
 
   const [form, setForm] = useState({
     vat_rate: 7,
+    enable_vat: false,        // ✅ เพิ่ม
     discount_rate: 5,
     enable_discount: true,
   });
 
-  /* ============================
+  /* =========================
      LOAD SETTINGS
-  ============================ */
+  ========================= */
   const fetchSettings = async () => {
     try {
       setLoading(true);
 
       const res = await fetch("/api/admin/settings");
-
-      if (!res.ok) {
-        throw new Error("Failed to load settings");
-      }
+      if (!res.ok) throw new Error("Failed to load settings");
 
       const data = await res.json();
 
       setForm({
         vat_rate: Number(data.vat_rate ?? 7),
+        enable_vat: Boolean(data.enable_vat),           // ✅ เพิ่ม
         discount_rate: Number(data.discount_rate ?? 5),
         enable_discount: Boolean(data.enable_discount),
       });
@@ -45,15 +44,14 @@ export default function AdminSettingsPage() {
     fetchSettings();
   }, []);
 
-  /* ============================
+  /* =========================
      SAVE SETTINGS
-  ============================ */
+  ========================= */
   const handleSave = async () => {
     const result = await swalConfirm(
       "บันทึกการตั้งค่า",
       "ต้องการบันทึกค่า VAT และ Discount ใช่หรือไม่"
     );
-
     if (!result.isConfirmed) return;
 
     try {
@@ -61,19 +59,16 @@ export default function AdminSettingsPage() {
 
       const res = await fetch("/api/admin/settings", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           vat_rate: Number(form.vat_rate),
+          enable_vat: form.enable_vat,                  // ✅ เพิ่ม
           discount_rate: Number(form.discount_rate),
           enable_discount: form.enable_discount,
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Save failed");
-      }
+      if (!res.ok) throw new Error("Save failed");
 
       swalSuccess("บันทึกการตั้งค่าเรียบร้อยแล้ว");
     } catch (err) {
@@ -85,14 +80,19 @@ export default function AdminSettingsPage() {
   };
 
   if (loading) {
-    return <div className="text-slate-500">Loading settings...</div>;
+    return (
+      <div className="flex items-center space-x-2 text-slate-500">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+        <span className="text-sm font-medium">Loading settings...</span>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-3xl space-y-6">
-      {/* ============================
+      {/* =========================
           HEADER
-      ============================ */}
+      ========================= */}
       <div>
         <h1 className="text-2xl font-bold">⚙️ System Settings</h1>
         <p className="text-sm text-slate-500">
@@ -100,11 +100,30 @@ export default function AdminSettingsPage() {
         </p>
       </div>
 
-      {/* ============================
+      {/* =========================
           FORM
-      ============================ */}
+      ========================= */}
       <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
-        {/* VAT */}
+        {/* Enable VAT */}
+        <div className="flex items-center gap-3">
+          <input
+            id="enable_vat"
+            type="checkbox"
+            checked={form.enable_vat}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                enable_vat: e.target.checked,
+              }))
+            }
+            className="w-4 h-4 accent-orange-500"
+          />
+          <label htmlFor="enable_vat" className="text-sm font-medium">
+            เปิดใช้งาน VAT
+          </label>
+        </div>
+
+        {/* VAT rate */}
         <div className="space-y-2">
           <label className="block text-sm font-medium">
             VAT (%)
@@ -120,7 +139,10 @@ export default function AdminSettingsPage() {
                 vat_rate: e.target.value,
               }))
             }
-            className="w-full max-w-xs border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            disabled={!form.enable_vat}   // ✅ ปิด input ถ้าไม่เปิด VAT
+            className="w-full max-w-xs border rounded-lg px-3 py-2
+              focus:outline-none focus:ring-2 focus:ring-orange-400
+              disabled:bg-slate-100"
           />
         </div>
 
@@ -140,13 +162,15 @@ export default function AdminSettingsPage() {
                 discount_rate: e.target.value,
               }))
             }
-            className="w-full max-w-xs border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400"
             disabled={!form.enable_discount}
+            className="w-full max-w-xs border rounded-lg px-3 py-2
+              focus:outline-none focus:ring-2 focus:ring-orange-400
+              disabled:bg-slate-100"
           />
         </div>
 
         {/* Enable discount */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-row items-center gap-3">
           <input
             id="enable_discount"
             type="checkbox"
@@ -159,31 +183,29 @@ export default function AdminSettingsPage() {
             }
             className="w-4 h-4 accent-orange-500"
           />
-          <label
-            htmlFor="enable_discount"
-            className="text-sm font-medium"
-          >
+          <label htmlFor="enable_discount" className="text-sm font-medium">
             เปิดใช้งานส่วนลด (Enable discount)
           </label>
         </div>
 
-        {/* ============================
+        {/* =========================
             FOOTER
-        ============================ */}
+        ========================= */}
         <div className="pt-4 flex justify-end">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 disabled:opacity-60"
+            className="px-6 py-2 rounded-lg bg-orange-500 text-white
+              font-medium hover:bg-orange-600 disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save settings"}
           </button>
         </div>
       </div>
 
-      {/* ============================
+      {/* =========================
           NOTE
-      ============================ */}
+      ========================= */}
       <div className="text-xs text-slate-500">
         * ค่าที่ตั้งในหน้านี้ จะถูกนำไปใช้ตอนคำนวณราคาที่หน้า Sale
       </div>
