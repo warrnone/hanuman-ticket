@@ -4,16 +4,35 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 /* =========================
    GET: list agents
 ========================= */
-export async function GET() {
+export async function GET(req) {
   try {
-    const { data, error } = await supabaseAdmin
+    const { searchParams } = new URL(req.url);
+
+    const page = Number(searchParams.get("page") || 1);
+    const limit = Number(searchParams.get("limit") || 10);
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await supabaseAdmin
       .from("agents")
-      .select("id, name, agent_type, commission_rate, phone, status")
-      .order("created_at", { ascending: true });
+      .select("id, name, agent_type, commission_rate, phone, status", {
+        count: "exact",
+      })
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
     if (error) throw error;
 
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      data,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit),
+      },
+    });
   } catch (err) {
     console.error("GET agents error:", err);
     return NextResponse.json(

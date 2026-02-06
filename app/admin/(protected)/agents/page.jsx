@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { swalSuccess, swalError, swalConfirm } from "@/app/components/Swal";
+import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 
 export default function AdminAgentsPage() {
   const [loading, setLoading] = useState(true);
@@ -16,17 +17,28 @@ export default function AdminAgentsPage() {
     status: "ACTIVE",
   });
 
+  const [page, setPage] = useState(1);
+  const [limit] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
+
+
   /* =========================
      LOAD AGENTS
   ========================= */
-  const loadAgents = async () => {
+  const loadAgents = async (pageNumber = page) => {
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/agents");
+      const res = await fetch(
+        `/api/admin/agents?page=${pageNumber}&limit=${limit}`
+      );
+
       if (!res.ok) throw new Error("Load agents failed");
 
       const json = await res.json();
+
       setAgents(json.data || []);
+      setTotalPages(json.pagination.totalPages || 1);
+      setPage(pageNumber);
     } catch (err) {
       console.error(err);
       swalError("ไม่สามารถโหลดข้อมูล Agent ได้");
@@ -34,6 +46,7 @@ export default function AdminAgentsPage() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     loadAgents();
@@ -237,56 +250,84 @@ export default function AdminAgentsPage() {
             ))}
           </div>
         ):(
-          <table className="w-full text-sm">
-            <thead className="bg-slate-100">
-              <tr>
-                <th className="p-3 text-left">ชื่อ</th>
-                <th className="p-3">ประเภท</th>
-                <th className="p-3">Commission</th>
-                <th className="p-3">โทร</th>
-                <th className="p-3">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {agents.map((a) => (
-                <tr key={a.id} className="border-t">
-                  <td className="p-3 font-medium">{a.name}</td>
-                  <td className="p-3 text-center">{a.agent_type}</td>
-                  <td className="p-3 text-center">
-                    {Number(a.commission_rate).toFixed(2)}%
-                  </td>
-                  <td className="p-3 text-center text-slate-600">
-                    {a.phone ? formatPhoneDisplay(a.phone) : "-"}
-                  </td>
-                  <td className="p-3 text-center">
-                    {a.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
-                  </td>
-                  <td className="p-3 text-right">
-                    <button
-                      onClick={() => toggleStatus(a)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-                        ${a.status === "ACTIVE" ? "bg-green-500" : "bg-gray-300"}
-                      `}
-                      aria-label="Toggle status"
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                          ${a.status === "ACTIVE" ? "translate-x-6" : "translate-x-1"}
-                        `}
-                      />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {agents.length === 0 && !loading && (
+          <>
+            <table className="w-full text-sm">
+              <thead className="bg-slate-100">
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-slate-400">
-                    No agents registered
-                  </td>
+                  <th className="p-3 text-left">ชื่อ</th>
+                  <th className="p-3">ประเภท</th>
+                  <th className="p-3">Commission</th>
+                  <th className="p-3">โทร</th>
+                  <th className="p-3">สถานะ</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {agents.map((a) => (
+                  <tr key={a.id} className="border-t">
+                    <td className="p-3 font-medium">{a.name}</td>
+                    <td className="p-3 text-center">{a.agent_type}</td>
+                    <td className="p-3 text-center">
+                      {Number(a.commission_rate).toFixed(2)}%
+                    </td>
+                    <td className="p-3 text-center text-slate-600">
+                      {a.phone ? formatPhoneDisplay(a.phone) : "-"}
+                    </td>
+                    <td className="p-3 text-center">
+                      {a.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
+                    </td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => toggleStatus(a)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                          ${a.status === "ACTIVE" ? "bg-green-500" : "bg-gray-300"}
+                        `}
+                        aria-label="Toggle status"
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                            ${a.status === "ACTIVE" ? "translate-x-6" : "translate-x-1"}
+                          `}
+                        />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {agents.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-400">
+                      No agents registered
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            {/* PAGINATION */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center p-4">
+                <span className="text-sm text-slate-500">
+                  Page {page} of {totalPages}
+                </span>
+
+                <div className="flex gap-2">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => loadAgents(page - 1)}
+                    className="px-3 py-1 border rounded disabled:opacity-40"
+                  >
+                    <IoIosArrowBack /> Prev
+                  </button>
+
+                  <button
+                    disabled={page === totalPages}
+                    onClick={() => loadAgents(page + 1)}
+                    className="px-3 py-1 border rounded disabled:opacity-40"
+                  >
+                    Next <IoIosArrowForward />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
