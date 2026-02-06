@@ -21,7 +21,6 @@ export default function AdminAgentsPage() {
   const [limit] = useState(5);
   const [totalPages, setTotalPages] = useState(1);
 
-
   /* =========================
      LOAD AGENTS
   ========================= */
@@ -46,7 +45,6 @@ export default function AdminAgentsPage() {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     loadAgents();
@@ -259,6 +257,7 @@ export default function AdminAgentsPage() {
                   <th className="p-3">Commission</th>
                   <th className="p-3">โทร</th>
                   <th className="p-3">สถานะ</th>
+                  <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -275,20 +274,40 @@ export default function AdminAgentsPage() {
                     <td className="p-3 text-center">
                       {a.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
                     </td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={() => toggleStatus(a)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-                          ${a.status === "ACTIVE" ? "bg-green-500" : "bg-gray-300"}
-                        `}
-                        aria-label="Toggle status"
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                            ${a.status === "ACTIVE" ? "translate-x-6" : "translate-x-1"}
-                          `}
-                        />
-                      </button>
+                    <td className="p-3">
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => openEdit(a)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-orange-600 
+                                    bg-orange-50 rounded-lg border border-orange-200
+                                    hover:bg-orange-100 hover:border-orange-300 
+                                    active:scale-95 transition-all duration-200"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          แก้ไข
+                        </button>
+
+                        {/* Status Toggle */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleStatus(a)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ease-in-out
+                                      shadow-inner hover:shadow-md active:scale-95
+                                      ${a.status === "ACTIVE" ? "bg-green-500" : "bg-gray-300"}
+                            `}
+                            aria-label="Toggle status"
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out
+                                        ${a.status === "ACTIVE" ? "translate-x-6" : "translate-x-1"}
+                              `}
+                            />
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -303,26 +322,34 @@ export default function AdminAgentsPage() {
             </table>
             {/* PAGINATION */}
             {totalPages > 1 && (
-              <div className="flex justify-between items-center p-4">
-                <span className="text-sm text-slate-500">
-                  Page {page} of {totalPages}
-                </span>
+              <div className="flex justify-between items-center px-6 py-4 border-t bg-gradient-to-r from-slate-50 to-gray-50">
+                <div className="text-sm text-slate-600 font-medium">
+                  หน้า <span className="text-blue-600 font-semibold">{page}</span> จาก {totalPages}
+                </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     disabled={page === 1}
                     onClick={() => loadAgents(page - 1)}
-                    className="px-3 py-1 border rounded disabled:opacity-40"
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg 
+                              hover:bg-slate-50 hover:border-slate-400 active:scale-95
+                              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white
+                              transition-all duration-200 shadow-sm hover:shadow"
                   >
-                    <IoIosArrowBack /> Prev
+                    <IoIosArrowBack className="text-lg" />
+                    <span className="font-medium">ก่อนหน้า</span>
                   </button>
 
                   <button
                     disabled={page === totalPages}
                     onClick={() => loadAgents(page + 1)}
-                    className="px-3 py-1 border rounded disabled:opacity-40"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg 
+                              hover:bg-blue-700 active:scale-95
+                              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600
+                              transition-all duration-200 shadow-sm hover:shadow"
                   >
-                    Next <IoIosArrowForward />
+                    <span className="font-medium">ถัดไป</span>
+                    <IoIosArrowForward className="text-lg" />
                   </button>
                 </div>
               </div>
