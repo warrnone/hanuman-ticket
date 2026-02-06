@@ -7,6 +7,9 @@ export default function AdminTaxiPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [taxis, setTaxis] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [agentId, setAgentId] = useState("");
+
   const [form, setForm] = useState({
     car_number: "",
     plate_color: "YELLOW", // YELLOW | GREEN
@@ -14,13 +17,29 @@ export default function AdminTaxiPage() {
   });
 
   /* =========================
-     LOAD TAXI LIST
+     LOAD AGENTS
+  ========================= */
+  const loadAgents = async () => {
+    try {
+      const res = await fetch("/api/admin/agents");
+      if (!res.ok) throw new Error("Load agents failed");
+
+      const data = await res.json();
+      setAgents(data.data || []);
+    } catch (err) {
+      console.error(err);
+      swalError("ไม่สามารถโหลดข้อมูล Agent ได้");
+    }
+  };
+
+  /* =========================
+     LOAD TAXIS
   ========================= */
   const loadTaxis = async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/admin/taxi");
-      if (!res.ok) throw new Error("Load taxi failed");
+      if (!res.ok) throw new Error("Load taxis failed");
 
       const data = await res.json();
       setTaxis(data.data || []);
@@ -33,7 +52,8 @@ export default function AdminTaxiPage() {
   };
 
   useEffect(() => {
-    // loadTaxis();
+    loadAgents();
+    loadTaxis();
   }, []);
 
   /* =========================
@@ -45,11 +65,16 @@ export default function AdminTaxiPage() {
       return;
     }
 
-    const ok = await swalConfirm(
+    if (!agentId) {
+      swalError("กรุณาเลือก Agent");
+      return;
+    }
+
+    const result = await swalConfirm(
       "เพิ่ม Taxi",
       `ต้องการเพิ่มรถ ${form.car_number} ใช่หรือไม่`
     );
-    if (!ok.isConfirmed) return;
+    if (!result.isConfirmed) return;
 
     try {
       setSaving(true);
@@ -61,17 +86,28 @@ export default function AdminTaxiPage() {
           car_number: form.car_number.trim(),
           plate_color: form.plate_color,
           vehicle_type: form.vehicle_type,
+          agent_id: agentId, // ✅ สำคัญมาก
         }),
       });
 
-      if (!res.ok) throw new Error("Add taxi failed");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Add taxi failed");
+      }
 
       swalSuccess("เพิ่ม Taxi สำเร็จ");
-      setForm({ car_number: "", plate_color: "YELLOW", vehicle_type: "TAXI" });
+
+      setForm({
+        car_number: "",
+        plate_color: "YELLOW",
+        vehicle_type: "TAXI",
+      });
+      setAgentId("");
+
       loadTaxis();
     } catch (err) {
       console.error(err);
-      swalError("เพิ่ม Taxi ไม่สำเร็จ");
+      swalError(err.message || "เพิ่ม Taxi ไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
@@ -81,11 +117,11 @@ export default function AdminTaxiPage() {
      TOGGLE STATUS
   ========================= */
   const toggleStatus = async (taxi) => {
-    const ok = await swalConfirm(
+    const result = await swalConfirm(
       taxi.status === "ACTIVE" ? "ปิดใช้งาน Taxi" : "เปิดใช้งาน Taxi",
       taxi.car_number
     );
-    if (!ok.isConfirmed) return;
+    if (!result.isConfirmed) return;
 
     try {
       await fetch(`/api/admin/taxi/${taxi.id}`, {
@@ -105,9 +141,7 @@ export default function AdminTaxiPage() {
 
   return (
     <div className="space-y-6">
-      {/* =========================
-          HEADER
-      ========================= */}
+      {/* ================= HEADER ================= */}
       <div>
         <h1 className="text-2xl font-bold">🚕 Taxi Registration</h1>
         <p className="text-sm text-slate-500">
@@ -115,9 +149,7 @@ export default function AdminTaxiPage() {
         </p>
       </div>
 
-      {/* =========================
-          ADD FORM
-      ========================= */}
+      {/* ================= ADD FORM ================= */}
       <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4 max-w-xl">
         <div>
           <label className="text-sm font-medium">เลขทะเบียนรถ</label>
@@ -161,18 +193,32 @@ export default function AdminTaxiPage() {
           </div>
         </div>
 
+        <div>
+          <label className="text-sm font-medium">Agent</label>
+          <select
+            value={agentId}
+            onChange={(e) => setAgentId(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+          >
+            <option value="">-- Select Agent --</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <button
           onClick={addTaxi}
           disabled={saving}
-          className="w-full bg-orange-500 text-white py-2 rounded font-medium"
+          className="w-full bg-orange-500 text-white py-2 rounded font-medium disabled:opacity-60"
         >
           {saving ? "Saving..." : "Add Taxi"}
         </button>
       </div>
 
-      {/* =========================
-          TAXI LIST
-      ========================= */}
+      {/* ================= TAXI LIST ================= */}
       <div className="bg-white rounded-xl border shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-slate-100">
@@ -198,14 +244,22 @@ export default function AdminTaxiPage() {
                 <td className="p-3 text-right">
                   <button
                     onClick={() => toggleStatus(t)}
-                    className="text-blue-600 hover:underline"
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                      ${t.status === "ACTIVE" ? "bg-green-500" : "bg-gray-300"}
+                    `}
+                    aria-label="Toggle status"
                   >
-                    Toggle
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                        ${t.status === "ACTIVE" ? "translate-x-6" : "translate-x-1"}
+                      `}
+                    />
                   </button>
                 </td>
               </tr>
             ))}
-            {taxis.length === 0 && !loading && (
+
+            {!loading && taxis.length === 0 && (
               <tr>
                 <td colSpan={5} className="p-6 text-center text-slate-400">
                   No taxi registered

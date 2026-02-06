@@ -12,6 +12,7 @@ export default function AdminAgentsPage() {
     name: "",
     agent_type: "TAXI", // TAXI | TOUR | HOTEL | COMPANY
     commission_rate: 0,
+    phone: "",
     status: "ACTIVE",
   });
 
@@ -35,7 +36,7 @@ export default function AdminAgentsPage() {
   };
 
   useEffect(() => {
-    // loadAgents();
+    loadAgents();
   }, []);
 
   /* =========================
@@ -63,6 +64,7 @@ export default function AdminAgentsPage() {
           name: form.name.trim(),
           agent_type: form.agent_type,
           commission_rate: Number(form.commission_rate),
+          phone:form.phone,
           status: form.status,
         }),
       });
@@ -74,6 +76,7 @@ export default function AdminAgentsPage() {
         name: "",
         agent_type: "TAXI",
         commission_rate: 0,
+        phone: "",
         status: "ACTIVE",
       });
       loadAgents();
@@ -111,6 +114,28 @@ export default function AdminAgentsPage() {
     }
   };
 
+    // Helper function สำหรับแสดงเบอร์โทร
+  const formatPhoneDisplay = (phone) => {
+    if (!phone) return '';
+    const cleaned = phone.replace(/[^0-9]/g, '');
+    
+    // Format: 087-654-4565
+    if (cleaned.length <= 3) return cleaned;
+    if (cleaned.length <= 6) return `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
+    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+  };
+
+  // Handler สำหรับ input เบอร์โทร
+  const handlePhoneChange = (e) => {
+    const input = e.target.value;
+    const cleaned = input.replace(/[^0-9]/g, '');
+    
+    // จำกัดไม่เกิน 10 หลัก
+    if (cleaned.length <= 10) {
+      setForm((f) => ({ ...f, phone: cleaned }));
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* =========================
@@ -138,6 +163,21 @@ export default function AdminAgentsPage() {
             placeholder="เช่น Somchai Taxi / Green Van Phuket"
           />
         </div>
+
+        <div>
+          <label className="text-sm font-medium">เบอร์โทรศัพท์</label>
+          <input
+            value={formatPhoneDisplay(form.phone)}
+            onChange={handlePhoneChange}
+            className="w-full border rounded px-3 py-2"
+            placeholder="087-654-4565"
+            type="tel"
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            รูปแบบ: 0XX-XXX-XXXX (10 หลัก)
+          </p>
+        </div>
+
 
         <div className="flex gap-3">
           <div className="flex-1">
@@ -184,46 +224,70 @@ export default function AdminAgentsPage() {
           AGENT LIST
       ========================= */}
       <div className="bg-white rounded-xl border shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="p-3 text-left">ชื่อ</th>
-              <th className="p-3">ประเภท</th>
-              <th className="p-3">Commission</th>
-              <th className="p-3">สถานะ</th>
-              <th className="p-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {agents.map((a) => (
-              <tr key={a.id} className="border-t">
-                <td className="p-3 font-medium">{a.name}</td>
-                <td className="p-3 text-center">{a.agent_type}</td>
-                <td className="p-3 text-center">
-                  {Number(a.commission_rate).toFixed(2)}%
-                </td>
-                <td className="p-3 text-center">
-                  {a.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
-                </td>
-                <td className="p-3 text-right">
-                  <button
-                    onClick={() => toggleStatus(a)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Toggle
-                  </button>
-                </td>
-              </tr>
+        {loading ? (
+          <div className="p-6 space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="animate-pulse flex items-center gap-4">
+                <div className="h-4 bg-slate-200 rounded flex-1"></div>
+                <div className="h-4 bg-slate-200 rounded w-20"></div>
+                <div className="h-4 bg-slate-200 rounded w-16"></div>
+                <div className="h-4 bg-slate-200 rounded w-24"></div>
+                <div className="h-4 bg-slate-200 rounded w-16"></div>
+              </div>
             ))}
-            {agents.length === 0 && !loading && (
+          </div>
+        ):(
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100">
               <tr>
-                <td colSpan={5} className="p-6 text-center text-slate-400">
-                  No agents registered
-                </td>
+                <th className="p-3 text-left">ชื่อ</th>
+                <th className="p-3">ประเภท</th>
+                <th className="p-3">Commission</th>
+                <th className="p-3">โทร</th>
+                <th className="p-3">สถานะ</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {agents.map((a) => (
+                <tr key={a.id} className="border-t">
+                  <td className="p-3 font-medium">{a.name}</td>
+                  <td className="p-3 text-center">{a.agent_type}</td>
+                  <td className="p-3 text-center">
+                    {Number(a.commission_rate).toFixed(2)}%
+                  </td>
+                  <td className="p-3 text-center text-slate-600">
+                    {a.phone ? formatPhoneDisplay(a.phone) : "-"}
+                  </td>
+                  <td className="p-3 text-center">
+                    {a.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
+                  </td>
+                  <td className="p-3 text-right">
+                    <button
+                      onClick={() => toggleStatus(a)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                        ${a.status === "ACTIVE" ? "bg-green-500" : "bg-gray-300"}
+                      `}
+                      aria-label="Toggle status"
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                          ${a.status === "ACTIVE" ? "translate-x-6" : "translate-x-1"}
+                        `}
+                      />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {agents.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={5} className="p-6 text-center text-slate-400">
+                    No agents registered
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
