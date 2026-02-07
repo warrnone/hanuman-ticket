@@ -21,7 +21,7 @@ export default function AdminTaxiPage() {
   ========================= */
   const loadAgents = async () => {
     try {
-      const res = await fetch("/api/admin/agents");
+      const res = await fetch("/api/admin/agents/taxi?status=ACTIVE");
       if (!res.ok) throw new Error("Load agents failed");
 
       const data = await res.json();
