@@ -32,3 +32,25 @@ export async function PATCH(req, { params }) {
     );
   }
 }
+
+export async function PUT(req, { params }) {
+  const { id } = await params;
+  const body = await req.json();
+
+  const { name, agent_type, commission_rate, phone } = body;
+
+  const { error } = await supabaseAdmin
+    .from("agents")
+    .update({
+      name,
+      agent_type,
+      commission_rate,
+      phone,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) throw error;
+
+  return NextResponse.json({ success: true });
+}
