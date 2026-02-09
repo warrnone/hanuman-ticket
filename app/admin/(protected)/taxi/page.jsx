@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , useRef } from "react";
 import { swalSuccess, swalError, swalConfirm } from "@/app/components/Swal";
+import PlayfulLoading  from "@/app/components/PlayfulLoading";
 
 export default function AdminTaxiPage() {
   const [loading, setLoading] = useState(true);
@@ -10,12 +11,27 @@ export default function AdminTaxiPage() {
   const [agents, setAgents] = useState([]);
   const [agentId, setAgentId] = useState("");
 
+  // Filter ในการค้นหาเพิ่ม Form 
+  const [agentSearch, setAgentSearch] = useState("");
+  const [showAgentDropdown, setShowAgentDropdown] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const searchInputRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+
   const [form, setForm] = useState({
     car_number: "",
     plate_color: "YELLOW", // YELLOW | GREEN
     vehicle_type: "TAXI",  // TAXI | VAN
   });
 
+  // Filter ค้นหาทั้งหมด
+  const [taxiSearch, setTaxiSearch] = useState("");
+  // Edit
+  const [editingTaxi, setEditingTaxi] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const didInit = useRef(false);
   /* =========================
      LOAD AGENTS
   ========================= */
@@ -35,9 +51,11 @@ export default function AdminTaxiPage() {
   /* =========================
      LOAD TAXIS
   ========================= */
-  const loadTaxis = async () => {
+  const loadTaxis = async ({ initial = false } = {}) => {
     try {
-      setLoading(true);
+      if (initial) setInitialLoading(true);
+      else setRefreshing(true);
+
       const res = await fetch("/api/admin/taxi");
       if (!res.ok) throw new Error("Load taxis failed");
 
@@ -47,13 +65,17 @@ export default function AdminTaxiPage() {
       console.error(err);
       swalError("ไม่สามารถโหลดข้อมูล Taxi ได้");
     } finally {
-      setLoading(false);
+      if (initial) setInitialLoading(false);
+      else setRefreshing(false);
     }
   };
 
   useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
     loadAgents();
-    loadTaxis();
+    loadTaxis({ initial: true });
+    searchInputRef.current?.focus();
   }, []);
 
   /* =========================
@@ -139,6 +161,116 @@ export default function AdminTaxiPage() {
     }
   };
 
+  // highlight คำที่ค้น
+  const highlightText = (text, keyword) => {
+    if (!keyword) return text;
+
+    const regex = new RegExp(`(${keyword})`, "gi");
+    return text.split(regex).map((part, i) =>
+      part.toLowerCase() === keyword.toLowerCase() ? (
+        <span key={i} className="bg-yellow-200 font-semibold">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
+  const handleKeyDown = (e, filteredAgents) => {
+    if (!showAgentDropdown) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setActiveIndex((i) =>
+          i < filteredAgents.length - 1 ? i + 1 : 0
+        );
+        break;
+
+      case "ArrowUp":
+        e.preventDefault();
+        setActiveIndex((i) =>
+          i > 0 ? i - 1 : filteredAgents.length - 1
+        );
+        break;
+
+      case "Enter":
+        e.preventDefault();
+        if (filteredAgents[activeIndex]) {
+          const a = filteredAgents[activeIndex];
+          setAgentId(a.id);
+          setAgentSearch(a.name);
+          setShowAgentDropdown(false);
+          setActiveIndex(-1);
+        }
+        break;
+
+      case "Escape":
+        setShowAgentDropdown(false);
+        setActiveIndex(-1);
+        break;
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        setShowAgentDropdown(false);
+        setActiveIndex(-1);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredTaxis = taxis.filter((t) =>
+    t.car_number
+      .toLowerCase()
+      .includes(taxiSearch.toLowerCase())
+  );
+
+  // Edit  เลขทะเบียน 
+  const saveEditTaxi = async () => {
+    const ok = await swalConfirm(
+      "ยืนยันแก้ไข",
+      `บันทึกการแก้ไข ${editingTaxi.car_number} ?`
+    );
+    if (!ok.isConfirmed) return;
+
+    await fetch(`/api/admin/taxi/${editingTaxi.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        car_number: editingTaxi.car_number,
+        plate_color: editingTaxi.plate_color,
+        vehicle_type: editingTaxi.vehicle_type,
+        agent_id: agentId,
+      }),
+    });
+
+    swalSuccess("แก้ไข Taxi สำเร็จ");
+    setEditingTaxi(null);
+    loadTaxis();
+  };
+
+  useEffect(() => {
+    if (!editingTaxi) return;
+
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        setEditingTaxi(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [editingTaxi]);
+
   return (
     <div className="space-y-6">
       {/* ================= HEADER ================= */}
@@ -195,18 +327,66 @@ export default function AdminTaxiPage() {
 
         <div>
           <label className="text-sm font-medium">Agent</label>
-          <select
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">-- Select Agent --</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+            <div className="relative" ref={dropdownRef}>
+              {/* SEARCH */}
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="ค้นหา Agent..."
+                value={agentSearch}
+                onChange={(e) => {
+                  setAgentSearch(e.target.value);
+                  setShowAgentDropdown(true);
+                  setActiveIndex(-1);
+                }}
+                onFocus={() => setShowAgentDropdown(true)}
+                onKeyDown={(e) =>
+                  handleKeyDown(
+                    e,
+                    agents.filter((a) =>
+                      a.name.toLowerCase().includes(agentSearch.toLowerCase())
+                    )
+                  )
+                }
+                className="w-full border rounded px-3 py-2"
+              />
+
+              {/* DROPDOWN */}
+              {showAgentDropdown && (
+                <div className="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-60 overflow-y-auto">
+                  {agents
+                    .filter((a) =>
+                      a.name.toLowerCase().includes(agentSearch.toLowerCase())
+                    )
+                    .map((a, i) => (
+                      <div
+                        key={a.id}
+                        onMouseEnter={() => setActiveIndex(i)}
+                        onClick={() => {
+                          setAgentId(a.id);
+                          setAgentSearch(a.name);
+                          setShowAgentDropdown(false);
+                          setActiveIndex(-1);
+                        }}
+                        className={`px-3 py-2 cursor-pointer
+                          ${i === activeIndex ? "bg-blue-100" : "hover:bg-slate-100"}
+                        `}
+                      >
+                        {highlightText(a.name, agentSearch)}
+                      </div>
+                    ))}
+
+                  {/* ไม่พบข้อมูล */}
+                  {!agents.some((a) =>
+                    a.name.toLowerCase().includes(agentSearch.toLowerCase())
+                  ) && (
+                    <div className="px-3 py-2 text-slate-400 text-sm">
+                      ไม่พบ Agent
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
         </div>
 
         <button
@@ -220,55 +400,145 @@ export default function AdminTaxiPage() {
 
       {/* ================= TAXI LIST ================= */}
       <div className="bg-white rounded-xl border shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="p-3 text-left">ทะเบียน</th>
-              <th className="p-3">ป้าย</th>
-              <th className="p-3">ประเภท</th>
-              <th className="p-3">สถานะ</th>
-              <th className="p-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {taxis.map((t) => (
-              <tr key={t.id} className="border-t">
-                <td className="p-3 font-medium">{t.car_number}</td>
-                <td className="p-3 text-center">
-                  {t.plate_color === "YELLOW" ? "🟨" : "🟩"}
-                </td>
-                <td className="p-3 text-center">{t.vehicle_type}</td>
-                <td className="p-3 text-center">
-                  {t.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
-                </td>
-                <td className="p-3 text-right">
-                  <button
-                    onClick={() => toggleStatus(t)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-                      ${t.status === "ACTIVE" ? "bg-green-500" : "bg-gray-300"}
-                    `}
-                    aria-label="Toggle status"
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                        ${t.status === "ACTIVE" ? "translate-x-6" : "translate-x-1"}
-                      `}
-                    />
-                  </button>
-                </td>
-              </tr>
-            ))}
 
-            {!loading && taxis.length === 0 && (
-              <tr>
-                <td colSpan={5} className="p-6 text-center text-slate-400">
-                  No taxi registered
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        {initialLoading ? (
+          <>
+            <PlayfulLoading/>
+          </>
+          ): (
+          <>
+            {/* SEARCH TAXI */}
+            <div className="p-4 border-b bg-slate-50">
+              <input
+                type="text"
+                placeholder="ค้นหาเลขทะเบียน Taxi..."
+                value={taxiSearch}
+                onChange={(e) => setTaxiSearch(e.target.value)}
+                className="w-full max-w-sm border rounded px-3 py-2"
+              />
+            </div>
+
+            <table className="w-full text-sm">
+              <thead className="bg-slate-100">
+                <tr>
+                  <th className="p-3 text-left">ทะเบียน</th>
+                  <th className="p-3">ป้าย</th>
+                  <th className="p-3">ประเภท</th>
+                  <th className="p-3">สถานะ</th>
+                  <th className="p-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTaxis.map((t) => (
+                  <tr key={t.id} className="border-t">
+                    <td className="p-3 font-medium">{t.car_number}</td>
+                    <td className="p-3 text-center">
+                      {t.plate_color === "YELLOW" ? "🟨" : "🟩"}
+                    </td>
+                    <td className="p-3 text-center">{t.vehicle_type}</td>
+                    <td className="p-3 text-center">
+                      {t.status === "ACTIVE" ? "✅ Active" : "⛔ Inactive"}
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        {/* Edit Button */}
+                        <button
+                          onClick={() => {
+                            setEditingTaxi(t);
+                            setAgentId(t.agent_id);
+                            setAgentSearch(
+                              agents.find(a => a.id === t.agent_id)?.name || ""
+                            );
+                          }}
+                          className="px-4 py-2 text-sm font-medium bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 hover:shadow-sm transition-all duration-200 flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
+
+                        {/* Status Toggle */}
+                        <button
+                          onClick={() => toggleStatus(t)}
+                          className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-300 shadow-sm
+                            ${t.status === "ACTIVE" 
+                              ? "bg-green-500 hover:bg-green-600" 
+                              : "bg-gray-300 hover:bg-gray-400"
+                            }
+                          `}
+                          aria-label={`Toggle status: ${t.status === "ACTIVE" ? "Active" : "Inactive"}`}
+                          title={t.status === "ACTIVE" ? "Click to deactivate" : "Click to activate"}
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300
+                              ${t.status === "ACTIVE" ? "translate-x-8" : "translate-x-1"}
+                            `}
+                          />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {!loading && filteredTaxis.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-400">
+                      ไม่พบ Taxi ที่ค้นหา
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </>
+        )}          
       </div>
+
+      {editingTaxi && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setEditingTaxi(null)}
+        >
+          <form
+            className="bg-white p-6 rounded-xl w-full max-w-xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();   // 👈 กัน reload
+              saveEditTaxi();       // 👈 Enter = Save
+            }}
+          >
+            <h2 className="font-bold text-lg">แก้ไข Taxi</h2>
+
+            <input
+              autoFocus
+              className="w-full border rounded px-3 py-2"
+              value={editingTaxi.car_number}
+              onChange={(e) =>
+                setEditingTaxi({ ...editingTaxi, car_number: e.target.value })
+              }
+            />
+
+            {/* plate_color / vehicle_type / agent dropdown ใช้ชุดเดิม */}
+
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setEditingTaxi(null)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"   // 👈 สำคัญ
+                className="bg-orange-500 text-white px-4 py-2 rounded"
+              >
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
     </div>
   );
 }
