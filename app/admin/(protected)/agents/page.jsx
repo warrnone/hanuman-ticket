@@ -251,43 +251,6 @@ export default function AdminAgentsPage() {
     }
   };
 
-  // const confirmImport = async () => {
-  //   const validRows = importRows.filter(
-  //     (r) => r.name && VALID_TYPES.includes(r.agent_type)
-  //   );
-
-  //   if (!validRows.length) {
-  //     swalError("ไม่มีข้อมูลที่ถูกต้อง");
-  //     return;
-  //   }
-
-  //   const ok = await swalConfirm(
-  //     "ยืนยันนำเข้า",
-  //     `นำเข้า ${validRows.length} รายการ ?`
-  //   );
-  //   if (!ok.isConfirmed) return;
-
-  //   try {
-  //     setImporting(true);
-  //     const res = await fetch("/api/admin/agents/import", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(validRows),
-  //     });
-
-  //     const json = await res.json();
-  //     if (!res.ok) throw new Error(json.error);
-
-  //     setShowImportModal(false);
-  //     setImportRows([]);
-  //     loadAgents(page);
-  //   } catch {
-  //     swalError("Import ไม่สำเร็จ");
-  //   } finally {
-  //     setImporting(false);
-  //   }
-  // };
-
   const confirmImport = async () => {
     // 1️⃣ กรองข้อมูลพื้นฐาน
     const validRows = importRows.filter(
