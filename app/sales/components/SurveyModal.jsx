@@ -96,14 +96,92 @@ export default function SurveyModal({
   return (
     <>
       {/* Main Modal */}
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
+      <div 
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <div 
+          className="bg-white rounded-xl max-w-xl w-full max-h-[90vh] overflow-y-auto"
+          onClick={e => e.stopPropagation()}
+        >
           
           {/* Scrollable Content */}
           <div className="p-6">
             <h2 className="text-xl font-bold mb-4 text-center">
               Customer Information
             </h2>
+
+            {surveyGroups.map((group) => (
+              <div key={group.id} className="mb-8">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-800 tracking-wide">
+                    {group.title}
+                  </h3>
+                  <span className="text-xs text-gray-400">
+                    Select one or more
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {group.options.map((opt) => {
+                    const selectedValues = answers[group.id] || [];
+                    const isSelected = selectedValues.includes(opt.label);
+
+                    const toggleOption = () => {
+                      let updated;
+
+                      if (isSelected) {
+                        updated = selectedValues.filter(
+                          (v) => v !== opt.label
+                        );
+                      } else {
+                        updated = [...selectedValues, opt.label];
+                      }
+
+                      setAnswers({
+                        ...answers,
+                        [group.id]: updated,
+                      });
+                    };
+
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={toggleOption}
+                        className={`
+                          relative cursor-pointer rounded-2xl border 
+                          px-4 py-4 text-sm font-medium
+                          transition-all duration-200 ease-in-out
+                          select-none
+                          ${
+                            isSelected
+                              ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg scale-[1.02]"
+                              : "bg-white border-gray-200 hover:border-blue-400 hover:shadow-md"
+                          }
+                        `}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{opt.label}</span>
+
+                          <div
+                            className={`
+                              w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold
+                              ${
+                                isSelected
+                                  ? "bg-white text-blue-600"
+                                  : "border border-gray-300"
+                              }
+                            `}
+                          >
+                            {isSelected && "✓"}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
             <div className="space-y-3 mb-4">
               <div>
@@ -118,14 +196,21 @@ export default function SurveyModal({
               </div>
 
               <div>
-                <label className="text-sm font-medium">Service date</label>
+                <label className="text-sm font-medium">Service date (DD/MM/YYYY)</label>
                 <input
                   type="date"
                   value={serviceDate}
                   min={today}
                   onChange={(e) => setServiceDate(e.target.value)}
                   className="w-full border rounded px-3 py-2 text-sm"
+                  lang="en-GB"
                 />
+                {serviceDate && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Selected:{" "}
+                    {new Date(serviceDate).toLocaleDateString("en-GB")}
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3">
@@ -176,61 +261,7 @@ export default function SurveyModal({
                 {error}
               </div>
             )}
-
-            {surveyGroups.map((group) => (
-              <div key={group.id} className="mb-6">
-                <h3 className="text-sm font-semibold mb-3 text-gray-700">
-                  {group.title}
-                </h3>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {group.options.map((opt) => {
-                    const selectedValues = answers[group.id] || [];
-                    const isSelected = selectedValues.includes(opt.label);
-
-                    const toggleOption = () => {
-                      let updated;
-
-                      if (isSelected) {
-                        updated = selectedValues.filter(
-                          (v) => v !== opt.label
-                        );
-                      } else {
-                        updated = [...selectedValues, opt.label];
-                      }
-
-                      setAnswers({
-                        ...answers,
-                        [group.id]: updated,
-                      });
-                    };
-
-                    return (
-                      <div
-                        key={opt.id}
-                        onClick={toggleOption}
-                        className={`relative cursor-pointer rounded-xl border p-3 text-sm transition-all duration-200
-                          ${
-                            isSelected
-                              ? "bg-blue-50 border-blue-500 shadow-sm"
-                              : "bg-white border-gray-200 hover:border-blue-300"
-                          }
-                        `}
-                      >
-                        {opt.label}
-
-                        {isSelected && (
-                          <div className="absolute top-2 right-2 text-blue-600 font-bold">
-                            ✓
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
+            
             <div className="flex gap-3 sticky bottom-0 bg-white pt-4 -mx-6 px-6 pb-2">
               <button
                 onClick={onClose}
