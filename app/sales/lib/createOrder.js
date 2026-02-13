@@ -1,4 +1,6 @@
 export async function createOrder(cart, survey) {
+  console.log(cart , survey); return
+  
   const res = await fetch("/api/sale/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -10,7 +12,7 @@ export async function createOrder(cart, survey) {
       service_date: survey.service_date,
       adult_count: survey.adult_count,
       child_count: survey.child_count,
-
+      
       // ======================
       // 💰 money breakdown (สำคัญมาก)
       // ======================
