@@ -23,6 +23,11 @@ export default function AdminTaxiPage() {
     car_number: "",
     plate_color: "YELLOW", // YELLOW | GREEN
     vehicle_type: "TAXI",  // TAXI | VAN
+    driver_first_name_th: "",
+    driver_last_name_th: "",
+    driver_first_name_en: "",
+    driver_last_name_en: "",
+    driver_phone: "",
   });
 
   // Filter ค้นหาทั้งหมด
@@ -123,6 +128,7 @@ export default function AdminTaxiPage() {
         car_number: "",
         plate_color: "YELLOW",
         vehicle_type: "TAXI",
+
       });
       setAgentId("");
 
@@ -283,6 +289,74 @@ export default function AdminTaxiPage() {
 
       {/* ================= ADD FORM ================= */}
       <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4 max-w-xl">
+
+        {/* ชื่อ - สกุล ภาษาไทย */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium">Driver First Name (TH)</label>
+            <input
+              type="text"
+              value={form.driver_first_name_th}
+              onChange={(e) =>
+                setForm({ ...form, driver_first_name_th: e.target.value })
+              }
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Driver Last Name (TH)</label>
+            <input
+              type="text"
+              value={form.driver_last_name_th}
+              onChange={(e) =>
+                setForm({ ...form, driver_last_name_th: e.target.value })
+              }
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* ชื่อ - สกุล ภาษาอังกฤษ */}
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div>
+            <label className="text-sm font-medium">Driver First Name (EN)</label>
+            <input
+              type="text"
+              value={form.driver_first_name_en}
+              onChange={(e) =>
+                setForm({ ...form, driver_first_name_en: e.target.value })
+              }
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Driver Last Name (EN)</label>
+            <input
+              type="text"
+              value={form.driver_last_name_en}
+              onChange={(e) =>
+                setForm({ ...form, driver_last_name_en: e.target.value })
+              }
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* เบอร์โทรศัพน์  */}
+        <div className="mt-3">
+          <label className="text-sm font-medium">Driver Phone</label>
+          <input
+            type="text"
+            value={form.driver_phone}
+            onChange={(e) =>
+              setForm({ ...form, driver_phone: e.target.value })
+            }
+            className="w-full border rounded px-3 py-2 text-sm"
+          />
+        </div>
+
         <div>
           <label className="text-sm font-medium">เลขทะเบียนรถ</label>
           <input
@@ -326,7 +400,7 @@ export default function AdminTaxiPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">Agent</label>
+          <label className="text-sm font-medium">Agent นอก</label>
             <div className="relative" ref={dropdownRef}>
               {/* SEARCH */}
               <input
