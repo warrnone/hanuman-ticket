@@ -11,6 +11,9 @@ export async function GET() {
         plate_color,
         vehicle_type,
         commission_rate,
+        driver_phone,
+        driver_first_name_en,
+        driver_last_name_en,
         agent_id,
         agents (
           id,

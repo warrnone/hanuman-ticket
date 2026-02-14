@@ -183,27 +183,72 @@ export default function SurveyModal({
           {sourceType === "TAXI" && (
             <div className="mb-4">
               <label className="text-sm font-medium block mb-2">
-                Select Taxi
+                Select Taxi Name
               </label>
 
               <Select
                 options={taxiList.map((t) => ({
                   value: t.id,
-                  label: `${t.car_number} (${t.plate_color})`,
+                  label:`
+                    ${t.driver_first_name_en || ""}
+                    ${t.driver_last_name_en || ""}
+                    ${t.car_number || ""}
+                    ${t.plate_color || ""}
+                    ${t.vehicle_type || ""}
+                  `,
+                  carNumber: t.car_number,
+                  plateColor: t.plate_color,
+                  vehicleType: t.vehicle_type,
+                  first_name:t.driver_first_name_en,
+                  last_name:t.driver_last_name_en,
+                  phone:t.driver_phone,
                 }))}
+
                 value={
                   taxiList
                     .map((t) => ({
                       value: t.id,
-                      label: `${t.car_number} (${t.plate_color})`,
+                      carNumber: t.car_number,
+                      plateColor: t.plate_color,
+                      vehicleType: t.vehicle_type,
                     }))
                     .find((opt) => opt.value === selectedTaxi) || null
                 }
+
                 onChange={(selected) =>
                   setSelectedTaxi(selected?.value || null)
                 }
-                placeholder="Search taxi by number..."
+
+                placeholder="Search taxi name..."
                 isSearchable
+
+                formatOptionLabel={(option) => (
+                  <div className="flex justify-between items-center w-full">
+                    <div>
+                      <div className="font-semibold text-base">
+                        {option.vehicleType === "VAN" ? "🚐" : "🚕"} {option.carNumber}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {option.vehicleType === "VAN" ? "Van" : "Taxi"} 📲 {option.phone}  
+                      </div>
+                    </div>
+                    <div className="font-semibold">
+                      {option.first_name} {option.last_name}
+                    </div>
+
+                    <span
+                      className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        option.plateColor === "YELLOW"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {option.plateColor === "YELLOW"
+                        ? "Yellow Plate"
+                        : "Green Plate"}
+                    </span>
+                  </div>
+                )}
                 className="text-sm"
               />
             </div>
