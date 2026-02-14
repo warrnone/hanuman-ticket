@@ -3,6 +3,7 @@
 import { useEffect, useState , useRef } from "react";
 import { swalSuccess, swalError, swalConfirm } from "@/app/components/Swal";
 import PlayfulLoading  from "@/app/components/PlayfulLoading";
+import { useForm } from "react-hook-form";
 
 export default function AdminTaxiPage() {
   const [loading, setLoading] = useState(true);
@@ -37,6 +38,8 @@ export default function AdminTaxiPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const didInit = useRef(false);
+
+  const { register, formState: { errors } } = useForm();
   /* =========================
      LOAD AGENTS
   ========================= */
@@ -290,71 +293,115 @@ export default function AdminTaxiPage() {
       {/* ================= ADD FORM ================= */}
       <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4 max-w-xl">
 
-        {/* ชื่อ - สกุล ภาษาไทย */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium">Driver First Name (TH)</label>
-            <input
-              type="text"
-              value={form.driver_first_name_th}
-              onChange={(e) =>
-                setForm({ ...form, driver_first_name_th: e.target.value })
-              }
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
+        {/* ================= DRIVER INFORMATION ================= */}
+        <div className="bg-gray-50 border rounded-xl p-5 mt-6 space-y-5">
+
+          <h3 className="text-base font-semibold text-gray-800 border-b pb-2">
+            🚕 Driver Information
+          </h3>
+
+          {/* ===== Thai Name ===== */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                First Name (TH)
+              </label>
+              <input
+                type="text"
+                value={form.driver_first_name_th || ""}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^ก-๙\s]/g, "");
+                  setForm({ ...form, driver_first_name_th: value });
+                }}
+                placeholder="ชื่อภาษาไทย"
+                className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm 
+                          focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                          outline-none transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Last Name (TH)
+              </label>
+              <input
+                type="text"
+                value={form.driver_last_name_th || ""}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^ก-๙\s]/g, "");
+                  setForm({ ...form, driver_last_name_th: value });
+                }}
+                placeholder="นามสกุลภาษาไทย"
+                className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm 
+                          focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                          outline-none transition-all"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Driver Last Name (TH)</label>
-            <input
-              type="text"
-              value={form.driver_last_name_th}
-              onChange={(e) =>
-                setForm({ ...form, driver_last_name_th: e.target.value })
-              }
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
+          {/* ===== English Name ===== */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                First Name (EN)
+              </label>
+              <input
+                type="text"
+                value={form.driver_first_name_en || ""}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                  setForm({ ...form, driver_first_name_en: value });
+                }}
+                placeholder="First name"
+                className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm 
+                          focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                          outline-none transition-all"
+              />
+            </div>
 
-        {/* ชื่อ - สกุล ภาษาอังกฤษ */}
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          <div>
-            <label className="text-sm font-medium">Driver First Name (EN)</label>
-            <input
-              type="text"
-              value={form.driver_first_name_en}
-              onChange={(e) =>
-                setForm({ ...form, driver_first_name_en: e.target.value })
-              }
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Last Name (EN)
+              </label>
+              <input
+                type="text"
+                value={form.driver_last_name_en || ""}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                  setForm({ ...form, driver_last_name_en: value });
+                }}
+                placeholder="Last name"
+                className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm 
+                          focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                          outline-none transition-all"
+              />
+            </div>
           </div>
 
+          {/* ===== Phone ===== */}
           <div>
-            <label className="text-sm font-medium">Driver Last Name (EN)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Driver Phone (Thailand)
+            </label>
             <input
-              type="text"
-              value={form.driver_last_name_en}
-              onChange={(e) =>
-                setForm({ ...form, driver_last_name_en: e.target.value })
-              }
-              className="w-full border rounded px-3 py-2 text-sm"
+              type="tel"
+              inputMode="numeric"
+              value={form.driver_phone || ""}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, "");
+                setForm({ ...form, driver_phone: value });
+              }}
+              placeholder="0812345678"
+              maxLength={10}
+              className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm 
+                        focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                        outline-none transition-all"
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Thai mobile format (10 digits)
+            </p>
           </div>
-        </div>
 
-        {/* เบอร์โทรศัพน์  */}
-        <div className="mt-3">
-          <label className="text-sm font-medium">Driver Phone</label>
-          <input
-            type="text"
-            value={form.driver_phone}
-            onChange={(e) =>
-              setForm({ ...form, driver_phone: e.target.value })
-            }
-            className="w-full border rounded px-3 py-2 text-sm"
-          />
         </div>
 
         <div>
