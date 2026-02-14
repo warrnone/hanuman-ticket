@@ -280,6 +280,20 @@ export default function AdminTaxiPage() {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [editingTaxi]);
 
+
+  const formatPhone = (value) => {
+    if (!value) return "";
+
+    const cleaned = value.replace(/\D/g, "").slice(0, 10);
+
+    if (cleaned.length <= 3) return cleaned;
+    if (cleaned.length <= 6)
+      return `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
+
+    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  };
+
+
   return (
     <div className="space-y-6">
       {/* ================= HEADER ================= */}
@@ -383,22 +397,23 @@ export default function AdminTaxiPage() {
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Driver Phone (Thailand)
             </label>
+
             <input
               type="tel"
               inputMode="numeric"
-              value={form.driver_phone || ""}
+              value={formatPhone(form.driver_phone || "")}
               onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9]/g, "");
-                setForm({ ...form, driver_phone: value });
+                const raw = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+                setForm({ ...form, driver_phone: raw });
               }}
-              placeholder="0812345678"
-              maxLength={10}
+              placeholder="081-234-5678"
               className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm 
                         focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
                         outline-none transition-all"
             />
+
             <p className="text-xs text-gray-400 mt-1">
-              Thai mobile format (10 digits)
+              Format: 081-234-5678
             </p>
           </div>
 
