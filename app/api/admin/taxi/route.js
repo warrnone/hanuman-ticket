@@ -16,6 +16,8 @@ export async function GET() {
         status,
         commission_rate,
         driver_phone,
+        driver_first_name_th,
+        driver_last_name_th,
         agent_id,
         agents (
           id,

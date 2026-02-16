@@ -41,12 +41,15 @@ export async function PUT(req, { params }) {
   try {
     const { id } = await params;
     const body = await req.json();
-
+ 
     const {
       car_number,
       plate_color,
       vehicle_type,
       agent_id,
+      driver_first_name_th,
+      driver_last_name_th,
+      driver_phone,
     } = body;
 
     if (!id) {
@@ -62,6 +65,9 @@ export async function PUT(req, { params }) {
         car_number,
         plate_color,
         vehicle_type,
+        driver_first_name_th,
+        driver_last_name_th,
+        driver_phone,
         agent_id,
         updated_at: new Date().toISOString(),
       })

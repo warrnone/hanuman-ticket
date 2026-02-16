@@ -5,7 +5,6 @@ import { swalSuccess, swalError, swalConfirm } from "@/app/components/Swal";
 import PlayfulLoading  from "@/app/components/PlayfulLoading";
 import { useForm } from "react-hook-form";
 
-///  ********
 export default function AdminTaxiPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -261,11 +260,20 @@ export default function AdminTaxiPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredTaxis = taxis.filter((t) =>
-    t.car_number
-      .toLowerCase()
-      .includes(taxiSearch.toLowerCase())
-  );
+  const filteredTaxis = taxis.filter((t) => {
+    const keyword = taxiSearch.toLowerCase();
+
+    return (
+      t.car_number?.toLowerCase().includes(keyword) ||
+      t.driver_first_name_th?.toLowerCase().includes(keyword) ||
+      t.driver_last_name_th?.toLowerCase().includes(keyword) ||
+      t.driver_first_name_en?.toLowerCase().includes(keyword) ||
+      t.driver_last_name_en?.toLowerCase().includes(keyword) ||
+      t.driver_phone?.toLowerCase().includes(keyword) ||
+      t.plate_color?.toLowerCase().includes(keyword) ||
+      t.vehicle_type?.toLowerCase().includes(keyword)
+    );
+  });
 
   // Edit  เลขทะเบียน 
   const saveEditTaxi = async () => {
@@ -282,6 +290,9 @@ export default function AdminTaxiPage() {
         car_number: editingTaxi.car_number,
         plate_color: editingTaxi.plate_color,
         vehicle_type: editingTaxi.vehicle_type,
+        driver_first_name_th: editingTaxi.driver_first_name_th,
+        driver_last_name_th: editingTaxi.driver_last_name_th,
+        driver_phone: editingTaxi.driver_phone,
         agent_id: agentId,
       }),
     });
@@ -658,7 +669,7 @@ export default function AdminTaxiPage() {
             </h2>
             <input
               type="text"
-              placeholder="🔍 ค้นหาเลขทะเบียน Taxi..."
+              placeholder="🔍 ค้นหา Taxi..."
               value={taxiSearch}
               onChange={(e) => setTaxiSearch(e.target.value)}
               className={`w-full max-w-md border-2 border-slate-200 rounded-xl px-4 py-3 text-base 
@@ -684,6 +695,12 @@ export default function AdminTaxiPage() {
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
                       ประเภท
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
+                      ชื่อ
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
+                      นามสกุล
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
                       เบอร์โทร
@@ -715,6 +732,16 @@ export default function AdminTaxiPage() {
                       <td className="px-6 py-5 text-center">
                         <span className="inline-flex items-center gap-1 text-sm font-medium text-slate-700">
                           {t.vehicle_type === "TAXI" ? "🚕" : "🚐"} {t.vehicle_type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="inline-flex items-center gap-1 text-sm font-medium text-slate-700">
+                          {t.driver_first_name_th}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="inline-flex items-center gap-1 text-sm font-medium text-slate-700">
+                          {t.driver_last_name_th}
                         </span>
                       </td>
                       <td className="px-6 py-5 text-center">
@@ -807,8 +834,8 @@ export default function AdminTaxiPage() {
             onClick={() => setEditingTaxi(null)}
           >
             <form
-              className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden 
-                        transform transition-all duration-300 scale-100"
+              className={`bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden 
+                        transform transition-all duration-300 scale-100`}
               onClick={(e) => e.stopPropagation()}
               onSubmit={(e) => {
                 e.preventDefault();
@@ -843,6 +870,58 @@ export default function AdminTaxiPage() {
                     }
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    ชื่อ
+                  </label>
+                  <input
+                    autoFocus
+                    className={`w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base 
+                              focus:border-orange-500 focus:ring-4 focus:ring-orange-100 
+                              outline-none transition-all shadow-sm`}
+                    value={editingTaxi.driver_first_name_th}
+                    onChange={(e) =>
+                      setEditingTaxi({ ...editingTaxi, driver_first_name_th: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    นามสกุล
+                  </label>
+                  <input
+                    autoFocus
+                    className={`w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base 
+                              focus:border-orange-500 focus:ring-4 focus:ring-orange-100 
+                              outline-none transition-all shadow-sm`}
+                    value={editingTaxi.driver_last_name_th}
+                    onChange={(e) =>
+                      setEditingTaxi({ ...editingTaxi, driver_last_name_th: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    เบอร์โทรศัพน์
+                  </label>
+                  <input
+                    autoFocus
+                    type="tel"
+                    inputMode="numeric"
+                    value={formatPhone(editingTaxi.driver_phone || "")}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+                      setEditingTaxi({ ...editingTaxi, driver_phone: raw });
+                    }}
+                    placeholder="081-234-5678"
+                    className={`w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base 
+                              focus:border-blue-500 focus:ring-4 focus:ring-blue-100 
+                              outline-none transition-all bg-white shadow-sm`}
+                  />
+                  <p className="text-xs text-slate-500 mt-2 ml-1">
+                    📱 Format: 081-234-5678
+                  </p>
+                </div>
 
                 {/* Add other fields like plate_color, vehicle_type, agent dropdown here */}
               </div>
@@ -860,10 +939,8 @@ export default function AdminTaxiPage() {
                 </button>
                 <button
                   type="submit"
-                  className={`px-6 py-3 text-sm font-medium text-white bg-gradient-to-r 
-                            from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 
-                            rounded-xl shadow-md hover:shadow-lg transition-all duration-200 
-                            transform hover:scale-105`}
+                  className={`px-6 py-3 text-sm font-medium text-white bg-gradient-to-r  from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 
+                            rounded-xl shadow-md hover:shadow-lg transition-all duration-200  transform hover:scale-105`}
                 >
                   Save Changes
                 </button>
@@ -871,7 +948,6 @@ export default function AdminTaxiPage() {
             </form>
           </div>
         )}
-
       </div>
     </div>
   );
