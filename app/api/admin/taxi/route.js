@@ -15,6 +15,7 @@ export async function GET() {
         vehicle_type,
         status,
         commission_rate,
+        driver_phone,
         agent_id,
         agents (
           id,
@@ -48,6 +49,11 @@ export async function POST(req) {
       vehicle_type,
       agent_id,
       commission_rate = null,
+      driver_first_name_th,
+      driver_last_name_th,
+      driver_first_name_en,
+      driver_last_name_en,
+      driver_phone,
     } = body;
 
     if (!car_number || !plate_color || !vehicle_type || !agent_id) {
@@ -65,6 +71,11 @@ export async function POST(req) {
         vehicle_type,
         agent_id,
         commission_rate,
+        driver_first_name_th,
+        driver_last_name_th,
+        driver_first_name_en,
+        driver_last_name_en,
+        driver_phone,
       });
 
     if (error) throw error;
