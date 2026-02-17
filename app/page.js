@@ -57,7 +57,7 @@ export default function Home() {
           className="role-btn sales-btn w-full mb-4"
         >
           <span className="role-icon">🎟️</span>
-          <span className="role-text">Sales</span>
+          <span className="role-text">Sales Login</span>
         </button>
 
         {/* ADMIN BUTTON */}
@@ -66,7 +66,7 @@ export default function Home() {
           className="role-btn admin-btn w-full"
         >
           <span className="role-icon">🧑‍💼</span>
-          <span className="role-text">Admin</span>
+          <span className="role-text">Admin Login</span>
         </button>
 
       </div>
