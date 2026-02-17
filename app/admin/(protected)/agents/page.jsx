@@ -432,19 +432,30 @@ export default function AdminAgentsPage() {
       <h1 className="text-2xl font-bold">🤝 Agent Management</h1>
       {/* ADD FORM */}
       <div className="bg-white p-6 rounded-xl border shadow-sm max-w-xl space-y-4">
-        <input
-          className="w-full border px-3 py-2 rounded"
-          placeholder="ชื่อ Agent นอก"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
 
-        <input
-          className="w-full border px-3 py-2 rounded"
-          placeholder="087-654-4565"
-          value={formatPhoneDisplay(form.phone)}
-          onChange={handlePhoneChange}
-        />
+        <div>
+          <label className="block mb-2 font-medium">
+            ชื่อ Agent : company/Tour/Hotel
+          </label>
+          <input
+            className="w-full border px-3 py-2 rounded"
+            placeholder="ชื่อ Agent นอก"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 font-medium">
+            เบอร์โทรศัพน์
+          </label>
+          <input
+            className="w-full border px-3 py-2 rounded"
+            placeholder="087-654-4565"
+            value={formatPhoneDisplay(form.phone)}
+            onChange={handlePhoneChange}
+          />
+        </div>
 
         {/* Select Taxi,Hotel */}
         <div className="flex gap-3">

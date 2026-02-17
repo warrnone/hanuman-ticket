@@ -1,5 +1,4 @@
 export async function createOrder(cart, survey) {
-  console.log(cart , survey); return
   
   const res = await fetch("/api/sale/orders", {
     method: "POST",
@@ -12,6 +11,13 @@ export async function createOrder(cart, survey) {
       service_date: survey.service_date,
       adult_count: survey.adult_count,
       child_count: survey.child_count,
+      // Taxi 
+      taxi_id: survey.taxi_id,
+      source_channel: survey.source_channel,
+      start_time: survey.start_time,
+      remark: survey.remark,
+      // survey_answers
+      survey_answers: survey.survey_answers || {},
       
       // ======================
       // 💰 money breakdown (สำคัญมาก)
@@ -20,7 +26,6 @@ export async function createOrder(cart, survey) {
       discount_amount: Number(survey.discount_amount),
       vat_amount: Number(survey.vat_amount),
       total_amount: Number(survey.total_amount),
-
       vat_rate: Number(survey.vat_rate),
       discount_rate: Number(survey.discount_rate),
 
@@ -50,6 +55,5 @@ export async function createOrder(cart, survey) {
   if (!res.ok) {
     throw new Error(data.error || "Create order failed");
   }
-
   return data;
 }

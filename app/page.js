@@ -17,6 +17,10 @@ export default function Home() {
     router.push("/login");   
   };
 
+  const goRegister = () => {
+    router.push("/register");   // ✅ ไปหน้าสมัครสมาชิก
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-800">
       <div className="bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl w-[380px] text-center">
@@ -38,6 +42,14 @@ export default function Home() {
         <p className="text-gray-500 mb-6">
           Internal Booking Assist System
         </p>
+
+        {/* 🔹 REGISTER BUTTON */}
+        <button
+          onClick={goRegister}
+          className="w-full mb-4 py-2.5 rounded-xl border border-blue-500 text-blue-600 font-semibold hover:bg-blue-50 transition-all"
+        >
+          📝 Register Staff
+        </button>
 
         {/* SALES BUTTON */}
         <button

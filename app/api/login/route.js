@@ -37,7 +37,7 @@ export async function POST(req) {
   if (role === "sales") {
     const { data: user, error } = await supabaseAdmin
       .from("users")
-      .select("id, username, password_hash")
+      .select("id, username, password_hash, is_active")
       .eq("username", username)
       .single();
 
@@ -45,6 +45,14 @@ export async function POST(req) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 401 }
+      );
+    }
+
+    // 🔥 เช็คอนุมัติ
+    if (!user.is_active) {
+      return NextResponse.json(
+        { error: "Account is not approved by admin" },
+        { status: 403 }
       );
     }
 
@@ -68,7 +76,6 @@ export async function POST(req) {
       },
     });
 
-    // ✅ สำคัญมาก
     res.cookies.set("role", "sales", {
       path: "/",
       httpOnly: true,
@@ -85,6 +92,7 @@ export async function POST(req) {
 
     return res;
   }
+
 
   return NextResponse.json(
     { error: "Invalid role" },

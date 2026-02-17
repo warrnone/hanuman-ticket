@@ -60,6 +60,12 @@ export async function POST(req) {
       total_amount, // ✅ ยอดรวมที่ client คำนวณมา
       vat_rate,
       discount_rate,
+
+      taxi_id = null,
+      source_channel = "WALK_IN",
+      start_time = null,
+      remark = null,
+      survey_answers = {},
     } = body;
 
     /* =====================================
@@ -149,6 +155,11 @@ export async function POST(req) {
           service_date,
           adult_count: Number(adult_count) || 0,
           child_count: Number(child_count) || 0,
+          // Taxi
+          taxi_id,
+          source_channel,
+          start_time,
+          remark,
           subtotal_amount: Number(subtotal_amount),
           discount_amount: Number(discount_amount),
           vat_amount: Number(vat_amount),
@@ -208,6 +219,39 @@ export async function POST(req) {
     }
 
     /* =====================================
+      3.5 Insert survey answers (FIXED)
+    ===================================== */
+    if (survey_answers && Object.keys(survey_answers).length > 0) {
+
+      const surveyPayload = [];
+
+      for (const [groupKey, values] of Object.entries(survey_answers)) {
+
+        if (!Array.isArray(values)) continue;
+
+        for (const value of values) {
+          surveyPayload.push({
+            order_id: orderRow.id,
+            group_key: groupKey,
+            answer: value,
+          });
+        }
+      }
+
+      if (surveyPayload.length > 0) {
+        const { error: surveyError } =
+          await supabaseAdmin
+            .from("order_survey_answers")
+            .insert(surveyPayload);
+
+        if (surveyError) {
+          console.error("Insert survey error:", surveyError);
+        }
+      }
+    }
+
+
+    /* =====================================
        4. Send order to Partner (Hanuman API)
        - เราเป็นฝั่ง POST ไปหาเค้า
     ===================================== */
@@ -238,8 +282,13 @@ export async function POST(req) {
             vat_amount: orderRow.vat_amount,
             vat_rate: orderRow.vat_rate,
             discount_rate: orderRow.discount_rate,
+            // Taxi
+            taxi_id,
+            source_channel,
             // Final total
             total_amount: Number(total_amount),
+            // survey
+            survey_answers,
             // ======================
             // items
             // ======================
@@ -326,6 +375,7 @@ export async function POST(req) {
       "vat_rate": 7.00,
       "vat_amount": 138.99,
       "total_amount": 2124.49,
+      "taxi_id" : "text",
       "items": [
         {
           "item_code": "WD_PLUS",
