@@ -7,6 +7,8 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { enGB } from "date-fns/locale";
 import Select from "react-select";
+import { QRCodeCanvas } from "qrcode.react";
+
 
 export default function SurveyModal({
   cart,
@@ -36,6 +38,10 @@ export default function SurveyModal({
   const [sourceType, setSourceType] = useState("WALK_IN");
   const [selectedTaxi, setSelectedTaxi] = useState(null);
   const [taxiList, setTaxiList] = useState([]);
+
+  // Qrcode 
+  const [qrToken, setQrToken] = useState(null);
+
 
 
   const loadTaxis = async () => {
@@ -94,11 +100,12 @@ export default function SurveyModal({
       });
       
       if (!data) return;
-
+      
       await swalSuccess(`Order Completed!\nOrder Code: ${data.order_code}`);
-      onClose();
+      // onClose();
+      setQrToken(data.qr_token);
       onComplete?.();
-
+      
     } catch (err) {
       setError(err.message);
       swalError(err.message);

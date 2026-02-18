@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseServer";
+import crypto from "crypto";
 
 /*
 |--------------------------------------------------------------------------
@@ -145,6 +146,9 @@ export async function POST(req) {
        - ใช้ total_amount จาก client
     ===================================== */
 
+    const qrToken = crypto.randomBytes(16).toString("hex");
+    const qrExpiredAt = new Date(Date.now() + 1000 * 60 * 30);
+
     const { data: orderRow, error: orderError } =
       await supabaseAdmin
         .from("orders")
@@ -170,6 +174,10 @@ export async function POST(req) {
           discount_rate: Number(discount_rate),
           payment_status: "pending",
           checkin_status: "not_checked_in",
+
+          // Qrcode 
+          qr_token: qrToken,
+          qr_expired_at: qrExpiredAt, // 1 ชม
         })
         .select()
         .single();
@@ -378,6 +386,7 @@ export async function POST(req) {
     return NextResponse.json({
       success: true,
       order_id: orderRow.id,
+      qr_token: qrToken,
     });
 
   } catch (err) {
