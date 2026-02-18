@@ -114,7 +114,7 @@ export async function POST(req) {
     const { data: staff, error: staffError } =
       await supabaseAdmin
         .from("users")
-        .select("id, username, first_name, last_name, role,")
+        .select("id, username, first_name, last_name, role , is_active")
         .eq("id", staffId)
         .single();
 
