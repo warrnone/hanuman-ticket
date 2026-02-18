@@ -112,7 +112,7 @@ export async function POST(req) {
     const { data: staff, error: staffError } =
       await supabaseAdmin
         .from("users")
-        .select("id, username, is_active")
+        .select("id, username, first_name, last_name, role,")
         .eq("id", staffId)
         .single();
 
@@ -273,7 +273,14 @@ export async function POST(req) {
             service_date: orderRow.service_date,
             adult: orderRow.adult_count,
             child: orderRow.child_count,
-            staff_code: staffCode,
+            staff: {
+              id: staff.id,
+              username: staff.username,
+              first_name: staff.first_name,
+              last_name: staff.last_name,
+              full_name: `${staff.first_name || ""} ${staff.last_name || ""}`.trim(),
+              role: staff.role,
+            },
             // ======================
             // 💰 money breakdown
             // ======================
