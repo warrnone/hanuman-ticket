@@ -74,7 +74,7 @@ export async function POST(req) {
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("users")
-    .select("id, username, role, is_active, created_at")
+    .select("id, username, role, is_active, created_at , first_name , last_name")
     .order("created_at", { ascending: false });
 
   if (error) {

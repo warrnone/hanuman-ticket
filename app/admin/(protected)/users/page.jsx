@@ -252,6 +252,8 @@ export default function AdminPage() {
             <thead className="bg-gray-100">
               <tr>
                 <th className="border px-3 py-2">Username</th>
+                <th className="border px-3 py-2">name</th>
+                <th className="border px-3 py-2">lastname</th>
                 <th className="border px-3 py-2">Role</th>
                 <th className="border px-3 py-2">Status</th>
                 <th className="border px-3 py-2">Action</th>
@@ -261,6 +263,8 @@ export default function AdminPage() {
               {paginatedUsers.map((u) => (
                 <tr key={u.id}>
                   <td className="border px-3 py-2">{u.username}</td>
+                  <td className="border px-3 py-2">{u.first_name}</td>
+                  <td className="border px-3 py-2">{u.last_name}</td>
                   <td className="border px-3 py-2">{u.role}</td>
                   <td className="border px-3 py-2">
                     {u.is_active ? "Active" : "Disabled"}
