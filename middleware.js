@@ -4,9 +4,9 @@ export function middleware(req) {
   const { pathname } = req.nextUrl;
   const role = req.cookies.get("role")?.value;
 
-  /* ===============================
-    หน้าแรก /
-  =============================== */
+  // ===============================
+  // ROOT
+  // ===============================
   if (pathname === "/") {
     if (role === "admin") {
       return NextResponse.redirect(new URL("/admin", req.url));
@@ -17,28 +17,35 @@ export function middleware(req) {
     return NextResponse.next();
   }
 
-  /* ===============================
-    ADMIN LOGIN
-  =============================== */
-  if (pathname === "/admin/login") {
-    if (role === "admin") {
-      return NextResponse.redirect(new URL("/admin", req.url));
+  // ===============================
+  // ✅ เพิ่ม LOGIN
+  // ===============================
+  if (pathname === "/login") {
+    if (role === "sales") {
+      return NextResponse.redirect(new URL("/sales", req.url));
     }
     return NextResponse.next();
   }
 
-  /* ===============================
-    ADMIN AREA
-  =============================== */
+  // ===============================
+  // ADMIN
+  // ===============================
   if (pathname.startsWith("/admin")) {
+    if (pathname === "/admin/login") {
+      if (role === "admin") {
+        return NextResponse.redirect(new URL("/admin", req.url));
+      }
+      return NextResponse.next();
+    }
+
     if (role !== "admin") {
       return NextResponse.redirect(new URL("/admin/login", req.url));
     }
   }
 
-  /* ===============================
-    SALES AREA
-  =============================== */
+  // ===============================
+  // SALES
+  // ===============================
   if (pathname.startsWith("/sales")) {
     if (role !== "sales") {
       return NextResponse.redirect(new URL("/login", req.url));
@@ -49,5 +56,5 @@ export function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/", "/admin/:path*", "/sales/:path*"],
+  matcher: ["/", "/login", "/admin/:path*", "/sales/:path*"], // ✅ เพิ่ม /login
 };

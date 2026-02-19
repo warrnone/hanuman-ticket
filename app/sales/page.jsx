@@ -50,10 +50,19 @@ export default function SalePage() {
     }
   };
 
+  const handleApiResponse = (res) => {
+    if (res.status === 401 || res.status === 403) {
+      router.replace("/login");
+      return false;
+    }
+    return true;
+  };
+
   const loadMenu = async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/sale/menu");
+      if (!handleApiResponse(res)) return;
       const json = await res.json();
       setMenu(json.data || []);
       if (json.data && json.data.length > 0) {
