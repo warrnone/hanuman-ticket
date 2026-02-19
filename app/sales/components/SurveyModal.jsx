@@ -100,9 +100,7 @@ export default function SurveyModal({
       if (!data) return;
       
       await swalSuccess(`Order Completed!\nOrder Code: ${data.order_code}`);
-      // onClose();
       setQrToken(data.qr_token);
-      onComplete?.();
       
     } catch (err) {
       setError(err.message);
@@ -139,7 +137,10 @@ export default function SurveyModal({
             <p className="text-blue-100 text-sm mt-1">Please fill in the details below</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              onComplete?.();   // ✅ เคลียร์ cart
+              onClose();        // ✅ ปิด modal
+            }}
             className="text-white/80 hover:text-white hover:bg-white/10 rounded-full p-2 transition-all"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,19 +154,34 @@ export default function SurveyModal({
 
           {qrToken ? (
             <>
-              <div className="text-center py-10">
+              <div className="flex flex-col items-center justify-center text-center py-10">
                 <h2 className="text-xl font-bold mb-4">
                   🎟 Booking Confirmed
                 </h2>
-                <QRCodeCanvas
-                  value={`${process.env.NEXT_PUBLIC_BASE_URL}/checkin/${qrToken}`}
-                  size={260}
-                />
+                {/* ชี้ไปที่ระบบของเค้า “ระบบของเค้า” (Partner System)   */}
+                <div className="relative inline-block">
+                  <QRCodeCanvas
+                    value={`${process.env.NEXT_PUBLIC_BASE_URL}/checkin/${qrToken}`}
+                    size={260}
+                    level="H"
+                  />
+                  {/* Logo กลมครอบทับอย่างเดียว */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <img
+                      src="/hanuman-logo.jpg"
+                      alt="logo"
+                      className="w-40 h-40 rounded-full object-cover border-3 border-white shadow-lg"
+                    />
+                  </div>
+                </div>
                 <p className="mt-4 text-gray-600">
-                  กรุณานำ QR นี้ไปที่จุด Check-in
+                  Please present this QR code at the Check-in counter to confirm your ticket. Thank you for choosing us!
                 </p>
                 <button
-                  onClick={onClose}
+                  onClick={() => {
+                    onComplete?.();   // ✅ เคลียร์ cart
+                    onClose();        // ✅ ปิด modal
+                  }}
                   className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg"
                 >
                   Close
@@ -555,7 +571,10 @@ export default function SurveyModal({
         {/* Footer Actions */}
         <div className="border-t bg-gray-50 px-6 py-4 flex gap-3">
           <button
-            onClick={onClose}
+            onClick={() => {
+              onComplete?.();   // ✅ เคลียร์ cart
+              onClose();        // ✅ ปิด modal
+            }}
             disabled={loading}
             className="flex-1 bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >

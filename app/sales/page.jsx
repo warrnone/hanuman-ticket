@@ -218,9 +218,10 @@ export default function SalePage() {
             title={selectedActivity}
             items={items}
             onAdd={(item) => {
+              const wasEmpty = cart.length === 0;
               addToCart(item);
               // 👉 เปิด cart panel อัตโนมัติบน tablet เมื่อเพิ่มสินค้า
-              if (window.innerWidth < 1024) {
+              if (window.innerWidth < 1024 && wasEmpty) {
                 setShowCart(true);
               }
             }}
