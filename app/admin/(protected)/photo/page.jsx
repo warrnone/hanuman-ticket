@@ -396,6 +396,7 @@ export default function AdminPhotoVideoPage() {
                     <option value="edit">Edit</option>
                     <option value="reel">Reel</option>
                     <option value="gopro">GoPro</option>
+                    <option value="phone_mount">PHONE MOUNT</option>
                   </select>
 
                   <div className="flex gap-2">
