@@ -9,29 +9,21 @@ import { enGB } from "date-fns/locale";
 import Select from "react-select";
 import { QRCodeCanvas } from "qrcode.react";
 
-
-export default function SurveyModal({
-  cart,
-  // 💰 money breakdown
-  subtotal,
-  discount,
-  tax,
-  total,
-  vatRate,
-  discountRate,
-  // control
-  onClose,
-  onComplete,
-}) {
+export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,discountRate,onClose,onComplete,}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [guestName, setGuestName] = useState("");
-  const [serviceDate, setServiceDate] = useState(null);
+  const [serviceDate, setServiceDate] = useState( () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  });
   const [adult, setAdult] = useState(1);
   const [child, setChild] = useState(0);
   const [surveyGroups, setSurveyGroups] = useState([]);
   const [answers, setAnswers] = useState({});
-  const [startTime, setStartTime] = useState("");
+  const TIME_SLOTS = ["09:00", "11:00", "14:00", "16:00"];
+  const [startTime, setStartTime] = useState(TIME_SLOTS[0]);
   const [remark, setRemark] = useState("");
 
   // โครงสร้าง Survey Modal
@@ -59,11 +51,11 @@ export default function SurveyModal({
         return;
       }
 
-      if (!serviceDate) {
-        setError("Please select service date");
-        setLoading(false);
-        return;
-      }
+      // if (!serviceDate) {
+      //   setError("Please select service date");
+      //   setLoading(false);
+      //   return;
+      // }
 
       const todayDate = new Date();
       todayDate.setHours(0, 0, 0, 0);
@@ -79,7 +71,7 @@ export default function SurveyModal({
 
       const data = await createOrder(cart, {
         guest_name: guestName || "Walk-in",
-        service_date: serviceDate ? serviceDate.toISOString().split("T")[0] : null,
+        service_date: serviceDate ? formatDateLocal(serviceDate): null,
         adult_count: adult,
         child_count: child,
 
@@ -114,12 +106,20 @@ export default function SurveyModal({
     n.toLocaleString("th-TH", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    });
+    }
+  );
 
   const loadSurvey = async () => {
     const res = await fetch("/api/sale/survey");
     const json = await res.json();
     setSurveyGroups(json.data || []);
+  };
+
+  const formatDateLocal = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   useEffect(() => {
@@ -214,7 +214,7 @@ export default function SurveyModal({
                         : "bg-gray-200"
                     }`}
                   >
-                    🚕 Taxi
+                    🚕 Taxi / Van
                   </button>
                 </div>
               </div>
@@ -402,12 +402,9 @@ export default function SurveyModal({
                     </label>
                     <DatePicker
                       selected={serviceDate}
-                      onChange={(date) => setServiceDate(date)}
-                      minDate={new Date()}
+                      disabled
                       dateFormat="dd/MM/yyyy"
-                      locale={enGB}
-                      placeholderText="DD/MM/YYYY"
-                      className="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+                      className="w-full bg-gray-100 border-2 border-gray-200 rounded-lg px-4 py-2.5 text-sm"
                     />
                     {serviceDate && (
                       <p className="text-xs text-green-600 mt-1.5 flex items-center">
@@ -423,12 +420,25 @@ export default function SurveyModal({
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Start Time
                     </label>
-                    <input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
-                    />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {TIME_SLOTS.map((slot) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => setStartTime(slot)}
+                          className={`py-2 rounded-lg border-2 font-semibold transition-all
+                            ${
+                              startTime === slot
+                                ? "bg-blue-600 text-white border-blue-600 shadow"
+                                : "bg-white border-gray-300 hover:border-blue-400"
+                            }
+                          `}
+                        >
+                          🕒 {slot}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

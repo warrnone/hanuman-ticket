@@ -49,7 +49,6 @@ export default function AdminDashboard() {
     XLSX.writeFile(wb, "Daily_Report.xlsx");
   };
 
-
   useEffect(() => {
     fetchDashboard();
   }, []);
@@ -128,7 +127,6 @@ export default function AdminDashboard() {
       >
         Export Excel Taxi
       </button>
-
 
       {/* ================= CEO HEADER ================= */}
       <div>
@@ -259,10 +257,10 @@ export default function AdminDashboard() {
           <tbody>
             {packageSummary.map((p, i) => (
               <tr key={i} className="border-b">
-                <td>{p.package}</td>
-                <td>{p.orders}</td>
-                <td>{p.quantity}</td>
-                <td>
+                <td className="text-left">{p.package}</td>
+                <td className="text-center">{p.orders}</td>
+                <td className="text-center">{p.quantity}</td>
+                <td className="text-center">
                   ฿{p.revenue.toLocaleString()}
                 </td>
               </tr>

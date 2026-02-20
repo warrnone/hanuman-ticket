@@ -47,7 +47,7 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    swalError("");
+    // swalError("");
 
     try {
       await loginApi({

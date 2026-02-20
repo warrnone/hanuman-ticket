@@ -14,7 +14,8 @@ export async function GET() {
         plate_color,
         vehicle_type,
         status,
-        commission_rate,
+        commission_type,
+        commission_value,
         driver_phone,
         driver_first_name_th,
         driver_last_name_th,
@@ -50,7 +51,8 @@ export async function POST(req) {
       plate_color,
       vehicle_type,
       agent_id,
-      commission_rate = null,
+      commission_type = "FIXED_PER_HEAD",
+      commission_value = null,
       driver_first_name_th,
       driver_last_name_th,
       driver_first_name_en,
@@ -65,14 +67,34 @@ export async function POST(req) {
       );
     }
 
+    /* =========================
+      Generate taxi_code (SAFE)
+    ========================= */
+
+    const { data: seqData, error: seqError } = await supabaseAdmin.rpc("get_next_taxi_code");
+
+    if (seqError) throw seqError;
+
+    const nextNumber = String(seqData).padStart(5, "0");
+
+    const prefix = vehicle_type === "VAN" ? "VAN" : "TX";
+
+    const taxi_code = `${prefix}${nextNumber}`;
+
+    /* =========================
+       Insert
+    ========================= */
+
     const { error } = await supabaseAdmin
       .from("taxis")
       .insert({
+        taxi_code,
         car_number,
         plate_color,
         vehicle_type,
         agent_id,
-        commission_rate,
+        commission_type,
+        commission_value,
         driver_first_name_th,
         driver_last_name_th,
         driver_first_name_en,
@@ -83,6 +105,7 @@ export async function POST(req) {
     if (error) throw error;
 
     return NextResponse.json({ success: true });
+
   } catch (err) {
     console.error("POST taxi error:", err);
     return NextResponse.json(

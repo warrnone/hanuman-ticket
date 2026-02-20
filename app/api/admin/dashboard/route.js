@@ -44,7 +44,7 @@ export async function GET() {
     const { data: todayOrders, error: todayError } =
       await supabaseAdmin
         .from("orders")
-        .select("total_amount, taxi_id")
+        .select("total_amount, taxi_id , adult_count, child_count")
         .gte("created_at", todayStart.toISOString());
 
     if (todayError) throw todayError;
@@ -72,8 +72,8 @@ export async function GET() {
     const { data: taxis, error: taxiError } =
       await supabaseAdmin
         .from("taxis")
-        .select("id, car_number, commission_rate");
-
+        .select("id, car_number, commission_value");
+      
     if (taxiError) throw taxiError;
 
     /* =========================
@@ -88,9 +88,36 @@ export async function GET() {
       const taxi = taxis?.find((t) => t.id === o.taxi_id);
       if (!taxi) return;
 
-      const rate = taxi.commission_rate || 0;
-      taxiCommissionToday +=
-        (Number(o.total_amount) * Number(rate)) / 100;
+      (todayOrders || []).forEach((o) => {
+        if (!o.taxi_id) return;
+
+        const taxi = taxis?.find((t) => t.id === o.taxi_id);
+        if (!taxi) return;
+
+        const adult = Number(o.adult_count || 0);
+        const child = Number(o.child_count || 0);
+        const total = Number(o.total_amount || 0);
+
+        let commission = 0;
+
+        switch (taxi.commission_type) {
+          case "FIXED_PER_HEAD":
+            commission =
+              (adult + child) * Number(taxi.commission_value);
+            break;
+
+          case "FIXED_PER_ORDER":
+            commission = Number(taxi.commission_value);
+            break;
+
+          case "PERCENT":
+            commission =
+              (total * Number(taxi.commission_value)) / 100;
+            break;
+        }
+
+        taxiCommissionToday += commission;
+      });
     });
 
     const profitToday = revenueToday - taxiCommissionToday;
@@ -145,7 +172,8 @@ export async function GET() {
           created_at,
           total_amount,
           taxis (
-            commission_rate
+            commission_type,
+            commission_value
           )
         `)
         .not("taxi_id", "is", null)
@@ -172,9 +200,28 @@ export async function GET() {
 
       t.orders_7d += 1;
 
-      const rate = o.taxis?.commission_rate || 0;
-      const commission =
-        (Number(o.total_amount) * Number(rate)) / 100;
+      const type = o.taxis?.commission_type;
+      const value = Number(o.taxis?.commission_value || 0);
+
+      const adult = Number(o.adult_count || 0);
+      const child = Number(o.child_count || 0);
+      const total = Number(o.total_amount || 0);
+
+      let commission = 0;
+
+      switch (type) {
+        case "FIXED_PER_HEAD":
+          commission = (adult + child) * value;
+          break;
+
+        case "FIXED_PER_ORDER":
+          commission = value;
+          break;
+
+        case "PERCENT":
+          commission = (total * value) / 100;
+          break;
+      }
 
       t.unpaid_commission += commission;
 
@@ -315,10 +362,11 @@ export async function GET() {
     });
 
 
-     /* =========================
+    /* =========================
       Profit Margin by Package
     ========================= */
     const profitPackage = {};
+
     (matrixData || []).forEach((row) => {
       const pkg = row.item_name;
 
@@ -333,25 +381,43 @@ export async function GET() {
       const total = Number(row.price) * Number(row.quantity);
       profitPackage[pkg].revenue += total;
 
-      const rate =
-        row.orders?.taxis?.commission_rate || 0;
+      const taxi = row.orders?.taxis;
 
-      profitPackage[pkg].commission +=
-        (total * rate) / 100;
+      if (!taxi) return;
+
+      const type = taxi.commission_type;
+      const value = Number(taxi.commission_value || 0);
+
+      const adult = Number(row.orders?.adult_count || 0);
+      const child = Number(row.orders?.child_count || 0);
+      const orderTotal = Number(row.orders?.total_amount || 0);
+
+      let commission = 0;
+
+      switch (type) {
+        case "FIXED_PER_HEAD":
+          commission = (adult + child) * value;
+          break;
+
+        case "FIXED_PER_ORDER":
+          commission = value;
+          break;
+
+        case "PERCENT":
+          commission = (orderTotal * value) / 100;
+          break;
+      }
+
+      profitPackage[pkg].commission += commission;
     });
 
-    const profitMargin = Object.values(profitPackage).map((p) => ({
-      package: p.package,
-      margin:
-        p.revenue > 0
-          ? Math.round(
-              ((p.revenue - p.commission) / p.revenue) * 100
-            )
-          : 0,
-    }));
-
-
-
+    const profitMargin = Object.values(profitPackage).map((pkg) => {
+      const margin = pkg.revenue > 0 ? ((pkg.revenue - pkg.commission) / pkg.revenue * 100) : 0;
+      return {
+        ...pkg,
+        margin: Math.round(margin * 100) / 100,
+      };
+    });
 
     /* =========================
        RESPONSE

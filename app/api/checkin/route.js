@@ -117,7 +117,6 @@ export async function POST(req) {
   }
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | Function: handleTaxiCommission

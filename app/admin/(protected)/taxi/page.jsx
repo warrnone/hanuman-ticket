@@ -28,7 +28,8 @@ export default function AdminTaxiPage() {
     driver_first_name_en: "",
     driver_last_name_en: "",
     driver_phone: "",
-    commission_rate: 20, // Default commission rate
+    commission_type: "FIXED_PER_HEAD",
+    commission_value: 200,
   });
 
   // Filter ค้นหาทั้งหมด
@@ -135,7 +136,8 @@ export default function AdminTaxiPage() {
           driver_first_name_en: form.driver_first_name_en,
           driver_last_name_en: form.driver_last_name_en,
           driver_phone: form.driver_phone,
-          commission_rate: form.commission_rate ?? null,
+          commission_type: form.commission_type,
+          commission_value: form.commission_value ?? null,
         }),
       });
 
@@ -155,6 +157,8 @@ export default function AdminTaxiPage() {
         driver_first_name_en: "",
         driver_last_name_en: "",
         driver_phone: "",
+        commission_type: "FIXED_PER_HEAD",
+        commission_value: 200,
       });
       setAgentId("");
 
@@ -528,34 +532,55 @@ export default function AdminTaxiPage() {
                 Commission & Agent
               </h3>
 
-              {/* Commission Rate */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Commission Rate (%)
-                  <span className="text-slate-400 text-xs font-normal ml-2">(Optional)</span>
+              {/* Commission Type */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold mb-2">
+                  Commission Type
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={form.commission_rate ?? ""}
+
+                <select
+                  value={form.commission_type}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      commission_rate:
-                        e.target.value === ""
-                          ? null
-                          : parseFloat(e.target.value),
+                      commission_type: e.target.value,
                     }))
                   }
-                  placeholder="Leave blank to use Agent commission"
-                  className={`w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base 
-                            focus:border-green-500 focus:ring-4 focus:ring-green-100 
-                            outline-none transition-all bg-white shadow-sm`}
+                  className="w-full border-2 rounded-xl px-4 py-3"
+                >
+                  <option value="FIXED_PER_HEAD">Fixed per Head</option>
+                  <option value="FIXED_PER_ORDER">Fixed per Order</option>
+                  <option value="PERCENT">Percent (%)</option>
+                </select>
+              </div>
+
+              {/* Commission Value */}
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Commission Value
+                </label>
+
+                <input
+                  type="number"
+                  step={form.commission_type === "PERCENT" ? "0.01" : "1"}
+                  min="0"
+                  value={form.commission_value}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      commission_value: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  className="w-full border-2 rounded-xl px-4 py-3"
                 />
-                <p className="text-xs text-slate-500 mt-2 ml-1">
-                  💡 If empty, system will use Agent commission rate
+
+                <p className="text-xs text-slate-500 mt-2">
+                  {form.commission_type === "FIXED_PER_HEAD" &&
+                    "💡 Amount per person"}
+                  {form.commission_type === "FIXED_PER_ORDER" &&
+                    "💡 Amount per order"}
+                  {form.commission_type === "PERCENT" &&
+                    "💡 Percentage from base amount"}
                 </p>
               </div>
 
