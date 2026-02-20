@@ -3,14 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
+import {swalSuccess , swalError} from "../components/Swal"; // ✅ เตรียมไว้ใช้ในอนาคต
 import { loginApi } from "@/lib/authClient"; // ✅ ใช้จาก lib
 import "./login_button.css";
 import SubmitLoading from "../components/SubmitLoading";
 
 export default function LoginPage() {
   const router = useRouter();
-
   // ======================
   // STATE
   // ======================
@@ -42,14 +41,13 @@ export default function LoginPage() {
     }
   }, [router]);
 
-
   // ======================
   // LOGIN HANDLER
   // ======================
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    swalError("");
 
     try {
       await loginApi({
@@ -71,11 +69,13 @@ export default function LoginPage() {
       // ✅ cookie ถูกตั้งโดย API แล้ว
       if (role === "admin") {
         router.replace("/admin");
+        swalSuccess("Login successful", "Welcome back, Admin!");
       } else if (role === "sales") {
         router.replace("/sales");
+        swalSuccess("Login successful", "Welcome back, Sales!");
       }
     } catch (err) {
-      setError(err.message || "Login failed");
+      swalError(err.message || "Login failed");
       setLoading(false);
     }
   };

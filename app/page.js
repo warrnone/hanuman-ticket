@@ -48,7 +48,7 @@ export default function Home() {
           onClick={goRegister}
           className="w-full mb-4 py-2.5 rounded-xl border border-blue-500 text-blue-600 font-semibold hover:bg-blue-50 transition-all"
         >
-          📝 Register Staff
+          📝 Register Sales
         </button>
 
         {/* SALES BUTTON */}
