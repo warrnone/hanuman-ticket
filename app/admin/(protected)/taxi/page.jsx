@@ -636,10 +636,10 @@ export default function AdminTaxiPage() {
             <button
               onClick={addTaxi}
               disabled={saving}
-              className={`w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 
-                        text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl 
-                        disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 
-                        transform hover:scale-[1.02] active:scale-[0.98]`}
+              className={`w-fit bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 
+                text-white px-6 py-2.5 rounded-lg font-semibold text-sm shadow-md hover:shadow-lg 
+                disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 
+                transform hover:scale-[1.02] active:scale-[0.98]`}
             >
               {saving ? (
                 <span className="flex items-center justify-center gap-2">

@@ -3,32 +3,244 @@
 import { useEffect, useState } from "react";
 import { swalSuccess, swalConfirm, swalError } from "@/app/components/Swal";
 
+/* ===========================================
+   TOGGLE SWITCH
+=========================================== */
+function Toggle({ checked, onChange }) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      style={{
+        width: 48,
+        height: 26,
+        borderRadius: 99,
+        background: checked
+          ? "linear-gradient(135deg, #f97316, #fb923c)"
+          : "#e2e8f0",
+        position: "relative",
+        cursor: "pointer",
+        transition: "background 0.25s ease",
+        flexShrink: 0,
+        boxShadow: checked ? "0 2px 8px rgba(249,115,22,0.35)" : "none",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          top: 3,
+          left: checked ? 25 : 3,
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          background: "#fff",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
+          transition: "left 0.22s cubic-bezier(.4,0,.2,1)",
+        }}
+      />
+    </div>
+  );
+}
+
+/* ===========================================
+   NUMBER INPUT WITH PREFIX
+=========================================== */
+function NumberInput({ value, onChange, disabled }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        background: disabled ? "#f8fafc" : "#fff",
+        border: "1.5px solid",
+        borderColor: disabled ? "#e2e8f0" : "#fed7aa",
+        borderRadius: 10,
+        overflow: "hidden",
+        maxWidth: 160,
+        transition: "border-color 0.2s, box-shadow 0.2s",
+        boxShadow: disabled ? "none" : "0 2px 8px rgba(249,115,22,0.08)",
+      }}
+    >
+      <span
+        style={{
+          padding: "10px 14px",
+          background: disabled ? "#f1f5f9" : "#fff7ed",
+          color: disabled ? "#94a3b8" : "#f97316",
+          fontWeight: 700,
+          fontSize: 14,
+          borderRight: "1.5px solid",
+          borderColor: disabled ? "#e2e8f0" : "#fed7aa",
+          userSelect: "none",
+          fontFamily: "'DM Mono', monospace",
+        }}
+      >
+        %
+      </span>
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        style={{
+          border: "none",
+          outline: "none",
+          padding: "10px 12px",
+          fontSize: 15,
+          fontWeight: 600,
+          color: disabled ? "#94a3b8" : "#1e293b",
+          background: "transparent",
+          width: "100%",
+          fontFamily: "'DM Mono', monospace",
+          cursor: disabled ? "not-allowed" : "text",
+        }}
+      />
+    </div>
+  );
+}
+
+/* ===========================================
+   SETTING CARD ROW
+=========================================== */
+function SettingCard({ icon, title, description, enabled, onToggle, children }) {
+  return (
+    <div
+      style={{
+        borderRadius: 16,
+        border: "1.5px solid",
+        borderColor: enabled ? "#fed7aa" : "#f1f5f9",
+        background: enabled ? "#fff7ed" : "#fafafa",
+        padding: "20px 22px",
+        transition: "all 0.28s ease",
+        display: "flex",
+        flexDirection: "column",
+        gap: 0,
+      }}
+    >
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              background: enabled ? "#fff" : "#f1f5f9",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 20,
+              border: "1.5px solid",
+              borderColor: enabled ? "#fed7aa" : "#e2e8f0",
+              boxShadow: enabled ? "0 2px 8px rgba(249,115,22,0.10)" : "none",
+              transition: "all 0.25s",
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {title}
+            </div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
+              {description}
+            </div>
+          </div>
+        </div>
+        <Toggle checked={enabled} onChange={onToggle} />
+      </div>
+
+      {/* Expandable input area */}
+      <div
+        style={{
+          maxHeight: enabled ? 100 : 0,
+          overflow: "hidden",
+          transition: "max-height 0.32s cubic-bezier(.4,0,.2,1), opacity 0.25s ease, margin 0.28s ease",
+          opacity: enabled ? 1 : 0,
+          marginTop: enabled ? 18 : 0,
+        }}
+      >
+        <div style={{ paddingLeft: 54 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 8, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            กำหนดอัตรา
+          </div>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===========================================
+   LOADING SCREEN
+=========================================== */
+function LoadingScreen() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        minHeight: 260,
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        {/* Spinner */}
+        <div style={{ position: "relative", width: 60, height: 60, margin: "0 auto 20px" }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              border: "3px solid #f1f5f9",
+              borderTopColor: "#f97316",
+              animation: "spin 0.8s linear infinite",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 8,
+              borderRadius: "50%",
+              border: "3px solid #f1f5f9",
+              borderTopColor: "#fb923c",
+              animation: "spin 1.2s linear infinite reverse",
+            }}
+          />
+        </div>
+        <p style={{ fontSize: 15, fontWeight: 700, color: "#475569", margin: 0 }}>กำลังโหลดค่าระบบ</p>
+        <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Please wait a moment...</p>
+      </div>
+    </div>
+  );
+}
+
+/* ===========================================
+   MAIN PAGE
+=========================================== */
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
+  const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
     vat_rate: 7,
-    enable_vat: false,        // ✅ เพิ่ม
+    enable_vat: false,
     discount_rate: 5,
     enable_discount: true,
   });
 
-  /* =========================
-     LOAD SETTINGS
-  ========================= */
+  /* ---------- LOAD ---------- */
   const fetchSettings = async () => {
     try {
       setLoading(true);
-
       const res = await fetch("/api/admin/settings");
       if (!res.ok) throw new Error("Failed to load settings");
-
       const data = await res.json();
-
       setForm({
         vat_rate: Number(data.vat_rate ?? 7),
-        enable_vat: Boolean(data.enable_vat),           // ✅ เพิ่ม
+        enable_vat: Boolean(data.enable_vat),
         discount_rate: Number(data.discount_rate ?? 5),
         enable_discount: Boolean(data.enable_discount),
       });
@@ -40,37 +252,30 @@ export default function AdminSettingsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+  useEffect(() => { fetchSettings(); }, []);
 
-  /* =========================
-     SAVE SETTINGS
-  ========================= */
+  /* ---------- SAVE ---------- */
   const handleSave = async () => {
-    const result = await swalConfirm(
-      "บันทึกการตั้งค่า",
-      "ต้องการบันทึกค่า VAT และ Discount ใช่หรือไม่"
-    );
+    const result = await swalConfirm("บันทึกการตั้งค่า", "ต้องการบันทึกค่า VAT และ Discount ใช่หรือไม่");
     if (!result.isConfirmed) return;
 
     try {
       setSaving(true);
-
       const res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           vat_rate: Number(form.vat_rate),
-          enable_vat: form.enable_vat,                  // ✅ เพิ่ม
+          enable_vat: form.enable_vat,
           discount_rate: Number(form.discount_rate),
           enable_discount: form.enable_discount,
         }),
       });
-
       if (!res.ok) throw new Error("Save failed");
 
       swalSuccess("บันทึกการตั้งค่าเรียบร้อยแล้ว");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       console.error(err);
       swalError("บันทึกข้อมูลไม่สำเร็จ");
@@ -79,146 +284,163 @@ export default function AdminSettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="relative">
-            {/* Outer ring */}
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-200 border-t-blue-500" />
-            {/* Inner ring */}
-            <div className="absolute inset-0 m-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-purple-400 animation-delay-150" />
-          </div>
-          <div className="text-center">
-            <p className="text-base font-semibold text-slate-700">Loading settings</p>
-            <p className="text-sm text-slate-400">Please wait a moment...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  /* ---------- RENDER ---------- */
   return (
-    <div className="max-w-3xl space-y-6">
-      {/* =========================
-          HEADER
-      ========================= */}
-      <div>
-        <h1 className="text-2xl font-bold">⚙️ System Settings</h1>
-        <p className="text-sm text-slate-500">
-          ตั้งค่าภาษี (VAT) และส่วนลดสำหรับระบบขาย
-        </p>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .settings-wrap * { box-sizing: border-box; }
+        .settings-wrap input[type=number]::-webkit-inner-spin-button,
+        .settings-wrap input[type=number]::-webkit-outer-spin-button { opacity: 1; }
+        .save-btn:hover:not(:disabled) {
+          background: linear-gradient(135deg, #ea6c0a, #f97316) !important;
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(249,115,22,0.35) !important;
+        }
+        .save-btn:active:not(:disabled) { transform: translateY(0) !important; }
+        .save-btn { transition: all 0.2s ease !important; }
+      `}</style>
+
+      <div
+        className="settings-wrap"
+        style={{
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          maxWidth: 580,
+          animation: "fadeIn 0.4s ease",
+        }}
+      >
+        {loading ? (
+          <LoadingScreen />
+        ) : (
+          <>
+            {/* ===== HEADER ===== */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    background: "linear-gradient(135deg, #f97316, #fb923c)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 20,
+                    boxShadow: "0 4px 14px rgba(249,115,22,0.32)",
+                    flexShrink: 0,
+                  }}
+                >
+                  ⚙️
+                </div>
+                <div>
+                  <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1e293b", margin: 0, lineHeight: 1.2 }}>
+                    System Settings
+                  </h1>
+                  <p style={{ fontSize: 13, color: "#94a3b8", margin: 0, marginTop: 2 }}>
+                    ตั้งค่าภาษี (VAT) และส่วนลดสำหรับระบบขาย
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ===== CARD ===== */}
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 22,
+                border: "1.5px solid #f1f5f9",
+                boxShadow: "0 4px 32px rgba(15,23,42,0.07)",
+                padding: "24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              {/* --- VAT Setting --- */}
+              <SettingCard
+                icon="🧾"
+                title="ภาษีมูลค่าเพิ่ม (VAT)"
+                description="คำนวณ VAT อัตโนมัติในใบแจ้งหนี้และใบเสร็จ"
+                enabled={form.enable_vat}
+                onToggle={(val) => setForm((p) => ({ ...p, enable_vat: val }))}
+              >
+                <NumberInput
+                  value={form.vat_rate}
+                  disabled={!form.enable_vat}
+                  onChange={(e) => setForm((p) => ({ ...p, vat_rate: e.target.value }))}
+                />
+              </SettingCard>
+
+              {/* --- Discount Setting --- */}
+              <SettingCard
+                icon="🏷️"
+                title="ส่วนลด (Discount)"
+                description="เปิดใช้การหักส่วนลดอัตโนมัติจากยอดขาย"
+                enabled={form.enable_discount}
+                onToggle={(val) => setForm((p) => ({ ...p, enable_discount: val }))}
+              >
+                <NumberInput
+                  value={form.discount_rate}
+                  disabled={!form.enable_discount}
+                  onChange={(e) => setForm((p) => ({ ...p, discount_rate: e.target.value }))}
+                />
+              </SettingCard>
+
+              {/* --- Divider --- */}
+              <div style={{ height: 1, background: "#f1f5f9", margin: "4px 0" }} />
+
+              {/* --- Footer --- */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
+                  * ค่าที่ตั้งจะถูกนำไปใช้ตอนคำนวณราคาที่หน้า Sale
+                </p>
+
+                <button
+                  className="save-btn"
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{
+                    padding: "10px 22px",
+                    borderRadius: 11,
+                    border: "none",
+                    background: saved
+                      ? "linear-gradient(135deg, #22c55e, #16a34a)"
+                      : saving
+                      ? "#fdba74"
+                      : "linear-gradient(135deg, #f97316, #fb923c)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: saving ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    boxShadow: saved
+                      ? "0 4px 14px rgba(34,197,94,0.3)"
+                      : "0 4px 16px rgba(249,115,22,0.28)",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {saved ? (
+                    <><span>✓</span> บันทึกแล้ว!</>
+                  ) : saving ? (
+                    <>
+                      <span style={{ display: "inline-block", animation: "spin 0.8s linear infinite" }}>⏳</span>
+                      กำลังบันทึก...
+                    </>
+                  ) : (
+                    <><span>💾</span> บันทึกการตั้งค่า</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* =========================
-          FORM
-      ========================= */}
-      <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
-        {/* Enable VAT */}
-        <div className="flex items-center gap-3">
-          <input
-            id="enable_vat"
-            type="checkbox"
-            checked={form.enable_vat}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                enable_vat: e.target.checked,
-              }))
-            }
-            className="w-4 h-4 accent-orange-500"
-          />
-          <label htmlFor="enable_vat" className="text-sm font-medium">
-            เปิดใช้งาน VAT
-          </label>
-        </div>
-
-        {/* VAT rate */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">
-            VAT (%)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.vat_rate}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                vat_rate: e.target.value,
-              }))
-            }
-            disabled={!form.enable_vat}   // ✅ ปิด input ถ้าไม่เปิด VAT
-            className="w-full max-w-xs border rounded-lg px-3 py-2
-              focus:outline-none focus:ring-2 focus:ring-orange-400
-              disabled:bg-slate-100"
-          />
-        </div>
-
-        {/* Discount */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">
-            Discount (%)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.discount_rate}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                discount_rate: e.target.value,
-              }))
-            }
-            disabled={!form.enable_discount}
-            className="w-full max-w-xs border rounded-lg px-3 py-2
-              focus:outline-none focus:ring-2 focus:ring-orange-400
-              disabled:bg-slate-100"
-          />
-        </div>
-
-        {/* Enable discount */}
-        <div className="flex flex-row items-center gap-3">
-          <input
-            id="enable_discount"
-            type="checkbox"
-            checked={form.enable_discount}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                enable_discount: e.target.checked,
-              }))
-            }
-            className="w-4 h-4 accent-orange-500"
-          />
-          <label htmlFor="enable_discount" className="text-sm font-medium">
-            เปิดใช้งานส่วนลด (Enable discount)
-          </label>
-        </div>
-
-        {/* =========================
-            FOOTER
-        ========================= */}
-        <div className="pt-4 flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2 rounded-lg bg-orange-500 text-white
-              font-medium hover:bg-orange-600 disabled:opacity-60"
-          >
-            {saving ? "Saving..." : "Save settings"}
-          </button>
-        </div>
-      </div>
-
-      {/* =========================
-          NOTE
-      ========================= */}
-      <div className="text-xs text-slate-500">
-        * ค่าที่ตั้งในหน้านี้ จะถูกนำไปใช้ตอนคำนวณราคาที่หน้า Sale
-      </div>
-    </div>
+    </>
   );
 }
