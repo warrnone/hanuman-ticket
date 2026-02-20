@@ -28,7 +28,7 @@ export default function AdminTaxiPage() {
     driver_first_name_en: "",
     driver_last_name_en: "",
     driver_phone: "",
-    commission_rate: null,
+    commission_rate: 20, // Default commission rate
   });
 
   // Filter ค้นหาทั้งหมด
