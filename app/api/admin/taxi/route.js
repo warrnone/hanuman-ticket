@@ -60,9 +60,59 @@ export async function POST(req) {
       driver_phone,
     } = body;
 
+
+    // ================================================
+    // Normalize inputs 
+    const normalizedCarNumber = car_number?.trim().toUpperCase();
+    const normalizedPhone = driver_phone?.trim();
+    const normalizedFirstTH = driver_first_name_th?.trim();
+    const normalizedLastTH = driver_last_name_th?.trim();
+
+    // ================================================
+
     if (!car_number || !plate_color || !vehicle_type || !agent_id) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from("taxis")
+      .select("id")
+      .ilike("car_number", normalizedCarNumber)
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "เลขทะเบียนนี้มีอยู่แล้ว" },
+        { status: 400 }
+      );
+    }
+
+    const { data: agent } = await supabaseAdmin
+      .from("agents")
+      .select("agent_type")
+      .eq("id", agent_id)
+      .single();
+
+    if (!agent || agent.agent_type !== "TAXI") {
+      return NextResponse.json(
+        { error: "Agent ต้องเป็นประเภท TAXI เท่านั้น" },
+        { status: 400 }
+      );
+    }
+
+    if (commission_value < 0) {
+        return NextResponse.json(
+          { error: "Commission ต้องมากกว่าหรือเท่ากับ 0" },
+          { status: 400 }
+        );
+      }
+
+    if (commission_type === "PERCENT" && commission_value > 100) {
+      return NextResponse.json(
+        { error: "Commission ต้องไม่เกิน 100%" },
         { status: 400 }
       );
     }
@@ -89,17 +139,17 @@ export async function POST(req) {
       .from("taxis")
       .insert({
         taxi_code,
-        car_number,
+        car_number: normalizedCarNumber,
         plate_color,
         vehicle_type,
         agent_id,
         commission_type,
         commission_value,
-        driver_first_name_th,
-        driver_last_name_th,
+        driver_first_name_th: normalizedFirstTH,
+        driver_last_name_th: normalizedLastTH,
         driver_first_name_en,
         driver_last_name_en,
-        driver_phone,
+        driver_phone: normalizedPhone,
       });
 
     if (error) throw error;

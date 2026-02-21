@@ -87,13 +87,15 @@ export async function POST(req) {
       status = "ACTIVE",
     } = body;
 
-    if (!name || !agent_type) {
+    // ✅ Normalize inputs and validate
+    const normalizedName = name?.trim();
+
+    if (!normalizedName || !agent_type) {
       return NextResponse.json(
         { error: "Missing name or agent_type" },
         { status: 400 }
       );
     }
-
 
     // 🔍 CHECK DUPLICATE NAME
     const { data: existing } = await supabaseAdmin
@@ -112,7 +114,7 @@ export async function POST(req) {
     const { error } = await supabaseAdmin
       .from("agents")
       .insert({
-        name,
+        name: normalizedName,
         agent_type,
         commission_rate: Number(commission_rate),
         phone,

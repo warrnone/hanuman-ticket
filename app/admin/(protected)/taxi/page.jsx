@@ -87,25 +87,39 @@ export default function AdminTaxiPage() {
     searchInputRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    if (agents.length > 0 && !agentId) {
-      const independent = agents.find(
-        (a) => a.name === "Independent Taxi Driver"
-      );
-
-      if (independent) {
-        setAgentId(independent.id);
-        setAgentSearch(independent.name);
-      }
-    }
-  }, [agents]);
-
   /* =========================
      ADD TAXI
   ========================= */
   const addTaxi = async () => {
-    if (!form.car_number.trim()) {
+
+    const carNumber = form.car_number.trim().toUpperCase();
+    if (!carNumber) {
       swalError("กรุณากรอกเลขทะเบียนรถ");
+      return;
+    }
+
+    if (!form.driver_first_name_th.trim()) {
+      swalError("กรุณากรอกชื่อภาษาไทย");
+      return;
+    }
+
+    if (!form.driver_last_name_th.trim()) {
+      swalError("กรุณากรอกนามสกุลภาษาไทย");
+      return;
+    }
+
+    if (!form.driver_phone || form.driver_phone.length !== 10) {
+      swalError("กรุณากรอกเบอร์โทร 10 หลัก");
+      return;
+    }
+
+    if (form.commission_value < 0) {
+      swalError("Commission ต้องมากกว่าหรือเท่ากับ 0");
+      return;
+    }
+
+    if (form.commission_type === "PERCENT" && form.commission_value > 100) {
+      swalError("Percent ต้องไม่เกิน 100%");
       return;
     }
 
@@ -341,7 +355,7 @@ export default function AdminTaxiPage() {
             🚕 Taxi Registration
           </h1>
           <p className="text-base text-slate-500 mt-2">
-            ลงทะเบียน Taxi / Van (ป้ายเหลือง, ป้ายเขียว)
+            ลงทะเบียนคนขับ Taxi / Van (ป้ายเหลือง, ป้ายเขียว)
           </p>
         </div>
 
@@ -532,6 +546,71 @@ export default function AdminTaxiPage() {
                 Commission & Agent
               </h3>
 
+              {/* Agent */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  <span className="text-red-500">*</span> Agent
+                </label>
+                <div className="relative" ref={dropdownRef}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="ค้นหา Agent..."
+                    value={agentSearch}
+                    onChange={(e) => {
+                      setAgentSearch(e.target.value);
+                      setShowAgentDropdown(true);
+                      setActiveIndex(-1);
+                    }}
+                    onFocus={() => setShowAgentDropdown(true)}
+                    onKeyDown={(e) =>
+                      handleKeyDown(
+                        e,
+                        agents.filter((a) =>
+                          a.name.toLowerCase().includes(agentSearch.toLowerCase())
+                        )
+                      )
+                    }
+                    className={`w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base 
+                              focus:border-green-500 focus:ring-4 focus:ring-green-100 
+                              outline-none transition-all bg-white shadow-sm`}
+                  />
+
+                  {/* DROPDOWN */}
+                  {showAgentDropdown && (
+                    <div className="absolute z-20 mt-2 w-full bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
+                      {agents.filter((a) => a.name.toLowerCase().includes(agentSearch.toLowerCase()))
+                        .map((a, i) => (
+                          <div
+                            key={a.id}
+                            onMouseEnter={() => setActiveIndex(i)}
+                            onClick={() => {
+                              setAgentId(a.id);
+                              setAgentSearch(a.name);
+                              setShowAgentDropdown(false);
+                              setActiveIndex(-1);
+                            }}
+                            className={`px-4 py-3 cursor-pointer transition-colors
+                              ${i === activeIndex ? "bg-green-100 text-green-800" : "hover:bg-slate-50"}
+                              ${i === 0 ? "rounded-t-xl" : ""}
+                              ${i === agents.filter((a) =>a.agent_type === "TAXI" && a.name.toLowerCase().includes(agentSearch.toLowerCase())).length - 1 ? "rounded-b-xl" : ""}`}
+                          >
+                            {highlightText(a.name, agentSearch)}
+                          </div>
+                        ))}
+
+                      {!agents.some((a) =>
+                        a.name.toLowerCase().includes(agentSearch.toLowerCase())
+                      ) && (
+                        <div className="px-4 py-6 text-slate-400 text-sm text-center">
+                          ❌ ไม่พบ Agent
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Commission Type */}
               <div className="mb-4">
                 <label className="block text-sm font-semibold mb-2">
@@ -584,77 +663,6 @@ export default function AdminTaxiPage() {
                 </p>
               </div>
 
-              {/* Agent */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Agent
-                </label>
-                <div className="relative" ref={dropdownRef}>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    placeholder="ค้นหา Agent..."
-                    value={agentSearch}
-                    onChange={(e) => {
-                      setAgentSearch(e.target.value);
-                      setShowAgentDropdown(true);
-                      setActiveIndex(-1);
-                    }}
-                    onFocus={() => setShowAgentDropdown(true)}
-                    onKeyDown={(e) =>
-                      handleKeyDown(
-                        e,
-                        agents.filter((a) =>
-                          a.name.toLowerCase().includes(agentSearch.toLowerCase())
-                        )
-                      )
-                    }
-                    className={`w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base 
-                              focus:border-green-500 focus:ring-4 focus:ring-green-100 
-                              outline-none transition-all bg-white shadow-sm`}
-                  />
-
-                  {/* DROPDOWN */}
-                  {showAgentDropdown && (
-                    <div className="absolute z-20 mt-2 w-full bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
-                      {agents
-                        .filter((a) =>
-                          a.name.toLowerCase().includes(agentSearch.toLowerCase())
-                        )
-                        .map((a, i) => (
-                          <div
-                            key={a.id}
-                            onMouseEnter={() => setActiveIndex(i)}
-                            onClick={() => {
-                              setAgentId(a.id);
-                              setAgentSearch(a.name);
-                              setShowAgentDropdown(false);
-                              setActiveIndex(-1);
-                            }}
-                            className={`px-4 py-3 cursor-pointer transition-colors
-                              ${i === activeIndex 
-                                ? "bg-green-100 text-green-800" 
-                                : "hover:bg-slate-50"
-                              }
-                              ${i === 0 ? "rounded-t-xl" : ""}
-                              ${i === agents.filter((a) => a.name.toLowerCase().includes(agentSearch.toLowerCase())).length - 1 ? "rounded-b-xl" : ""}
-                            `}
-                          >
-                            {highlightText(a.name, agentSearch)}
-                          </div>
-                        ))}
-
-                      {!agents.some((a) =>
-                        a.name.toLowerCase().includes(agentSearch.toLowerCase())
-                      ) && (
-                        <div className="px-4 py-6 text-slate-400 text-sm text-center">
-                          ❌ ไม่พบ Agent
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
 
             {/* Submit Button */}
@@ -713,6 +721,9 @@ export default function AdminTaxiPage() {
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-100 to-slate-50 border-b-2 border-slate-200">
                     <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
+                      ลำดับ
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
                       ทะเบียน
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
@@ -744,6 +755,11 @@ export default function AdminTaxiPage() {
                       key={t.id} 
                       className="hover:bg-slate-50 transition-colors duration-150"
                     >
+                      <td className="px-6 py-5">
+                        <span className="font-semibold text-slate-800 text-base">
+                          {index + 1}
+                        </span>
+                      </td>
                       <td className="px-6 py-5">
                         <span className="font-semibold text-slate-800 text-base">
                           {t.car_number}

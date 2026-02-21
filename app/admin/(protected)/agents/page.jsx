@@ -1,5 +1,26 @@
 "use client";
 
+/***
+ * 
+ * 
+ * 
+ * 
+1️⃣ Agent (ในระบบคุณ)
+ใน DB: agents
+ใช้เพื่อ: บริษัททัวร์
+       โรงแรม
+       Taxi Group
+       Partner ที่รับเงินส่วนแบ่ง
+→ ใช้คำนวณ Commission จริง
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * */
+
 import { useEffect, useState } from "react";
 import { swalSuccess, swalError, swalConfirm } from "@/app/components/Swal";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
@@ -435,7 +456,7 @@ export default function AdminAgentsPage() {
 
         <div>
           <label className="block mb-2 font-medium">
-            ชื่อ Agent : company/Tour/Hotel
+           <span className="text-red-500">*</span> ชื่อ Agent : company/Tour/Hotel
           </label>
           <input
             className="w-full border px-3 py-2 rounded"
@@ -447,7 +468,7 @@ export default function AdminAgentsPage() {
 
         <div>
           <label className="block mb-2 font-medium">
-            เบอร์โทรศัพน์
+            <span className="text-red-500">*</span> เบอร์โทรศัพน์
           </label>
           <input
             className="w-full border px-3 py-2 rounded"

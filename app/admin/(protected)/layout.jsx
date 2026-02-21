@@ -150,7 +150,7 @@ export default function AdminLayout({ children }) {
           }`}
         >
           <span className="text-lg">🚗</span>
-          <span className="font-medium">Taxi</span>
+          <span className="font-medium">Car Commission</span>
         </Link>
       </div>
 
