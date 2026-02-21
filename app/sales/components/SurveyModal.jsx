@@ -5,13 +5,11 @@ import { createOrder } from "../lib/createOrder";
 import { swalSuccess, swalError } from "../../components/Swal";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { enGB } from "date-fns/locale";
 import Select from "react-select";
 import { QRCodeCanvas } from "qrcode.react";
 
 export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,discountRate,onClose,onComplete,}) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [guestName, setGuestName] = useState("");
   const [serviceDate, setServiceDate] = useState( () => {
     const today = new Date();
@@ -27,12 +25,23 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
   const [remark, setRemark] = useState("");
 
   // โครงสร้าง Survey Modal
-  const [sourceType, setSourceType] = useState("WALK_IN");
   const [selectedTaxi, setSelectedTaxi] = useState(null);
   const [taxiList, setTaxiList] = useState([]);
+  const [channels, setChannels] = useState([]);
+  const [selectedChannel, setSelectedChannel] = useState(null);
 
   // Qrcode 
   const [qrToken, setQrToken] = useState(null);
+
+  const loadChannels = async () => {
+    try {
+      const res = await fetch("/api/sale/source-channels");
+      const json = await res.json();
+      setChannels(json.data || []);
+    } catch (err) {
+      swalError("Load channels error", err.message);
+    }
+  };
 
   const loadTaxis = async () => {
     const res = await fetch("/api/sale/taxi/active");
@@ -43,19 +52,22 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
   const handleComplete = async () => {
     try {
       setLoading(true);
-      setError("");
 
       if (!guestName.trim()) {
-        setError("Please enter guest/group name");
+        swalError("Please enter guest/group name");
         setLoading(false);
         return;
       }
 
-      // if (!serviceDate) {
-      //   setError("Please select service date");
-      //   setLoading(false);
-      //   return;
-      // }
+      if (!selectedChannel) {
+        swalError("Please select order source");
+        return;
+      }
+
+      if (selectedChannel.commissionable && !selectedTaxi) {
+        swalError("Please select taxi/van for commissionable channel");
+        return;
+      }
 
       const todayDate = new Date();
       todayDate.setHours(0, 0, 0, 0);
@@ -64,7 +76,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       selectedDate.setHours(0, 0, 0, 0);
 
       if (selectedDate < todayDate) {
-        setError("Service date must be today or in the future");
+        swalError("Service date must be today or in the future");
         setLoading(false);
         return;
       }
@@ -77,8 +89,8 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
 
         start_time: startTime || null,
         remark: remark || null,
-        taxi_id: sourceType === "TAXI" ? selectedTaxi : null,
-        source_channel: sourceType,
+        taxi_id: selectedChannel?.commissionable ? selectedTaxi : null,
+        source_channel_id: selectedChannel?.id || null,
 
         subtotal_amount: subtotal,
         discount_amount: discount,
@@ -95,7 +107,6 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       setQrToken(data.qr_token);
       
     } catch (err) {
-      setError(err.message);
       swalError(err.message);
     } finally {
       setLoading(false);
@@ -124,6 +135,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
 
   useEffect(() => {
     loadSurvey();
+    loadChannels();
     loadTaxis();
   }, []);
 
@@ -192,102 +204,44 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
             <>
               {/* ถ้าเป็น Taxi → แสดง dropdown */}
               <div className="mb-6">
-                <label className="text-sm font-medium">Order Type</label>
-
-                <div className="flex gap-3 mt-2">
-                  <button
-                    onClick={() => setSourceType("WALK_IN")}
-                    className={`flex-1 py-2 rounded ${
-                      sourceType === "WALK_IN"
-                        ? "bg-yellow-400"
-                        : "bg-gray-200"
-                    }`}
-                  >
-                    🚶 Walk-in
-                  </button>
-
-                  <button
-                    onClick={() => setSourceType("TAXI")}
-                    className={`flex-1 py-2 rounded ${
-                      sourceType === "TAXI"
-                        ? "bg-yellow-400"
-                        : "bg-gray-200"
-                    }`}
-                  >
-                    🚕 Taxi / Van
-                  </button>
+                <label className="text-md font-medium"> <span className="text-red-500">*</span> Order Source</label>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  {channels.map((ch) => (
+                    <button
+                      key={ch.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedChannel(ch);
+                        setSelectedTaxi(null);
+                      }}
+                      className={`p-3 rounded-xl border-2 font-semibold transition
+                        ${
+                          selectedChannel?.id === ch.id
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white border-gray-300 hover:border-blue-400"
+                        }
+                      `}
+                    >
+                      {ch.name}
+                    </button>
+                  ))}
                 </div>
               </div>
-              {sourceType === "TAXI" && (
+              {selectedChannel?.commissionable && (
                 <div className="mb-4">
-                  <label className="text-sm font-medium block mb-2">
-                    Select Taxi Name
+                  <label className="text-md font-medium block mb-2">
+                    <span className="text-red-500">*</span> Select : Agent/Taxi/Van
                   </label>
 
                   <Select
                     options={taxiList.map((t) => ({
                       value: t.id,
-                      label:`
-                        ${t.driver_first_name_en || ""}
-                        ${t.driver_last_name_en || ""}
-                        ${t.car_number || ""}
-                        ${t.plate_color || ""}
-                        ${t.vehicle_type || ""}
-                      `,
-                      carNumber: t.car_number,
-                      plateColor: t.plate_color,
-                      vehicleType: t.vehicle_type,
-                      first_name:t.driver_first_name_en,
-                      last_name:t.driver_last_name_en,
-                      phone:t.driver_phone,
+                      label: `${t.vehicle_type === "VAN" ? "🚐" : "🚕"} ${t.car_number}  ${t.driver_first_name_en}  ${t.driver_last_name_en}`,
                     }))}
-
-                    value={
-                      taxiList
-                        .map((t) => ({
-                          value: t.id,
-                          carNumber: t.car_number,
-                          plateColor: t.plate_color,
-                          vehicleType: t.vehicle_type,
-                        }))
-                        .find((opt) => opt.value === selectedTaxi) || null
-                    }
-
                     onChange={(selected) =>
                       setSelectedTaxi(selected?.value || null)
                     }
-
-                    placeholder="Search taxi name..."
-                    isSearchable
-
-                    formatOptionLabel={(option) => (
-                      <div className="flex justify-between items-center w-full">
-                        <div>
-                          <div className="font-semibold text-base">
-                            {option.vehicleType === "VAN" ? "🚐" : "🚕"} {option.carNumber}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {option.vehicleType === "VAN" ? "Van" : "Taxi"} 📲 {option.phone}  
-                          </div>
-                        </div>
-                        <div className="font-semibold">
-                          {option.first_name} {option.last_name}
-                        </div>
-
-                        <span
-                          className={`text-xs font-bold px-2 py-1 rounded-full ${
-                            option.plateColor === "YELLOW"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {option.plateColor === "YELLOW"
-                            ? "Yellow Plate"
-                            : "Green Plate"}
-                        </span>
-                      </div>
-                    )}
-                    className="text-sm"
+                    placeholder="Search Taxi/Van..."
                   />
                 </div>
               )}
@@ -562,20 +516,9 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                     </div>
                   </div>
                 </div>
-
-                {/* Error Message */}
-                {error && (
-                  <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 flex items-start">
-                    <svg className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm text-red-700 font-medium">{error}</span>
-                  </div>
-                )}
               </div>
             </>
           )}
-
         </div>
 
         {/* Footer Actions */}

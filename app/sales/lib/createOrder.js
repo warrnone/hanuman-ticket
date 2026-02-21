@@ -51,7 +51,6 @@ export async function createOrder(cart, survey) {
   }
 
   const data = await res.json();
-
   if (!res.ok) {
     throw new Error(data.error || "Create order failed");
   }
