@@ -456,7 +456,7 @@ export default function AdminAgentsPage() {
 
         <div>
           <label className="block mb-2 font-medium">
-           <span className="text-red-500">*</span> ชื่อ Agent : company/Tour/Hotel
+           <span className="text-red-500">*</span> ชื่อ Agent : [Taxi/Company/Tour/Hotel]
           </label>
           <input
             className="w-full border px-3 py-2 rounded"
