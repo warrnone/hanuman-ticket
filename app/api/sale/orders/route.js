@@ -64,7 +64,7 @@ export async function POST(req) {
       discount_rate,
 
       taxi_id = null,
-      source_channel = "WALK_IN",
+      source_channel_id,
       start_time = null,
       remark = null,
       survey_answers = {},
@@ -162,7 +162,7 @@ export async function POST(req) {
           child_count: Number(child_count) || 0,
           // Taxi
           taxi_id,
-          source_channel,
+          source_channel_id,
           start_time,
           remark,
           subtotal_amount: Number(subtotal_amount),
@@ -305,7 +305,7 @@ export async function POST(req) {
             discount_rate: orderRow.discount_rate,
             // Taxi
             taxi_id,
-            source_channel,
+            source_channel_id,
             // Final total
             total_amount: Number(total_amount),
             // survey

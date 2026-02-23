@@ -13,7 +13,7 @@ export async function createOrder(cart, survey) {
       child_count: survey.child_count,
       // Taxi 
       taxi_id: survey.taxi_id,
-      source_channel: survey.source_channel,
+      source_channel_id: survey.source_channel_id,
       start_time: survey.start_time,
       remark: survey.remark,
       // survey_answers
