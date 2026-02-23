@@ -33,31 +33,46 @@ export default function ProductGrid({ title, items, onAdd }) {
               <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
 
                 {item.image ? (
-                  typeof item.image === "string" && item.image.startsWith("http") ? (
+
+                  item.type === "VIDEO" ? (
+                    <video
+                      src={item.image}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      onMouseEnter={(e) => e.currentTarget.play()}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.pause();
+                        e.currentTarget.currentTime = 0;
+                      }}
+                    />
+                  ) : (
                     <img
                       src={item.image}
                       alt={item.name}
                       className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
                     />
-                  ) : (
-                    <span className="text-6xl group-hover:scale-110 transition-transform duration-300">
-                      {item.image}
-                    </span>
                   )
+
                 ) : (
-                  /* 🔥 fallback ถ้าไม่มีรูปเลย */
+                  /* Fallback */
                   <div className="flex flex-col items-center justify-center text-gray-400">
                     <span className="text-5xl mb-2">
                       {item.type === "PHOTO" ? "📷" : item.type === "VIDEO" ? "🎥" : "📦"}
                     </span>
                     <span className="text-xs uppercase tracking-wider">
-                      {item.type === "PHOTO" ? "No Image" : item.type === "VIDEO" ? "No Video" : "No Package"}
+                      {item.type === "PHOTO"
+                        ? "No Image"
+                        : item.type === "VIDEO"
+                        ? "No Video"
+                        : "No Package"}
                     </span>
                   </div>
                 )}
 
-                {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
 
