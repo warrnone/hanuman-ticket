@@ -196,9 +196,18 @@ export default function AdminPackagesPage() {
   const handleUploadImage = async (file) => {
     if (!file) return;
 
-    // ✅ ตรวจชนิดไฟล์
-    if (!file.type.startsWith("image/")) {
-      swalError("กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น");
+    // ✅ รองรับทั้ง image และ video
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+
+    if (!isImage && !isVideo) {
+      swalError("รองรับเฉพาะไฟล์รูปภาพ หรือ วิดีโอเท่านั้น");
+      return;
+    }
+
+    // ✅ จำกัดประเภท video (แนะนำ mp4 เท่านั้น)
+    if (isVideo && file.type !== "video/mp4") {
+      swalError("รองรับเฉพาะไฟล์วิดีโอ .mp4 เท่านั้น");
       return;
     }
 
@@ -228,10 +237,11 @@ export default function AdminPackagesPage() {
         image_url: data.url,
       }));
 
-      swalSuccess("อัปโหลดรูปสำเร็จ");
+      swalSuccess(isVideo ? "อัปโหลดวิดีโอสำเร็จ" : "อัปโหลดรูปสำเร็จ");
+
     } catch (err) {
       console.error(err);
-      swalError("อัปโหลดรูปไม่สำเร็จ");
+      swalError("อัปโหลดไฟล์ไม่สำเร็จ");
     }
   };
 
@@ -428,7 +438,7 @@ export default function AdminPackagesPage() {
                 <div className="relative">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     onChange={(e) => handleUploadImage(e.target.files[0])}
                     className="hidden"
                     id="image-upload"
@@ -450,7 +460,7 @@ export default function AdminPackagesPage() {
                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                       />
                     </svg>
-                    <span className="text-sm text-gray-600">Click to upload image</span>
+                    <span className="text-sm text-gray-600">Click to upload image or video</span>
                     <span className="text-xs text-gray-500 mt-1">Max size: 20 MB</span>
                   </label>
                 </div>
@@ -458,11 +468,23 @@ export default function AdminPackagesPage() {
                 {/* Preview */}
                 {formData.image_url && (
                   <div className="relative inline-block">
-                    <img
-                      src={formData.image_url}
-                      alt="preview"
-                      className="w-40 h-40 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
-                    />
+
+                    {formData.image_url.endsWith(".mp4") ? (
+                      <video
+                        src={formData.image_url}
+                        className="w-40 h-40 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                        muted
+                        loop
+                        controls
+                      />
+                    ) : (
+                      <img
+                        src={formData.image_url}
+                        alt="preview"
+                        className="w-40 h-40 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                      />
+                    )}
+
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, image_url: '' })}

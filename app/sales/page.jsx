@@ -152,7 +152,7 @@ export default function SalePage() {
   return (
     <>
       {loading && <LoadingOverlay />}
-      <div className="flex h-screen bg-gray-100 overflow-hidden">
+      <div className="flex min-h-screen bg-gray-100 overflow-x-hidden">
         {/* ========================= LEFT: ACTIVITY SIDEBAR ========================= */}
         {/* 👉 ซ่อน sidebar บน tablet/mobile, แสดงเฉพาะ desktop */}
         <div className="hidden lg:block">
@@ -176,23 +176,25 @@ export default function SalePage() {
           />
 
           {/* 👉 Dropdown สำหรับเลือก Activity บน tablet/mobile */}
-          <div className="lg:hidden px-4 py-3 bg-white border-b">
-            <select
-              value={selectedActivity || ""}
-              onChange={(e) => {
-                setSelectedActivity(e.target.value);
-                setSelectedMode("PACKAGE");
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-base"
-            >
-              {menu
-                .filter((c) => c.name !== "Photo & Video")
-                .map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-            </select>
+          <div className="lg:hidden w-full px-4 py-3 bg-white border-b">
+            <div className="w-full max-w-full overflow-hidden">
+              <select
+                value={selectedActivity || ""}
+                onChange={(e) => {
+                  setSelectedActivity(e.target.value);
+                  setSelectedMode("PACKAGE");
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-base"
+              >
+                {menu
+                  .filter((c) => c.name !== "Photo & Video")
+                  .map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
 
           {/* 👉 MODE TABS - แสดงเฉพาะเมื่อมี Photo/Video */}

@@ -12,13 +12,12 @@ export default function ProductGrid({ title, items, onAdd }) {
 
       {/* CONTENT */}
       <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-        {/* Grid Container */}
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6 max-w-[1600px] mx-auto">
           {items.map((item) => (
             <div
               key={item.id}
               onClick={() => onAdd(item)}
-              className={`
+              className="
                 group
                 bg-white rounded-2xl shadow-md
                 hover:shadow-2xl hover:-translate-y-1
@@ -27,13 +26,12 @@ export default function ProductGrid({ title, items, onAdd }) {
                 border border-gray-100
                 active:scale-[0.98]
                 overflow-hidden
-              `}
+              "
             >
-              {/* IMAGE */}
+              {/* IMAGE / VIDEO */}
               <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
 
                 {item.image ? (
-
                   item.type === "VIDEO" ? (
                     <video
                       src={item.image}
@@ -41,11 +39,19 @@ export default function ProductGrid({ title, items, onAdd }) {
                       muted
                       loop
                       playsInline
-                      preload="metadata"
-                      onMouseEnter={(e) => e.currentTarget.play()}
+                      preload="auto"
+                      onMouseEnter={(e) => {
+                        const video = e.currentTarget;
+                        video.play().catch(() => {});
+                      }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.pause();
-                        e.currentTarget.currentTime = 0;
+                        const video = e.currentTarget;
+                        video.pause();
+                        video.currentTime = 0;
+                      }}
+                      onTouchStart={(e) => {
+                        const video = e.currentTarget;
+                        video.play().catch(() => {});
                       }}
                     />
                   ) : (
@@ -56,12 +62,14 @@ export default function ProductGrid({ title, items, onAdd }) {
                       loading="lazy"
                     />
                   )
-
                 ) : (
-                  /* Fallback */
                   <div className="flex flex-col items-center justify-center text-gray-400">
                     <span className="text-5xl mb-2">
-                      {item.type === "PHOTO" ? "📷" : item.type === "VIDEO" ? "🎥" : "📦"}
+                      {item.type === "PHOTO"
+                        ? "📷"
+                        : item.type === "VIDEO"
+                        ? "🎥"
+                        : "📦"}
                     </span>
                     <span className="text-xs uppercase tracking-wider">
                       {item.type === "PHOTO"
@@ -73,7 +81,7 @@ export default function ProductGrid({ title, items, onAdd }) {
                   </div>
                 )}
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
 
               {/* INFO */}
@@ -89,20 +97,18 @@ export default function ProductGrid({ title, items, onAdd }) {
                 )}
 
                 <div className="flex justify-between items-center mt-auto pt-3 border-t border-gray-100">
-                  {/* Price */}
                   <div>
                     <span className="text-orange-600 font-bold text-xl">
                       {item.price.toLocaleString()}฿
                     </span>
                   </div>
 
-                  {/* Add Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onAdd(item);
                     }}
-                    className={`
+                    className="
                       bg-gradient-to-r from-orange-500 to-orange-600
                       hover:from-orange-600 hover:to-orange-700
                       text-white
@@ -113,7 +119,7 @@ export default function ProductGrid({ title, items, onAdd }) {
                       transition-all duration-200
                       group-hover:scale-110
                       active:scale-95
-                    `}
+                    "
                   >
                     +
                   </button>

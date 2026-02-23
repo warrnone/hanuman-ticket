@@ -23,6 +23,7 @@ export default function AdminPhotoVideoPage() {
     pax_max: '',
     price: '',
     status: 'active',
+    image_url: '',
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -79,6 +80,7 @@ export default function AdminPhotoVideoPage() {
       pax_max: '',
       price: '',
       status: 'active',
+      image_url: '',
     });
     setEditingId(null);
   };
@@ -185,6 +187,7 @@ export default function AdminPhotoVideoPage() {
       pax_max: rule.pax_max,
       price: rule.price,
       status: rule.status,
+      image_url: rule.image_url || '',
     });
     setImagePreview(rule.image_url || null);
     setImageFile(null);
@@ -471,29 +474,81 @@ export default function AdminPhotoVideoPage() {
                 onChange={e => setFormData({ ...formData, price: e.target.value })}
               />
 
+              {/* Image / Video */}
               <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">Image</label>
+                <label className="block text-sm font-medium mb-1">
+                  Image / Video
+                </label>
 
+                {/* Preview */}
                 {imagePreview && (
-                  <img
-                    src={imagePreview}
-                    className="w-full h-40 object-cover rounded-lg mb-2 border"
-                  />
+                  <div className="relative mb-3">
+
+                    {imageFile?.type?.startsWith("video/") ? (
+                      <video
+                        src={imagePreview}
+                        className="w-full h-40 object-cover rounded-lg border"
+                        controls
+                        muted
+                      />
+                    ) : (
+                      <img
+                        src={imagePreview}
+                        className="w-full h-40 object-cover rounded-lg border"
+                        alt="preview"
+                      />
+                    )}
+
+                  </div>
                 )}
 
+                {/* Upload Input */}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/mp4"
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (!file) return;
 
+                    const isImage = file.type.startsWith("image/");
+                    const isVideo = file.type.startsWith("video/");
+
+                    if (!isImage && !isVideo) {
+                      swalError("รองรับเฉพาะไฟล์รูปภาพ หรือ วิดีโอเท่านั้น");
+                      return;
+                    }
+
+                    if (isVideo && file.type !== "video/mp4") {
+                      swalError("รองรับเฉพาะไฟล์วิดีโอ .mp4 เท่านั้น");
+                      return;
+                    }
+
+                    const MAX_IMAGE = 5 * 1024 * 1024;   // 5MB
+                    const MAX_VIDEO = 10 * 1024 * 1024;  // 10MB
+
+                    if (isImage && file.size > MAX_IMAGE) {
+                      swalError("รูปภาพต้องไม่เกิน 5MB");
+                      return;
+                    }
+
+                    if (isVideo && file.size > MAX_VIDEO) {
+                      swalError("วิดีโอต้องไม่เกิน 10MB");
+                      return;
+                    }
+
                     setImageFile(file);
                     setImagePreview(URL.createObjectURL(file));
                   }}
+                  className="block w-full text-sm"
                 />
-              </div>
 
+                {/* Requirement Text */}
+                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                  <div>📷 Image: JPG / PNG / WEBP (Max 5 MB)</div>
+                  <div>🎥 Video: MP4 only (Max 10 MB)</div>
+                  <div>🎞 Recommended: 720p resolution</div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
