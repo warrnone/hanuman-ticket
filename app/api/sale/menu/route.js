@@ -42,7 +42,8 @@ export async function GET() {
           duration_unit,
           pax_min,
           pax_max,
-          price
+          price,
+          image_url
         `)
         .eq("status", "active");
 
@@ -81,7 +82,7 @@ export async function GET() {
             r.duration_value && r.duration_unit
               ? `${r.duration_value} ${r.duration_unit}`
               : null,
-          image: r.media_type === "photo" ? "📷" : "🎥",
+          image: r.image_url ?? null,
           description:
             r.media_type === "photo"
               ? `${r.pax_min}-${r.pax_max} persons`
