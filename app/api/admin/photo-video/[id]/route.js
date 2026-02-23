@@ -24,6 +24,7 @@ export async function PATCH(req, { params }) {
       pax_max: body.pax_max,
       price: body.price,
       status: body.status ?? "active",
+      image_url: body.image_url ?? null,
     };
 
     // 🎥 video only

@@ -20,6 +20,7 @@ export async function GET() {
         pax_min,
         pax_max,
         price,
+        image_url,
         status,
         created_at
       `)
@@ -89,6 +90,7 @@ export async function POST(req) {
       pax_max: Number(body.pax_max ?? 1),
       price: Number(body.price),
       status: body.status ?? "active",
+      image_url: body.image_url ?? null,
     };
 
     // ❗ กัน NaN

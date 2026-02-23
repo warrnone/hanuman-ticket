@@ -25,6 +25,9 @@ export default function AdminPhotoVideoPage() {
     status: 'active',
   });
 
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
   const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
 
@@ -118,6 +121,30 @@ export default function AdminPhotoVideoPage() {
     }
 
     try {
+      /* =========================
+        ✅ ตรงนี้แหละที่ต้องเพิ่ม
+      ========================= */
+      let imageUrl = formData.image_url || null;
+
+      if (imageFile) {
+        const fd = new FormData();
+        fd.append("file", imageFile);
+
+        const uploadRes = await fetch("/api/admin/photo-video/upload", {
+          method: "POST",
+          body: fd,
+        });
+
+        const uploadData = await uploadRes.json();
+
+        if (!uploadRes.ok) {
+          swalError(uploadData.error || "Upload failed");
+          return;
+        }
+        imageUrl = uploadData.url;
+      }
+      payload.image_url = imageUrl;
+
       res = await fetch(
         editingId
           ? `/api/admin/photo-video/${editingId}`
@@ -146,7 +173,6 @@ export default function AdminPhotoVideoPage() {
     }
   };
 
-
   const handleEdit = rule => {
     setEditingId(rule.id);
     setFormData({
@@ -160,6 +186,8 @@ export default function AdminPhotoVideoPage() {
       price: rule.price,
       status: rule.status,
     });
+    setImagePreview(rule.image_url || null);
+    setImageFile(null);
     setShowModal(true);
   };
 
@@ -180,13 +208,11 @@ export default function AdminPhotoVideoPage() {
   /* =========================
      FILTER + PAGINATION
   ========================= */
-  const filteredRules = selectedCategoryId
-    ? photoRules.filter(
+  const filteredRules = selectedCategoryId ? photoRules.filter(
         r =>
           r.activity_category_id === selectedCategoryId ||
           r.categories?.id === selectedCategoryId
-      )
-    : photoRules;
+      ) : photoRules;
 
   const totalPages = Math.max(1, Math.ceil(filteredRules.length / PAGE_SIZE));
 
@@ -444,6 +470,30 @@ export default function AdminPhotoVideoPage() {
                 value={formData.price}
                 onChange={e => setFormData({ ...formData, price: e.target.value })}
               />
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-1">Image</label>
+
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    className="w-full h-40 object-cover rounded-lg mb-2 border"
+                  />
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                  }}
+                />
+              </div>
+
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
