@@ -92,12 +92,33 @@ export default function AdminLayout({ children }) {
 
 
       {/* 🔹 เส้นคั่น */}
-      <div className="px-4 py-2">
+      <div>
         <div className="border-t border-slate-700"></div>
       </div>
 
       {/* ✅  LET US KNOW */}
-      <div className="px-4 pb-2">
+      <div>
+        <Link
+          href="/admin/pricing"
+          onClick={() => setSidebarOpen(false)}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+            pathname === "/admin/pricing"
+              ? "bg-orange-500 text-white shadow-lg"
+              : "text-slate-400 hover:bg-slate-800 hover:text-white"
+          }`}
+        >
+          <span className="text-lg">💰</span>
+          <span className="font-medium">Pricing</span>
+        </Link>
+      </div>
+
+      {/* 🔹 เส้นคั่น */}
+      <div>
+        <div className="border-t border-slate-700"></div>
+      </div>
+
+      {/* ✅  LET US KNOW */}
+      <div >
         <Link
           href="/admin/commission"
           onClick={() => setSidebarOpen(false)}
@@ -111,7 +132,6 @@ export default function AdminLayout({ children }) {
           <span className="font-medium">Commission Report</span>
         </Link>
       </div>
-
 
       {/* 🔹 เส้นคั่น */}
       <div className="px-4 py-2">
