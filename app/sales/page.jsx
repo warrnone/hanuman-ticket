@@ -152,7 +152,7 @@ export default function SalePage() {
   return (
     <>
       {loading && <LoadingOverlay />}
-      <div className="flex min-h-screen bg-gray-100 overflow-x-hidden">
+      <div className="flex h-screen bg-gray-100 overflow-hidden">
         {/* ========================= LEFT: ACTIVITY SIDEBAR ========================= */}
         {/* 👉 ซ่อน sidebar บน tablet/mobile, แสดงเฉพาะ desktop */}
         <div className="hidden lg:block">
@@ -168,7 +168,7 @@ export default function SalePage() {
         </div>
 
         {/* ========================= CENTER: CONTENT ========================= */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           <TopBar
             cart={cart}
             onCartClick={() => setShowCart(!showCart)} // 👉 เพิ่ม prop

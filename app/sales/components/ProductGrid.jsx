@@ -2,7 +2,7 @@
 
 export default function ProductGrid({ title, items, onAdd }) {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* HEADER */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4">
         <h2 className="text-xl md:text-2xl font-semibold text-white">
@@ -11,7 +11,7 @@ export default function ProductGrid({ title, items, onAdd }) {
       </div>
 
       {/* CONTENT */}
-      <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-gray-50">
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6 max-w-[1600px] mx-auto">
           {items.map((item) => (
             <div
