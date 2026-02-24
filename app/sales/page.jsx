@@ -24,6 +24,9 @@ export default function SalePage() {
   // 👉 เพิ่ม state สำหรับ toggle cart บน tablet/mobile
   const [showCart, setShowCart] = useState(false);
 
+  const [selectedChannel, setSelectedChannel] = useState(null);
+  const [pricingRules, setPricingRules] = useState([]);
+
   //  pricing setting (Vat / Discount)
   const [pricing, setPricing] = useState({
     vat_rate: 7,
@@ -79,6 +82,20 @@ export default function SalePage() {
     loadMenu();
     loadPricing();
   }, []);
+
+  useEffect(() => {
+    if (!selectedChannel) return;
+
+    const loadChannelPricing = async () => {
+      const res = await fetch(
+        `/api/sale/pricing?source_channel_id=${selectedChannel.id}`
+      );
+      const json = await res.json();
+      setPricingRules(json.data || []);
+    };
+
+    loadChannelPricing();
+  }, [selectedChannel]);
 
   /* ========================= CART LOGIC ========================= */
   const addToCart = (item) => {
@@ -143,11 +160,42 @@ export default function SalePage() {
 
   /* ========================= TOTALS vat , discount ========================= */
   const round2 = (n) => Math.round(n * 100) / 100;
-  const subtotal = round2(cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
+  const subtotal = round2(
+    cart.reduce((sum, item) => {
+      const rule = pricingRules.find(r => r.package_id === item.id);
+
+      let price = item.price;
+
+      if (rule?.price_override) {
+        price = rule.price_override;
+      } else if (rule?.discount_type === "PERCENT") {
+        price = price - (price * rule.discount_value / 100);
+      } else if (rule?.discount_type === "FIXED") {
+        price = price - rule.discount_value;
+      }
+
+      return sum + price * item.quantity;
+    }, 0)
+  );
   const discount = pricing.enable_discount ? round2(subtotal * pricing.discount_rate / 100) : 0;
   const tax = pricing.enable_vat ? round2((subtotal - discount) * pricing.vat_rate / 100) : 0;
   const total = round2(subtotal - discount + tax);
 
+  const getFinalPrice = (item) => {
+    const rule = pricingRules.find(r => r.package_id === item.id);
+
+    let price = item.price;
+
+    if (rule?.price_override) {
+      price = rule.price_override;
+    } else if (rule?.discount_type === "PERCENT") {
+      price = price - (price * rule.discount_value / 100);
+    } else if (rule?.discount_type === "FIXED") {
+      price = price - rule.discount_value;
+    }
+
+    return round2(price);
+  };
 
   return (
     <>
@@ -268,6 +316,7 @@ export default function SalePage() {
             vatRate={pricing.vat_rate}
             enableDiscount={pricing.enable_discount}
             enableVat={pricing.enable_vat}
+            getFinalPrice={getFinalPrice}
           />
         </div>
 
@@ -291,6 +340,8 @@ export default function SalePage() {
             vatRate={pricing.vat_rate}
             discountRate={pricing.discount_rate}
             onClose={() => setShowSurvey(false)}
+            selectedChannel={selectedChannel}
+            onSelectChannel={setSelectedChannel}
             onComplete={() => {
               setCart([]);
               setShowSurvey(false);

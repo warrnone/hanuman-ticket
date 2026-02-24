@@ -1,6 +1,6 @@
 "use client";
 
-export default function CartItem({ item, onQty, onRemove }) {
+export default function CartItem({ item, onQty, onRemove , getFinalPrice }) {
 
   const handleChange = (e) => {
     const value = e.target.value;
@@ -21,18 +21,20 @@ export default function CartItem({ item, onQty, onRemove }) {
     }
   };
 
+  const finalPrice = getFinalPrice ? getFinalPrice(item) : item.price;
+
   return (
     <div className="p-4 rounded-lg border hover:border-orange-300 bg-white shadow-sm">
       <div className="flex justify-between mb-2">
         <div>
           <strong className="text-sm">{item.name}</strong>
           <div className="text-xs text-gray-500">
-            {item.price.toLocaleString()}฿ × {item.quantity}
+            {finalPrice.toLocaleString()}฿ × {item.quantity}
           </div>
         </div>
 
         <div className="font-bold text-orange-600">
-          {(item.price * item.quantity).toLocaleString()}฿
+          {(finalPrice * item.quantity).toLocaleString()}฿
         </div>
       </div>
 

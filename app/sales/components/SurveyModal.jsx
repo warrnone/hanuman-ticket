@@ -8,7 +8,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import Select from "react-select";
 import { QRCodeCanvas } from "qrcode.react";
 
-export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,discountRate,onClose,onComplete,}) {
+export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,discountRate,onClose,onComplete, selectedChannel, onSelectChannel,}) {
   const [loading, setLoading] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [serviceDate, setServiceDate] = useState( () => {
@@ -28,7 +28,6 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
   const [selectedTaxi, setSelectedTaxi] = useState(null);
   const [taxiList, setTaxiList] = useState([]);
   const [channels, setChannels] = useState([]);
-  const [selectedChannel, setSelectedChannel] = useState(null);
 
   // Qrcode 
   const [qrToken, setQrToken] = useState(null);
@@ -211,7 +210,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                       key={ch.id}
                       type="button"
                       onClick={() => {
-                        setSelectedChannel(ch);
+                        onSelectChannel(ch);
                         setSelectedTaxi(null);
                       }}
                       className={`p-3 rounded-xl border-2 font-semibold transition

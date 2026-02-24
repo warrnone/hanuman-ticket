@@ -2,7 +2,7 @@
 
 import CartItem from "./CartItem";
 
-export default function CartPanel({cart,subtotal,discount,tax,total,onQty,onRemove,onCheckout,onClear,onClose,discountRate,vatRate,enableDiscount,enableVat,}) {
+export default function CartPanel({cart,subtotal,discount,tax,total,onQty,onRemove,onCheckout,onClear,onClose,discountRate,vatRate,enableDiscount,enableVat,getFinalPrice}) {
   const money = (n) =>
     n.toLocaleString("th-TH", {
       minimumFractionDigits: 2,
@@ -40,6 +40,7 @@ export default function CartPanel({cart,subtotal,discount,tax,total,onQty,onRemo
               item={item}
               onQty={onQty}
               onRemove={onRemove}
+              getFinalPrice={getFinalPrice}
             />
           ))
         )}
