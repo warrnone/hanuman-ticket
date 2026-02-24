@@ -90,6 +90,29 @@ export default function AdminLayout({ children }) {
         })}
       </nav>
 
+
+      {/* 🔹 เส้นคั่น */}
+      <div className="px-4 py-2">
+        <div className="border-t border-slate-700"></div>
+      </div>
+
+      {/* ✅  LET US KNOW */}
+      <div className="px-4 pb-2">
+        <Link
+          href="/admin/commission"
+          onClick={() => setSidebarOpen(false)}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+            pathname === "/admin/commission"
+              ? "bg-orange-500 text-white shadow-lg"
+              : "text-slate-400 hover:bg-slate-800 hover:text-white"
+          }`}
+        >
+          <span className="text-lg">💸</span>
+          <span className="font-medium">Commission Report</span>
+        </Link>
+      </div>
+
+
       {/* 🔹 เส้นคั่น */}
       <div className="px-4 py-2">
         <div className="border-t border-slate-700"></div>
@@ -110,7 +133,6 @@ export default function AdminLayout({ children }) {
           <span className="font-medium">LET US KNOW</span>
         </Link>
       </div>
-
 
       {/* 🔹 เส้นคั่น */}
       <div className="px-4 py-2">
