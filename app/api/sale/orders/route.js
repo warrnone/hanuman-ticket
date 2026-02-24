@@ -141,6 +141,45 @@ export async function POST(req) {
       );
     }
 
+
+    /* =====================================
+        1.5 Calculate commission (ถ้ามี taxi_id)
+    ===================================== */
+    let commissionAmount = 0;
+
+    if (taxi_id) {
+      const { data: taxi , error: taxiError  } = await supabaseAdmin
+        .from("taxis")
+        .select("commission_type, commission_value")
+        .eq("id", taxi_id)
+        .single();
+
+      if (taxi) {
+        const totalHeads = Number(adult_count) + Number(child_count);
+
+        if (taxi.commission_type === "FIXED_PER_HEAD") {
+          commissionAmount = totalHeads * Number(taxi.commission_value);
+        }
+
+        if (taxi.commission_type === "FIXED_PER_ORDER") {
+          commissionAmount = Number(taxi.commission_value);
+        }
+
+        if (taxi.commission_type === "PERCENT") {
+          commissionAmount =
+            Number(total_amount) * Number(taxi.commission_value) / 100;
+        }
+        commissionAmount = Math.round(commissionAmount * 100) / 100;
+      }
+
+      if (taxiError || !taxi) {
+        return NextResponse.json(
+          { error: "Taxi not found" },
+          { status: 400 }
+        );
+      }
+    }
+
     /* =====================================
        2. Create order (orders table)
        - ใช้ total_amount จาก client
@@ -174,6 +213,7 @@ export async function POST(req) {
           discount_rate: Number(discount_rate),
           payment_status: "pending",
           checkin_status: "not_checked_in",
+          commission_amount: commissionAmount,
 
           // Qrcode 
           qr_token: qrToken,
