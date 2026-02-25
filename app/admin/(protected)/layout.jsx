@@ -134,12 +134,12 @@ export default function AdminLayout({ children }) {
       </div>
 
       {/* 🔹 เส้นคั่น */}
-      <div className="px-4 py-2">
+      <div>
         <div className="border-t border-slate-700"></div>
       </div>
 
       {/* ✅  LET US KNOW */}
-      <div className="px-4 pb-2">
+      <div>
         <Link
           href="/admin/know"
           onClick={() => setSidebarOpen(false)}
@@ -155,12 +155,12 @@ export default function AdminLayout({ children }) {
       </div>
 
       {/* 🔹 เส้นคั่น */}
-      <div className="px-4 py-2">
+      <div>
         <div className="border-t border-slate-700"></div>
       </div>
 
       {/* ✅  Taxi */}
-      <div className="px-4 pb-2">
+      <div>
         <Link
           href="/admin/agents"
           onClick={() => setSidebarOpen(false)}
@@ -176,12 +176,12 @@ export default function AdminLayout({ children }) {
       </div>
 
       {/* 🔹 เส้นคั่น */}
-      <div className="px-4 py-2">
+      <div>
         <div className="border-t border-slate-700"></div>
       </div>
 
       {/* ✅  Taxi */}
-      <div className="px-4 pb-2">
+      <div>
         <Link
           href="/admin/taxi"
           onClick={() => setSidebarOpen(false)}
@@ -197,12 +197,12 @@ export default function AdminLayout({ children }) {
       </div>
 
       {/* 🔹 เส้นคั่น */}
-      <div className="px-4 py-2">
+      <div>
         <div className="border-t border-slate-700"></div>
       </div>
 
       {/* ✅ SETTINGS ใกล้ Logout */}
-      <div className="px-4 pb-2">
+      <div>
         <Link
           href="/admin/settings"
           onClick={() => setSidebarOpen(false)}

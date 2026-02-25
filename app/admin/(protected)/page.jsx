@@ -16,6 +16,12 @@ export default function AdminDashboard() {
   const [productChannelMatrix, setProductChannelMatrix] = useState([]);
   const [plateRevenue, setPlateRevenue] = useState(null);
   const [profitMargin, setProfitMargin] = useState([]);
+
+
+  const [sourceChannelStats, setSourceChannelStats] = useState([]);
+  const [totalCommission, setTotalCommission] = useState(0);
+  const [topSources, setTopSources] = useState([]);
+  const [taxiPerformance, setTaxiPerformance] = useState([]);
   const fetchDashboard = async () => {
     try {
       const res = await fetch("/api/admin/dashboard");
@@ -31,6 +37,11 @@ export default function AdminDashboard() {
       setProductChannelMatrix(data.productChannelMatrix || []);
       setPlateRevenue(data.plateRevenue || null);
       setProfitMargin(data.profitMargin || []);
+
+      setSourceChannelStats(data.sourceChannelStats || []);
+      setTotalCommission(data.totalCommission || 0);
+      setTopSources(data.topSources || []);
+      setTaxiPerformance(data.taxiPerformance || []);
     } catch (err) {
       console.error("Dashboard Error:", err);
     } finally {
@@ -166,6 +177,47 @@ export default function AdminDashboard() {
         />
       </div>
 
+      {/* ================= KPI Row Total Commission ================ */}
+      <StatCard
+        title="Total Commission"
+        value={`฿${Number(totalCommission || 0).toLocaleString()}`}
+        emoji="🏦"
+      />
+
+      {/* ================= SOURCE CHANNEL PERFORMANCE ================= */}
+      <div className="bg-white p-6 rounded-xl shadow">
+        <h2 className="font-semibold mb-4">🏷 Agent / Source Channel Performance</h2>
+
+        <table className="w-full text-sm">
+          <thead className="border-b">
+            <tr className="text-gray-500">
+              <th className="text-left py-2 px-4">Channel</th>
+              <th className="text-right py-2 px-4">Orders</th>
+              <th className="text-right py-2 px-4">Revenue</th>
+              <th className="text-right py-2 px-4">Commission</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sourceChannelStats.map((s, i) => (
+              <tr key={i} className="border-b hover:bg-gray-50">
+                <td className="py-2 px-4 font-medium">
+                  {s.name}
+                </td>
+                <td className="text-right py-2 px-4">
+                  {s.orders}
+                </td>
+                <td className="text-right py-2 px-4">
+                  ฿{Number(s.totalSales).toLocaleString()}
+                </td>
+                <td className="text-right py-2 px-4 font-semibold text-blue-600">
+                  ฿{Number(s.totalCommission).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       {/* ================= TAXI HEALTH ================= */}
       {taxiHealth && (
         <div className="bg-white p-6 rounded-xl shadow">
@@ -237,6 +289,20 @@ export default function AdminDashboard() {
                 ฿{p.revenue.toLocaleString()}
               </span>
             </div>
+        ))}
+      </div>
+
+      {/* ================= TOP SOURCE CHANNELS ================= */}
+      <div className="bg-white p-6 rounded-xl shadow">
+        <h2 className="font-semibold mb-4">🔥 Top Performing Channels</h2>
+
+        {topSources.map((s, i) => (
+          <div key={i} className="flex justify-between border-b py-2">
+            <span>{i + 1}. {s.name}</span>
+            <span className="font-semibold">
+              ฿{Number(s.totalSales).toLocaleString()}
+            </span>
+          </div>
         ))}
       </div>
 

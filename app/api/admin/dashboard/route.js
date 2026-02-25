@@ -419,6 +419,102 @@ export async function GET() {
       };
     });
 
+
+    // #region SOURCE CHANNEL SUMMARY
+    const { data: sourceSummary, error: sourceError } =
+      await supabaseAdmin
+        .from("orders")
+        .select(`
+          total_amount,
+          commission_amount,
+          source_channels (
+            id,
+            name,
+            commissionable
+          )
+        `)
+        .not("source_channel_id", "is", null);
+
+    if (sourceError) throw sourceError;
+    const sourceMap = {};
+    sourceSummary.forEach((row) => {
+      const name = row.source_channels?.name || "Unknown";
+
+      if (!sourceMap[name]) {
+        sourceMap[name] = {
+          name,
+          totalSales: 0,
+          totalCommission: 0,
+          orders: 0,
+        };
+      }
+
+      sourceMap[name].totalSales += Number(row.total_amount || 0);
+      sourceMap[name].totalCommission += Number(row.commission_amount || 0);
+      sourceMap[name].orders += 1;
+    });
+
+    const sourceChannelStats = Object.values(sourceMap);
+    // endregion
+
+
+    // #region เพิ่ม Commission Overview (ภาพรวมคอม)
+    const { data: commissionData, error: commissionError } =
+      await supabaseAdmin
+        .from("orders")
+        .select("commission_amount")
+        .eq("commission_eligible", true);
+
+    if (commissionError) throw commissionError;
+
+    const totalCommission = commissionData.reduce(
+      (sum, row) => sum + Number(row.commission_amount || 0),
+      0
+    );
+    // #endregion
+
+    // #region เพิ่ม Taxi Performance 
+    const { data: taxiData, error: taxitotalError } =
+      await supabaseAdmin
+        .from("orders")
+        .select(`
+          total_amount,
+          taxis (
+            id,
+            car_number
+          )
+        `)
+        .not("taxi_id", "is", null);
+
+    if (taxitotalError) throw taxitotalError;
+    // #endregion
+
+    // #region เพิ่ม Top Sources (แหล่งขายยอดนิยม)      
+    const topSources = sourceChannelStats
+    .sort((a, b) => b.totalSales - a.totalSales)
+    .slice(0, 5);
+    // #endregion
+
+    // #region เพิ่ม Taxi Performance (ประสิทธิภาพแท็กซี่)
+    const taxiMaptotal = {};
+    taxiData.forEach((row) => {
+      const name = row.taxis?.car_number || "Unknown";
+
+      if (!taxiMaptotal[name]) {
+        taxiMaptotal[name] = {
+          name,
+          totalSales: 0,
+          orders: 0,
+        };
+      }
+
+      taxiMaptotal[name].totalSales += Number(row.total_amount || 0);
+      taxiMaptotal[name].orders += 1;
+    });
+
+    const taxiPerformance = Object.values(taxiMaptotal);
+    // #endregion
+
     /* =========================
        RESPONSE
     ========================= */
@@ -472,6 +568,10 @@ export async function GET() {
         green: greenRevenue,
       },
       profitMargin,
+      sourceChannelStats,  // 🔥 ใหม่
+      totalCommission,     // 🔥 ใหม่
+      topSources,          // 🔥 ใหม่
+      taxiPerformance,      // 🔥 ถ้ามี
     });
   } catch (err) {
     console.error("Dashboard API error:", err);
