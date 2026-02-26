@@ -17,7 +17,6 @@ export default function AdminDashboard() {
   const [plateRevenue, setPlateRevenue] = useState(null);
   const [profitMargin, setProfitMargin] = useState([]);
   const [sourceChannelStats, setSourceChannelStats] = useState([]);
-  // const [totalCommission, setTotalCommission] = useState(0);
   const [topSources, setTopSources] = useState([]);
   const [taxiPerformance, setTaxiPerformance] = useState([]);
 
@@ -36,9 +35,7 @@ export default function AdminDashboard() {
       setProductChannelMatrix(data.productChannelMatrix || []);
       setPlateRevenue(data.plateRevenue || null);
       setProfitMargin(data.profitMargin || []);
-
       setSourceChannelStats(data.sourceChannelStats || []);
-      // setTotalCommission(data.totalCommission || 0);
       setTopSources(data.topSources || []);
       setTaxiPerformance(data.taxiPerformance || []);
     } catch (err) {
