@@ -47,26 +47,15 @@ export async function GET() {
     const { data: todayOrders, error: todayError } =
       await supabaseAdmin
         .from("orders")
-        .select("total_amount, taxi_id , adult_count, child_count")
+        .select("total_amount, taxi_id , adult_count, commission_amount")
         .gte("created_at", todayStart.toISOString());
 
     if (todayError) throw todayError;
 
     const ordersToday = todayOrders?.length || 0;
-
-    const revenueToday =
-      todayOrders?.reduce(
-        (sum, o) => sum + Number(o.total_amount),
-        0
-      ) || 0;
-
-    const taxiOrdersToday =
-      todayOrders?.filter((o) => o.taxi_id).length || 0;
-
-    const taxiRevenueToday =
-      todayOrders
-        ?.filter((o) => o.taxi_id)
-        .reduce((sum, o) => sum + Number(o.total_amount), 0) || 0;
+    const revenueToday = todayOrders ?.reduce((sum, o) => sum + Number(o.total_amount),0) || 0;
+    const taxiOrdersToday = todayOrders ?.filter((o) => o.taxi_id).length || 0;
+    const taxiRevenueToday = todayOrders ?.filter((o) => o.taxi_id).reduce((sum, o) => sum + Number(o.total_amount), 0) || 0;
     // #endregion  
     
     /* =========================

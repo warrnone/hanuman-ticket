@@ -245,7 +245,7 @@ export default function AdminDashboard() {
       <div className="bg-white p-6 rounded-xl shadow">
         <h2 className="font-semibold mb-4">🧭 Order Source Mix Today</h2>
          {orderSource.taxi === 0 && orderSource.walkin === 0 ? (
-            <div className="flex items-center justify-center h-[260px] text-gray-400">
+            <div className="flex items-center justify-center h-[260px] text-blue-500">
               <p>ไม่มีข้อมูลวันนี้</p>
             </div>
           ) : (
