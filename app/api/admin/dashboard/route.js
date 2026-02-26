@@ -298,15 +298,29 @@ export async function GET() {
       REVENUE BY PLATE
     ========================= */
     // #region คำนวณยอดรายได้รวมแยกตามสีแท็กซี่จากข้อมูล orders ใน 7 วันที่ผ่านมา
+    const { data: plateOrders } =
+      await supabaseAdmin
+        .from("orders")
+        .select(`
+          total_amount,
+          taxis (
+            plate_color
+          )
+        `)
+        .not("taxi_id", "is", null)
+        .gte("created_at", day7.toISOString());
+
     let yellowRevenue = 0;
     let greenRevenue = 0;
 
-    (orders7d || []).forEach((o) => {
+    (plateOrders || []).forEach((o) => {
       const plate = o.taxis?.plate_color;
+      const total = Number(o.total_amount || 0);
+
       if (plate === "YELLOW") {
-        yellowRevenue += Number(o.total_amount);
+        yellowRevenue += total;
       } else if (plate === "GREEN") {
-        greenRevenue += Number(o.total_amount);
+        greenRevenue += total;
       }
     });
     // #endregion
