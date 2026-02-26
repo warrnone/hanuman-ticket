@@ -16,12 +16,11 @@ export default function AdminDashboard() {
   const [productChannelMatrix, setProductChannelMatrix] = useState([]);
   const [plateRevenue, setPlateRevenue] = useState(null);
   const [profitMargin, setProfitMargin] = useState([]);
-
-
   const [sourceChannelStats, setSourceChannelStats] = useState([]);
-  const [totalCommission, setTotalCommission] = useState(0);
+  // const [totalCommission, setTotalCommission] = useState(0);
   const [topSources, setTopSources] = useState([]);
   const [taxiPerformance, setTaxiPerformance] = useState([]);
+
   const fetchDashboard = async () => {
     try {
       const res = await fetch("/api/admin/dashboard");
@@ -39,7 +38,7 @@ export default function AdminDashboard() {
       setProfitMargin(data.profitMargin || []);
 
       setSourceChannelStats(data.sourceChannelStats || []);
-      setTotalCommission(data.totalCommission || 0);
+      // setTotalCommission(data.totalCommission || 0);
       setTopSources(data.topSources || []);
       setTaxiPerformance(data.taxiPerformance || []);
     } catch (err) {
@@ -177,12 +176,6 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* ================= KPI Row Total Commission ================ */}
-      <StatCard
-        title="Total Commission"
-        value={`฿${Number(totalCommission || 0).toLocaleString()}`}
-        emoji="🏦"
-      />
 
       {/* ================= SOURCE CHANNEL PERFORMANCE ================= */}
       <div className="bg-white p-6 rounded-xl shadow">
@@ -253,22 +246,28 @@ export default function AdminDashboard() {
 
       {/* ================= SOURCE MIX ================= */}
       <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="font-semibold mb-4">🧭 Order Source Mix</h2>
-        <ResponsiveContainer width="100%" height={260}>
-          <PieChart>
-            <Pie
-              data={[
-                { name: "Taxi", value: orderSource.taxi },
-                { name: "Walk-in", value: orderSource.walkin },
-              ]}
-              dataKey="value"
-              nameKey="name"
-              outerRadius={100}
-              label
-            />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+        <h2 className="font-semibold mb-4">🧭 Order Source Mix Today</h2>
+         {orderSource.taxi === 0 && orderSource.walkin === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-400">
+              <p>ไม่มีข้อมูลวันนี้</p>
+            </div>
+          ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: "Taxi", value: orderSource.taxi },
+                  { name: "Walk-in", value: orderSource.walkin },
+                ]}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={100}
+                label
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* ================= TOP PACKAGES ================= */}

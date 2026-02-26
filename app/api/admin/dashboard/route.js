@@ -6,6 +6,7 @@ export async function GET() {
     /* =========================
        DATE CONFIG
     ========================= */
+    // #region กำหนดค่าต่างๆ ของวันที่ เช่น วันนี้ ต้นวัน 3 วันก่อน 7 วันก่อน เพื่อใช้ในการกรองข้อมูล orders และคำนวณคอมมิชชั่นของแท็กซี่ในส่วนต่างๆ ของแดชบอร์ด
     const now = new Date();
 
     const todayStart = new Date();
@@ -24,11 +25,12 @@ export async function GET() {
     lastWeekStart.setDate(now.getDate() - 14);
 
     const RED_COMMISSION_LIMIT = 3000;
+    // #endregion
 
     /* =========================
        BASIC COUNTS
     ========================= */
-
+    // #region ดึงข้อมูลจำนวนผู้ใช้และแพ็คเกจทั้งหมด เพื่อแสดงในส่วนสถิติพื้นฐานของแดชบอร์ด
     const { count: users } = await supabaseAdmin
       .from("users")
       .select("*", { count: "exact", head: true });
@@ -36,11 +38,12 @@ export async function GET() {
     const { count: packages } = await supabaseAdmin
       .from("packages")
       .select("*", { count: "exact", head: true });
+    // #endregion
 
     /* =========================
        TODAY ORDERS
     ========================= */
-
+    // #region ดึงข้อมูล orders ที่สร้างขึ้นตั้งแต่ต้นวัน เพื่อคำนวณยอดขายรวม ยอดขายจากแท็กซี่ และจำนวน orders จากแท็กซี่ในวันนี้
     const { data: todayOrders, error: todayError } =
       await supabaseAdmin
         .from("orders")
@@ -64,68 +67,40 @@ export async function GET() {
       todayOrders
         ?.filter((o) => o.taxi_id)
         .reduce((sum, o) => sum + Number(o.total_amount), 0) || 0;
-
+    // #endregion  
+    
     /* =========================
        LOAD TAXIS
     ========================= */
-
+    // #region ดึงข้อมูลแท็กซี่ทั้งหมด เพื่อใช้ในการคำนวณคอมมิชชั่นและวิเคราะห์สถานะของแท็กซี่ในส่วนต่างๆ ของแดชบอร์ด  
     const { data: taxis, error: taxiError } =
       await supabaseAdmin
         .from("taxis")
-        .select("id, car_number, commission_value");
+        .select("id, car_number");
       
     if (taxiError) throw taxiError;
+    
+    // #endregion
 
     /* =========================
        TAXI COMMISSION TODAY
     ========================= */
-
+    // #region คำนวณยอดคอมมิชชั่นของแท็กซี่จาก orders วันนี้ โดยใช้ข้อมูล commission_type และ commission_value จากตาราง taxis  
     let taxiCommissionToday = 0;
 
     (todayOrders || []).forEach((o) => {
       if (!o.taxi_id) return;
 
-      const taxi = taxis?.find((t) => t.id === o.taxi_id);
-      if (!taxi) return;
-
-      (todayOrders || []).forEach((o) => {
-        if (!o.taxi_id) return;
-
-        const taxi = taxis?.find((t) => t.id === o.taxi_id);
-        if (!taxi) return;
-
-        const adult = Number(o.adult_count || 0);
-        const child = Number(o.child_count || 0);
-        const total = Number(o.total_amount || 0);
-
-        let commission = 0;
-
-        switch (taxi.commission_type) {
-          case "FIXED_PER_HEAD":
-            commission =
-              (adult + child) * Number(taxi.commission_value);
-            break;
-
-          case "FIXED_PER_ORDER":
-            commission = Number(taxi.commission_value);
-            break;
-
-          case "PERCENT":
-            commission =
-              (total * Number(taxi.commission_value)) / 100;
-            break;
-        }
-
-        taxiCommissionToday += commission;
-      });
+      taxiCommissionToday += Number(o.commission_amount || 0);
     });
 
     const profitToday = revenueToday - taxiCommissionToday;
+    // #endregion
 
     /* =========================
        WEEKLY COMPARISON
     ========================= */
-
+    // #region ดึงข้อมูล orders ของสัปดาห์นี้และสัปดาห์ที่แล้ว เพื่อคำนวณรายได้รวมและเปอร์เซ็นต์การเปลี่ยนแปลง
     const { data: thisWeekOrders } =
       await supabaseAdmin
         .from("orders")
@@ -159,28 +134,26 @@ export async function GET() {
               100
           )
         : 0;
+    // #endregion
 
     /* =========================
        LOAD ORDERS 7 DAYS (JOIN TAXI)
     ========================= */
-
+    // #region TAXI PERFORMANCE (ใช้ commission_amount จาก orders)
     const { data: orders7d, error: orderError } =
       await supabaseAdmin
         .from("orders")
         .select(`
           taxi_id,
           created_at,
-          total_amount,
-          taxis (
-            commission_type,
-            commission_value
-          )
+          commission_amount
         `)
         .not("taxi_id", "is", null)
         .gte("created_at", day7.toISOString());
 
     if (orderError) throw orderError;
 
+    // เตรียม map taxi
     const taxiMap = {};
 
     (taxis || []).forEach((t) => {
@@ -194,35 +167,15 @@ export async function GET() {
       };
     });
 
+    // รวมข้อมูลจาก orders
     (orders7d || []).forEach((o) => {
       const t = taxiMap[o.taxi_id];
       if (!t) return;
 
       t.orders_7d += 1;
 
-      const type = o.taxis?.commission_type;
-      const value = Number(o.taxis?.commission_value || 0);
-
-      const adult = Number(o.adult_count || 0);
-      const child = Number(o.child_count || 0);
-      const total = Number(o.total_amount || 0);
-
-      let commission = 0;
-
-      switch (type) {
-        case "FIXED_PER_HEAD":
-          commission = (adult + child) * value;
-          break;
-
-        case "FIXED_PER_ORDER":
-          commission = value;
-          break;
-
-        case "PERCENT":
-          commission = (total * value) / 100;
-          break;
-      }
-
+      // ใช้ commission_amount ตรง ๆ
+      const commission = Number(o.commission_amount || 0);
       t.unpaid_commission += commission;
 
       if (
@@ -233,6 +186,7 @@ export async function GET() {
       }
     });
 
+    // วิเคราะห์สถานะ
     let green = 0,
       yellow = 0,
       red = 0,
@@ -241,32 +195,31 @@ export async function GET() {
     Object.values(taxiMap).forEach((t) => {
       unpaidCommission += t.unpaid_commission;
 
-      if (t.orders_7d === 0 && t.unpaid_commission > RED_COMMISSION_LIMIT) {
-        t.status = "RED";
-        red++;
+      if (t.orders_7d === 0) {
+        t.status = "INACTIVE";
         return;
       }
 
-      if (t.last_order_at) {
-        const last = new Date(t.last_order_at);
+      const last = new Date(t.last_order_at);
 
-        if (last >= day3 && t.unpaid_commission === 0) {
-          t.status = "GREEN";
-          green++;
-        } else if (last >= day7) {
-          t.status = "YELLOW";
-          yellow++;
-        } else {
-          t.status = "RED";
-          red++;
-        }
+      if (last >= day3 && t.unpaid_commission === 0) {
+        t.status = "GREEN";
+        green++;
+      } else if (last >= day7) {
+        t.status = "YELLOW";
+        yellow++;
+      } else {
+        t.status = "RED";
+        red++;
       }
     });
+
+    // #endregion
 
     /* =========================
       PACKAGE SUMMARY
     ========================= */
-
+    // #region ดึงข้อมูล order_items ทั้งหมดใน 7 วันที่ผ่านมา เพื่อสรุปยอดขายแยกตามแพ็คเกจ
     const { data: items, error: itemError } =
       await supabaseAdmin
         .from("order_items")
@@ -294,15 +247,13 @@ export async function GET() {
         Number(item.price) * Number(item.quantity);
     });
 
-    const topPackages =
-      Object.values(packageMap)
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 5);
-
+    const topPackages = Object.values(packageMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+    // #endregion
 
     /* =========================
       PRODUCT x CHANNEL MATRIX
     ========================= */
+    // #region ดึงข้อมูล order_items พร้อม join orders และ taxis เพื่อสร้าง matrix แสดงยอดขายแยกตามแพ็คเกจและช่องทาง (แท็กซี่สีเขียว, เหลือง, walk-in)
     const { data: matrixData } =
       await supabaseAdmin
         .from("order_items")
@@ -343,12 +294,12 @@ export async function GET() {
 
       matrixMap[pkg].total += row.quantity;
     });
-
+    // #endregion
 
     /* =========================
       REVENUE BY PLATE
     ========================= */
-
+    // #region คำนวณยอดรายได้รวมแยกตามสีแท็กซี่จากข้อมูล orders ใน 7 วันที่ผ่านมา
     let yellowRevenue = 0;
     let greenRevenue = 0;
 
@@ -360,11 +311,12 @@ export async function GET() {
         greenRevenue += Number(o.total_amount);
       }
     });
-
+    // #endregion
 
     /* =========================
       Profit Margin by Package
     ========================= */
+    // #region คำนวณกำไรขั้นต้นและอัตรากำไรขั้นต้นแยกตามแพ็คเกจ โดยรวมข้อมูลจาก order_items และ orders เพื่อหาค่า commission ของแต่ละแพ็คเกจ
     const profitPackage = {};
 
     (matrixData || []).forEach((row) => {
@@ -418,45 +370,111 @@ export async function GET() {
         margin: Math.round(margin * 100) / 100,
       };
     });
+    // #endregion
 
-
-    // #region SOURCE CHANNEL SUMMARY
-    const { data: sourceSummary, error: sourceError } =
-      await supabaseAdmin
-        .from("orders")
-        .select(`
-          total_amount,
-          commission_amount,
-          source_channels (
-            id,
-            name,
-            commissionable
+    // #region SOURCE CHANNEL × ACTIVITY (HW / HL)
+    const { data: ordersWithItems, error } = await supabaseAdmin
+      .from("orders")
+      .select(`
+        id,
+        commission_amount,
+        source_channels ( id, name ),
+        order_items (
+          price,
+          quantity,
+          packages (
+            categories (
+              name
+            )
           )
-        `)
-        .not("source_channel_id", "is", null);
+        )
+      `)
+      .not("source_channel_id", "is", null);
 
-    if (sourceError) throw sourceError;
-    const sourceMap = {};
-    sourceSummary.forEach((row) => {
-      const name = row.source_channels?.name || "Unknown";
+    if (error) throw error;
 
-      if (!sourceMap[name]) {
-        sourceMap[name] = {
-          name,
-          totalSales: 0,
-          totalCommission: 0,
-          orders: 0,
-        };
-      }
+    // map category → activity code
+    function getActivityType(categoryName) {
+      const activityMap = {
+        "World Packages": "HW",
+        "Luge": "HL",
+        "Roller": "Ro",
+        "SKY WALK": "SW",
+        "Zipline": "Zip",
+      };
 
-      sourceMap[name].totalSales += Number(row.total_amount || 0);
-      sourceMap[name].totalCommission += Number(row.commission_amount || 0);
-      sourceMap[name].orders += 1;
+      return activityMap[categoryName] || "Walk in";
+    }
+
+    const map = {};
+
+    ordersWithItems.forEach((order) => {
+      const channelName = order.source_channels?.name || "Unknown";
+
+      (order.order_items || []).forEach((item) => {
+        const categoryName =
+          item.packages?.categories?.name;
+
+        const activity = getActivityType(categoryName);
+
+        const key = `${channelName} - ${activity}`;
+
+        if (!map[key]) {
+          map[key] = {
+            name: key,
+            orders: 0,
+            totalSales: 0,
+            totalCommission: 0,
+          };
+        }
+
+        // 1 order ต่อ activity 1 ครั้ง
+        map[key].orders += 1;
+
+        // คำนวณยอดจาก item จริง
+        const itemRevenue =
+          Number(item.price || 0) * Number(item.quantity || 0);
+
+        map[key].totalSales += itemRevenue;
+
+        // commission อยู่ระดับ order
+        map[key].totalCommission +=
+          Number(order.commission_amount || 0);
+      });
     });
 
-    const sourceChannelStats = Object.values(sourceMap);
-    // endregion
+    // ===== ทำให้ Master List ครบทุก Channel × Activity =====
 
+    const { data: allChannels, error: channelError } =
+      await supabaseAdmin
+        .from("source_channels")
+        .select("id, name");
+
+    if (channelError) throw channelError;
+
+    // activity types ที่ระบบคุณมี
+    const activityTypes = ["HW", "HL", "Ro", "SW", "Zip"];
+
+    allChannels.forEach((ch) => {
+      activityTypes.forEach((activity) => {
+        const key = `${ch.name} - ${activity}`;
+
+        if (!map[key]) {
+          map[key] = {
+            name: key,
+            orders: 0,
+            totalSales: 0,
+            totalCommission: 0,
+          };
+        }
+      });
+    });
+
+    const sourceChannelStats = Object.values(map).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+
+    // #endregion
 
     // #region เพิ่ม Commission Overview (ภาพรวมคอม)
     const { data: commissionData, error: commissionError } =
@@ -518,7 +536,7 @@ export async function GET() {
     /* =========================
        RESPONSE
     ========================= */
-
+    // #region รวมข้อมูลทั้งหมดที่ดึงมาและคำนวณได้ ส่งกลับในรูปแบบ JSON เพื่อให้ frontend นำไปแสดงผลในแดชบอร์ด
     return NextResponse.json({
       stats: {
         users: users || 0,
@@ -568,11 +586,11 @@ export async function GET() {
         green: greenRevenue,
       },
       profitMargin,
-      sourceChannelStats,  // 🔥 ใหม่
-      totalCommission,     // 🔥 ใหม่
+      sourceChannelStats, totalCommission: sourceChannelStats.reduce((sum, s) => sum + s.totalCommission, 0),
       topSources,          // 🔥 ใหม่
       taxiPerformance,      // 🔥 ถ้ามี
     });
+    // #endregion
   } catch (err) {
     console.error("Dashboard API error:", err);
     return NextResponse.json(
