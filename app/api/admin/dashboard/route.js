@@ -259,12 +259,10 @@ export async function GET() {
         .from("order_items")
         .select(`
           item_name,
+          price,
           quantity,
           orders (
-            taxi_id,
-            taxis (
-              plate_color
-            )
+            commission_amount
           )
         `);
 
@@ -330,41 +328,24 @@ export async function GET() {
         };
       }
 
-      const total = Number(row.price) * Number(row.quantity);
-      profitPackage[pkg].revenue += total;
+      const revenue =
+        Number(row.price || 0) * Number(row.quantity || 0);
 
-      const taxi = row.orders?.taxis;
+      profitPackage[pkg].revenue += revenue;
 
-      if (!taxi) return;
-
-      const type = taxi.commission_type;
-      const value = Number(taxi.commission_value || 0);
-
-      const adult = Number(row.orders?.adult_count || 0);
-      const child = Number(row.orders?.child_count || 0);
-      const orderTotal = Number(row.orders?.total_amount || 0);
-
-      let commission = 0;
-
-      switch (type) {
-        case "FIXED_PER_HEAD":
-          commission = (adult + child) * value;
-          break;
-
-        case "FIXED_PER_ORDER":
-          commission = value;
-          break;
-
-        case "PERCENT":
-          commission = (orderTotal * value) / 100;
-          break;
-      }
+      // commission อยู่ระดับ order
+      const commission =
+        Number(row.orders?.commission_amount || 0);
 
       profitPackage[pkg].commission += commission;
     });
 
     const profitMargin = Object.values(profitPackage).map((pkg) => {
-      const margin = pkg.revenue > 0 ? ((pkg.revenue - pkg.commission) / pkg.revenue * 100) : 0;
+      const margin =
+        pkg.revenue > 0
+          ? ((pkg.revenue - pkg.commission) / pkg.revenue) * 100
+          : 0;
+
       return {
         ...pkg,
         margin: Math.round(margin * 100) / 100,
