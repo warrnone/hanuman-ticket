@@ -20,9 +20,11 @@ export async function GET() {
 
     const thisWeekStart = new Date();
     thisWeekStart.setDate(now.getDate() - 7);
+    thisWeekStart.setHours(0, 0, 0, 0);
 
     const lastWeekStart = new Date();
     lastWeekStart.setDate(now.getDate() - 14);
+    lastWeekStart.setHours(0, 0, 0, 0);
 
     const RED_COMMISSION_LIMIT = 3000;
     // #endregion
@@ -103,26 +105,9 @@ export async function GET() {
         .gte("created_at", lastWeekStart.toISOString())
         .lt("created_at", thisWeekStart.toISOString());
 
-    const thisWeekRevenue =
-      thisWeekOrders?.reduce(
-        (sum, o) => sum + Number(o.total_amount),
-        0
-      ) || 0;
-
-    const lastWeekRevenue =
-      lastWeekOrders?.reduce(
-        (sum, o) => sum + Number(o.total_amount),
-        0
-      ) || 0;
-
-    const percentChange =
-      lastWeekRevenue > 0
-        ? Math.round(
-            ((thisWeekRevenue - lastWeekRevenue) /
-              lastWeekRevenue) *
-              100
-          )
-        : 0;
+    const thisWeekRevenue = thisWeekOrders ?.reduce((sum, o) => sum + Number(o.total_amount),0) || 0;
+    const lastWeekRevenue = lastWeekOrders ?.reduce((sum, o) => sum + Number(o.total_amount),0) || 0;
+    const percentChange = lastWeekRevenue > 0 ? Math.round(((thisWeekRevenue - lastWeekRevenue)/lastWeekRevenue) *100) : 0;
     // #endregion
 
     /* =========================

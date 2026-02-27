@@ -25,7 +25,6 @@ export default function AdminDashboard() {
       const res = await fetch("/api/admin/dashboard");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
       setStats(data.stats || {});
       setWeeklyComparison(data.weeklyComparison || null);
       setTaxiHealth(data.taxiHealth || null);
@@ -59,6 +58,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  const growth = weeklyComparison?.percentChange || 0;
 
   if (loading) {
     return (
@@ -162,14 +163,18 @@ export default function AdminDashboard() {
           value={`฿${Number(stats.taxiCommissionToday || 0).toLocaleString()}`}
           emoji="💸"
         />
+        {/** Weekly Growth คือการดู “แนวโน้มรายได้สัปดาห์นี้เทียบกับสัปดาห์ก่อน” */}
         <StatCard
           title="Weekly Growth"
-          value={
-            weeklyComparison
-              ? `${weeklyComparison.percentChange}%`
-              : "0%"
+          value={`${growth}%`}
+          emoji={growth >= 0 ? "📈" : "📉"}
+          valueClassName={
+            growth > 0
+              ? "text-green-600"
+              : growth < 0
+              ? "text-red-600"
+              : "text-gray-600"
           }
-          emoji="📊"
         />
       </div>
 
