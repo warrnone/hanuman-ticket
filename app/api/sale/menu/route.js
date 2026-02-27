@@ -23,9 +23,11 @@ export async function GET() {
       await supabaseAdmin
         .from("packages")
         .select("id, name, price, category_id , image_url")
-        .eq("status", "active");
+        .eq("status", "active")
+        .order("price", { ascending: true }); // น้อย -> มาก
 
     if (pkgError) throw pkgError;
+    // .order("price", { ascending: false }); มาก -> น้อย
 
     /* =========================
        PHOTO / VIDEO PRICES
