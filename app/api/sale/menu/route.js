@@ -47,7 +47,9 @@ export async function GET() {
           price,
           image_url
         `)
-        .eq("status", "active");
+        .eq("status", "active")
+        .order("media_type", { ascending: true })
+        .order("price", { ascending: true });
 
     if (pvError) throw pvError;
 

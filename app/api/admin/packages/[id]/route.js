@@ -9,21 +9,29 @@ export async function PATCH(req, { params }) {
     const { id } = await params;
     const body = await req.json();
 
+    // 1️⃣ ดึงข้อมูลเก่าก่อน
+    const { data: oldPackage, error: fetchError } =
+      await supabaseAdmin
+        .from("packages")
+        .select("image_url")
+        .eq("id", id)
+        .single();
+
+    if (fetchError) throw fetchError;
+
+    const oldImage = oldPackage?.image_url;
+
     const payload = {
       name: body.name,
       description: body.description ?? null,
-      price: body.price != null ? parseInt(body.price, 10) : undefined,
+      price:
+        body.price != null
+          ? parseInt(body.price, 10)
+          : undefined,
       status: body.status,
       category_id: body.category_id,
-      image_url : body.image_url ?? null,
+      image_url: body.image_url ?? null,
     };
-
-    if (payload.price != null && Number.isNaN(payload.price)) {
-      return NextResponse.json(
-        { error: "Price must be an integer" },
-        { status: 400 }
-      );
-    }
 
     const { error } = await supabaseAdmin
       .from("packages")
@@ -32,7 +40,21 @@ export async function PATCH(req, { params }) {
 
     if (error) throw error;
 
+    // 2️⃣ ถ้ามีการเปลี่ยนรูป ค่อยลบไฟล์เก่า
+    if (
+      oldImage &&
+      body.image_url &&
+      oldImage !== body.image_url
+    ) {
+      const path = oldImage.split("/").pop();
+
+      await supabaseAdmin.storage
+        .from("packages")
+        .remove([path]);
+    }
+
     return NextResponse.json({ success: true });
+
   } catch (err) {
     console.error("PATCH packages error:", err);
     return NextResponse.json(
