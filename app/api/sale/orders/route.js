@@ -299,7 +299,7 @@ export async function POST(req) {
       }
     }
 
-
+    // #region เราเป็นฝั่ง POST ไปหาเค้า
     /* =====================================
        4. Send order to Partner (Hanuman API)
        - เราเป็นฝั่ง POST ไปหาเค้า
@@ -327,6 +327,8 @@ export async function POST(req) {
             service_date: orderRow.service_date,
             adult: orderRow.adult_count,
             child: orderRow.child_count,
+            // 💰 ส่ง commission Taxis ไปด้วย 
+            commission_amount: commissionAmount,
             staff: {
               id: staff.id,
               username: staff.username,
@@ -418,6 +420,8 @@ export async function POST(req) {
         })
         .eq("id", orderRow.id);
     }
+
+    // #endregion
 
     /* =====================================
        5. Response กลับไปที่ client
