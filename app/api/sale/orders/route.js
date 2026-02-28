@@ -230,6 +230,53 @@ export async function POST(req) {
       );
     }
 
+
+    /* =====================================
+      2.5 Insert taxi_commissions (NEW)   Taxis ได้ค่า commistion
+    ===================================== */
+
+    if (taxi_id && commissionAmount > 0) {
+
+      // ดึง commission rate จาก taxi อีกครั้ง (เพื่อเก็บ record ให้ครบ)
+      const { data: taxi } = await supabaseAdmin
+        .from("taxis")
+        .select("commission_type, commission_value")
+        .eq("id", taxi_id)
+        .single();
+
+      let commissionRate = 0;
+
+      if (taxi?.commission_type === "PERCENT") {
+        commissionRate = Number(taxi.commission_value);
+      }
+
+      if (taxi?.commission_type === "FIXED_PER_HEAD") {
+        commissionRate = Number(taxi.commission_value);
+      }
+
+      if (taxi?.commission_type === "FIXED_PER_ORDER") {
+        commissionRate = Number(taxi.commission_value);
+      }
+
+      const { error: commissionError } =
+        await supabaseAdmin
+          .from("taxi_commissions")
+          .insert({
+            order_id: orderRow.id,
+            taxi_id: taxi_id,
+            agent_id: orderRow.agent_id ?? null, // ถ้ามี agent
+            commission_rate: commissionRate,
+            base_amount: Number(total_amount),
+            commission_amount: commissionAmount,
+            status: "pending",   // 👈 ต้องเพิ่ม column นี้ใน table
+          });
+
+      if (commissionError) {
+        console.error("Insert taxi_commissions error:", commissionError);
+      }
+    }
+
+
     /* =====================================
        3. Insert order items
        - ถ้าล้มเหลว จะ rollback order
