@@ -12,6 +12,7 @@
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -19,4 +20,25 @@
 
 .animate-slide-in {
   animation: slide-in 0.25s ease-out;
+}
+
+
+
+@keyframes flash {
+  0% {
+    background-color: #facc15;
+  }
+
+  50% {
+    background-color: #000000;
+    color: #facc15;
+  }
+
+  100% {
+    background-color: #facc15;
+  }
+}
+
+.flash-row {
+  animation: flash 0.5s ease-in-out 6;
 }
