@@ -1,7 +1,8 @@
 "use client";
-
+// http://localhost:3000/display/commission?token=TV_SECRET_123
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -10,43 +11,47 @@ const supabase = createClient(
 
 export default function CommissionDisplayPage() {
   const [data, setData] = useState([]);
-  const [now, setNow] = useState(null); // ✅ แก้ hydration error
-  const [latestId, setLatestId] = useState(null);
-  const [highlightId, setHighlightId] = useState(null);
-  const audioRef = useRef(null);
+  const [now, setNow] = useState(null);
+  const [flashMap, setFlashMap] = useState({});
+  const [scale, setScale] = useState(1);
+  const audioPendingRef = useRef(null);
+  const audioCalledRef = useRef(null);
+  const topRef = useRef(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pendingCount = data.filter((i) => i.status === "pending").length;
 
+  /* ===============================
+     🔐 TV Token Protection
+  =============================== */
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token !== process.env.NEXT_PUBLIC_TV_TOKEN) {
+      router.replace("/404");
+    }
+  }, []);
+
+  /* ===============================
+     📊 Load Data
+  =============================== */
   const loadData = async () => {
     try {
       const res = await fetch("/api/display/commission");
       const json = await res.json();
-      const newData = json.data || [];
-
-      if (newData.length > 0) {
-        const newest = newData[0].id;
-        if (latestId && newest !== latestId) {
-          audioRef.current?.play().catch(() => {});
-        }
-        setLatestId(newest);
-      }
-
-      setData(newData);
+      setData(json.data || []);
     } catch (err) {
       console.error("Load commission error:", err);
     }
   };
 
-  const formatTime = (date) => {
-    const h = String(date.getHours()).padStart(2, "0");
-    const m = String(date.getMinutes()).padStart(2, "0");
-    const s = String(date.getSeconds()).padStart(2, "0");
-    return `${h}:${m}:${s}`;
-  };
-
+  /* ===============================
+     🔄 Realtime Subscribe
+  =============================== */
   useEffect(() => {
     loadData();
 
     const channel = supabase
-      .channel("commission-insert")
+      .channel("commission-realtime")
       .on(
         "postgres_changes",
         {
@@ -55,24 +60,38 @@ export default function CommissionDisplayPage() {
           table: "taxi_commissions",
         },
         async (payload) => {
-          const newId = payload.new.id;
-
           await loadData();
 
-          // 🔔 เล่นเสียงเฉพาะ pending
+          const newId = payload.new.id;
+
+          // 🔔 pending sound
           if (payload.new.status === "pending") {
-            if (audioRef.current) {
-              audioRef.current.currentTime = 0;
-              audioRef.current.play().catch(() => {});
-            }
+            audioPendingRef.current?.play().catch(() => {});
           }
 
-          // ✨ ทำให้แถวกระพริบ
-          setHighlightId(newId);
-
+          // ✨ Flash 5 sec
+          setFlashMap((prev) => ({ ...prev, [newId]: true }));
           setTimeout(() => {
-            setHighlightId(null);
-          }, 3000);
+            setFlashMap((prev) => ({ ...prev, [newId]: false }));
+          }, 5000);
+
+          // 📢 scroll to top
+          topRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "taxi_commissions",
+        },
+        async (payload) => {
+          await loadData();
+
+          if (payload.new.status === "called") {
+            audioCalledRef.current?.play().catch(() => {});
+          }
         }
       )
       .subscribe();
@@ -82,7 +101,9 @@ export default function CommissionDisplayPage() {
     };
   }, []);
 
-  // ✅ clock — set ครั้งแรกหลัง mount บน client เท่านั้น
+  /* ===============================
+     🕒 Clock (Hydration Safe)
+  =============================== */
   useEffect(() => {
     setNow(new Date());
     const timer = setInterval(() => {
@@ -91,62 +112,114 @@ export default function CommissionDisplayPage() {
     return () => clearInterval(timer);
   }, []);
 
+  /* ===============================
+     📺 Adaptive TV Scale
+     Base design: 1920x1080
+  =============================== */
+  useEffect(() => {
+    const calculateScale = () => {
+      const baseWidth = 1920;
+      const baseHeight = 1080;
+
+      const widthScale = window.innerWidth / baseWidth;
+      const heightScale = window.innerHeight / baseHeight;
+
+      setScale(Math.min(widthScale, heightScale));
+    };
+
+    calculateScale();
+    window.addEventListener("resize", calculateScale);
+    return () => window.removeEventListener("resize", calculateScale);
+  }, []);
+
+  const formatTime = (date) => {
+    const h = String(date.getHours()).padStart(2, "0");
+    const m = String(date.getMinutes()).padStart(2, "0");
+    const s = String(date.getSeconds()).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white p-10">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-10">
-        <h1 className="text-5xl font-bold">🚖 Taxi Commission Queue</h1>
-        <div className="text-3xl">
-          {now ? formatTime(now) : ""} {/* ✅ ไม่ render เวลาตอน SSR */}
-        </div>
-      </div>
+    <div className="bg-black min-h-screen overflow-hidden">
+      <div
+        style={{
+          width: 1920,
+          height: 1080,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+        className="p-10 text-white"
+      >
+        <div ref={topRef}></div>
 
-      {/* Table Header */}
-      <div className="grid grid-cols-3 text-3xl font-semibold border-b border-gray-600 pb-4 mb-4">
-        <div>Plate Number</div>
-        <div>Commission</div>
-        <div>Status</div>
-      </div>
+        {/* Header */}
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-6xl font-bold">
+            🚖 Taxi Commission Queue
+          </h1>
 
-      {/* Rows */}
-      {data.length === 0 && (
-        <div className="text-3xl text-center mt-20 text-gray-400">
-          No commission queue
-        </div>
-      )}
+          <div className="text-3xl">
+            {now ? formatTime(now) : ""}
+          </div>
 
-      {data.map((item) => (
-        <div
-          key={item.id}
-          className={`grid grid-cols-3 text-4xl py-5 border-b border-gray-800 transition-all duration-300
-            ${highlightId === item.id ? "flash-row text-black" : ""}
-          `}
-        >
-          <div>{item.plate_number}</div>
-          <div>{item.amount} ฿</div>
-          <div>
-            {item.status === "pending" && (
-              <span className="text-yellow-400">🟡 PENDING</span>
-            )}
-            {item.status === "called" && (
-              <span className="text-blue-400">🔵 CALLED</span>
-            )}
-            {item.status === "paid" && (
-              <span className="text-green-400">🟢 PAID</span>
-            )}
+          <div className="text-3xl text-yellow-400">
+            Pending: {pendingCount}
           </div>
         </div>
-      ))}
 
-      {/* 🔔 Sound */}
-      <audio ref={audioRef} src="/sound/notify.mp3" preload="auto" />
+        {/* 2 Column Layout */}
+        <div className="grid grid-cols-2 gap-8">
+          {data.length === 0 && (
+            <div className="text-4xl text-gray-400">
+              No commission queue
+            </div>
+          )}
+
+          {data.map((item) => (
+            <div
+              key={item.id}
+              className={`
+                p-8 rounded-xl text-5xl font-semibold
+                transition-all duration-300
+                ${item.status === "pending" ? "bg-yellow-600" : ""}
+                ${item.status === "called" ? "bg-blue-600" : ""}
+                ${item.status === "paid" ? "bg-green-600" : ""}
+                ${
+                  flashMap[item.id]
+                    ? "animate-pulse border-4 border-white"
+                    : ""
+                }
+              `}
+            >
+              <div className="text-6xl font-bold">
+                {item.plate_number}
+              </div>
+
+              <div className="mt-3">
+                {item.amount} ฿
+              </div>
+
+              <div className="mt-2 text-4xl">
+                {item.status === "pending" && "🟡 PENDING"}
+                {item.status === "called" && "🔵 CALLED"}
+                {item.status === "paid" && "🟢 PAID"}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sounds */}
+        <audio
+          ref={audioPendingRef}
+          src="/sound/pending.mp3"
+          preload="auto"
+        />
+        <audio
+          ref={audioCalledRef}
+          src="/sound/called.mp3"
+          preload="auto"
+        />
+      </div>
     </div>
   );
 }
-
-/****
-ผมสามารถเพิ่ม:
-📢 Auto scroll
-🎨 Layout 2 คอลัมน์สำหรับคิวเยอะ
-🔐 Secret token สำหรับ TV เท่านั้น
- */
