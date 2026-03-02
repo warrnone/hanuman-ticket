@@ -1,7 +1,6 @@
-🔒 ป้องกัน duplicate commission (unique order_id มีแล้ว ดีมาก)
-💰 ทำ API สำหรับ mark as paid (update status → paid + paid_at)
-📊 ทำ summary รายวัน / ราย agent
-🧾 Export commission เป็น Excel
-🔄 รองรับกรณี order ถูกยกเลิก → commission auto cancel
-
-// แก้การพริบบ ไม่ได้ที
+พรุ่งนี้อยากต่อยอดอะไรดี?
+🧾 ปุ่มกดจ่ายเงิน → auto เปลี่ยน status เป็น paid?
+📊 Dashboard สรุปรายวัน commission?
+🖥️ หน้า admin สำหรับกดเรียกคิว (pending → called)?
+📱 QR scan เพื่อจ่าย commission?
+เลือกได้เลยครับ วันนี้คุณทำระบบไปไกลมากแล้ว

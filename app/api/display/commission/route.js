@@ -17,7 +17,8 @@ export async function GET() {
       )
     `)
     .in("status", ["pending", "called"])
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .limit(100);
 
     if (error) throw error;
 

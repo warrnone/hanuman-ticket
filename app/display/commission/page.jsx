@@ -8,31 +8,33 @@ import { supabase } from "@/lib/supabaseClient";
 
 const ITEMS_PER_PAGE = 8;
 const SLIDE_INTERVAL = 5000;
+const MAX_RECORDS = 200; // กันโหลดทั้ง table
 
 export default function CommissionDisplayPage() {
   const [data, setData] = useState([]);
   const [now, setNow] = useState(null);
-  const [flashMap, setFlashMap] = useState({});
-  const [statusFlashMap, setStatusFlashMap] = useState({});
-  const [scale, setScale] = useState(1);
   const [currentPage, setCurrentPage] = useState(0);
+  const [displayPending, setDisplayPending] = useState(0);
+  const [explosions, setExplosions] = useState([]);
+  const [scale, setScale] = useState(1);
 
   const audioPendingRef = useRef(null);
-  const audioCalledRef = useRef(null);
   const slideTimerRef = useRef(null);
+  const debounceRef = useRef(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const pendingCount = data.filter((i) => i.status === "pending").length;
   const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+
   const pagedData = data.slice(
     currentPage * ITEMS_PER_PAGE,
     (currentPage + 1) * ITEMS_PER_PAGE
   );
 
   /* ===============================
-     🔐 TV Token Protection
+     🔐 Token Protection
   =============================== */
   useEffect(() => {
     const token = searchParams.get("token");
@@ -42,71 +44,71 @@ export default function CommissionDisplayPage() {
   }, []);
 
   /* ===============================
-     📊 Load Data
+     📊 Load Data (LIMITED)
   =============================== */
   const loadData = async () => {
     try {
-      const res = await fetch("/api/display/commission");
+      const res = await fetch(
+        `/api/display/commission?limit=${MAX_RECORDS}`
+      );
       const json = await res.json();
       setData(json.data || []);
     } catch (err) {
-      console.error("Load commission error:", err);
+      console.error("Load error:", err);
     }
   };
 
   /* ===============================
-     🔄 Realtime Subscribe (ตัวเดียวเท่านั้น)
+     🔄 Realtime (Debounced)
   =============================== */
   useEffect(() => {
     loadData();
 
     const channel = supabase
-      .channel("commission-realtime")
+      .channel("commission-live")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "taxi_commissions" },
-        async (payload) => {
-          console.log("🔥 REALTIME EVENT:", payload.eventType);
+        { event: "INSERT", schema: "public", table: "taxi_commissions" },
+        () => {
+          clearTimeout(debounceRef.current);
 
-          await loadData();
-
-          const id = payload.new?.id;
-
-          if (!id) return;
-
-          if (payload.eventType === "INSERT") {
-            if (payload.new.status === "pending") {
-              audioPendingRef.current?.play().catch(() => {});
-            }
-
-            setFlashMap((prev) => ({ ...prev, [id]: true }));
-            setTimeout(() => {
-              setFlashMap((prev) => ({ ...prev, [id]: false }));
-            }, 5000);
-
-            setCurrentPage(0);
-          }
-
-          if (payload.eventType === "UPDATE") {
-            if (payload.new.status === "called") {
-              audioCalledRef.current?.play().catch(() => {});
-            }
-
-            setStatusFlashMap((prev) => ({ ...prev, [id]: true }));
-            setTimeout(() => {
-              setStatusFlashMap((prev) => ({ ...prev, [id]: false }));
-            }, 3000);
-          }
+          debounceRef.current = setTimeout(() => {
+            loadData();
+            audioPendingRef.current?.play().catch(() => {});
+            createExplosion();
+          }, 400); // debounce 400ms
         }
       )
-      .subscribe((status) => {
-        console.log("REALTIME STATUS:", status);
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      clearTimeout(debounceRef.current);
     };
   }, []);
+
+  /* ===============================
+     📊 Animated Counter
+  =============================== */
+  useEffect(() => {
+    let start = displayPending;
+    const end = pendingCount;
+    if (start === end) return;
+
+    const duration = 400;
+    const increment = (end - start) / (duration / 16);
+
+    const timer = setInterval(() => {
+      start += increment;
+      if ((increment > 0 && start >= end) || (increment < 0 && start <= end)) {
+        start = end;
+        clearInterval(timer);
+      }
+      setDisplayPending(Math.round(start));
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [pendingCount]);
 
   /* ===============================
      ⏩ Auto Slide
@@ -133,107 +135,116 @@ export default function CommissionDisplayPage() {
   }, []);
 
   /* ===============================
-     📺 Scale TV
+     🧠 Smart Auto Scale
   =============================== */
   useEffect(() => {
-    const calculateScale = () => {
-      const widthScale = window.innerWidth / 1920;
-      const heightScale = window.innerHeight / 1080;
+    const resize = () => {
+      const baseWidth = 1920;
+      const baseHeight = 1080;
+      const widthScale = window.innerWidth / baseWidth;
+      const heightScale = window.innerHeight / baseHeight;
       setScale(Math.min(widthScale, heightScale));
     };
-    calculateScale();
-    window.addEventListener("resize", calculateScale);
-    return () => window.removeEventListener("resize", calculateScale);
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
   }, []);
 
-  const formatTime = (date) =>
-    `${String(date.getHours()).padStart(2, "0")}:${String(
-      date.getMinutes()
-    ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+  /* ===============================
+     🎆 Explosion (Limited)
+  =============================== */
+  const createExplosion = () => {
+    const particles = Array.from({ length: 12 }).map((_, i) => ({
+      id: Date.now() + i,
+      x: `${Math.random() * 150 - 75}px`,
+      y: `${Math.random() * 150 - 75}px`,
+    }));
 
-  const formatCardTime = (iso) => {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return `${String(d.getHours()).padStart(2, "0")}:${String(
-      d.getMinutes()
-    ).padStart(2, "0")}`;
+    setExplosions(particles);
+    setTimeout(() => setExplosions([]), 700);
   };
 
-  const getBgColor = (status) => {
-    if (status === "pending") return "#b45309";
-    if (status === "called") return "#1d4ed8";
-    if (status === "paid") return "#15803d";
-    return "#374151";
-  };
+  /* ===============================
+     🎨 Theme Logic
+  =============================== */
+  const themeClass = pendingCount < 5 ? "theme-low" : pendingCount < 15 ? "theme-medium" : "theme-high";
+  const hour = now?.getHours() || 12;
+  const modeClass = hour >= 6 && hour < 18 ? "mode-day" : "mode-night";
 
   return (
-    <div className="bg-black min-h-screen overflow-hidden">
+    <div
+      className={`${modeClass} ${themeClass} text-white`}
+      style={{
+        position: "fixed",
+        inset: 0,
+        overflow: "hidden",
+      }}
+    >
+      {explosions.map((p) => (
+        <div
+          key={p.id}
+          className="explosion"
+          style={{
+            left: "50%",
+            top: "50%",
+            "--x": p.x,
+            "--y": p.y,
+          }}
+        />
+      ))}
+
       <div
         style={{
           width: 1920,
           height: 1080,
           transform: `scale(${scale})`,
           transformOrigin: "top left",
+          position: "absolute",
+          top: 0,
+          left: 0,
         }}
-        className="p-10 text-white flex flex-col"
+        className="p-20 flex flex-col"
       >
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-6xl font-bold">🚖 Taxi Commission Queue</h1>
-          <div className="text-3xl">{now ? formatTime(now) : ""}</div>
-          <div className="text-3xl text-yellow-400">
-            Pending: {pendingCount}
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-16">
+          <h1 className="text-8xl font-extrabold tracking-widest">
+            TAXI COMMISSION
+          </h1>
+
+          <div className="text-5xl opacity-80">
+            {now?.toLocaleTimeString()}
+          </div>
+
+          <div className="text-5xl font-semibold">
+            {displayPending} Pending
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          {pagedData.length === 0 && (
-            <div className="col-span-2 text-4xl text-gray-400 text-center">
-              No commission queue
-            </div>
-          )}
-
-          {pagedData.map((item) => {
-            const isFlashing = flashMap[item.id];
-            const isStatusChanged = statusFlashMap[item.id];
-
-            return (
-              <div
-                key={item.id}
-                style={{
-                  backgroundColor: getBgColor(item.status),
-                  border: isFlashing
-                    ? "4px solid white"
-                    : "4px solid transparent",
-                  animation: isFlashing
-                    ? "flashBlink 0.6s ease-in-out infinite"
-                    : isStatusChanged
-                    ? "statusPop 0.5s ease-in-out"
-                    : "none",
-                }}
-                className="p-8 rounded-xl font-semibold"
-              >
-                <div className="text-6xl font-bold">
-                  {item.plate_number}
-                </div>
-
-                <div className="mt-2 text-4xl">
-                  {item.status === "pending" && "🟡 PENDING"}
-                  {item.status === "called" && "🔵 CALLED"}
-                  {item.status === "paid" && "🟢 PAID"}
-                </div>
-
-                {item.created_at && (
-                  <div className="mt-3 text-2xl opacity-70">
-                    🕐 รับเมื่อ {formatCardTime(item.created_at)}
-                  </div>
-                )}
+        {/* GRID */}
+        <div className="grid grid-cols-2 gap-12">
+          {pagedData.map((item) => (
+            <div
+              key={item.id}
+              className="led-panel accent-border rounded-3xl p-12 transition-all duration-300"
+            >
+              <div className="text-8xl font-bold tracking-widest">
+                {item.plate_number}
               </div>
-            );
-          })}
+
+              <div className="mt-6 text-4xl">
+                {item.status.toUpperCase()}
+              </div>
+
+              {item.created_at && (
+                <div className="mt-8 text-3xl opacity-60">
+                  {new Date(item.created_at).toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
 
         <audio ref={audioPendingRef} src="/sound/notify.mp3" />
-        <audio ref={audioCalledRef} src="/sound/called.mp3" />
       </div>
     </div>
   );
