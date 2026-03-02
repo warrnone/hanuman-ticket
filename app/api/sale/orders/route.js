@@ -146,15 +146,20 @@ export async function POST(req) {
         1.5 Calculate commission (ถ้ามี taxi_id)
     ===================================== */
     let commissionAmount = 0;
+    let commissionRate = 0;
+    let taxiAgentId = null;
 
     if (taxi_id) {
       const { data: taxi , error: taxiError  } = await supabaseAdmin
         .from("taxis")
-        .select("commission_type, commission_value")
+        .select("commission_type, commission_value , agent_id")
         .eq("id", taxi_id)
         .single();
 
       if (taxi) {
+
+        taxiAgentId = taxi.agent_id;  // ✅ เอามาจาก taxi
+        commissionRate = Number(taxi.commission_value);
         const totalHeads = Number(adult_count) + Number(child_count);
 
         if (taxi.commission_type === "FIXED_PER_HEAD") {
@@ -236,43 +241,22 @@ export async function POST(req) {
     ===================================== */
 
     if (taxi_id && commissionAmount > 0) {
-
-      // ดึง commission rate จาก taxi อีกครั้ง (เพื่อเก็บ record ให้ครบ)
-      const { data: taxi } = await supabaseAdmin
-        .from("taxis")
-        .select("commission_type, commission_value")
-        .eq("id", taxi_id)
-        .single();
-
-      let commissionRate = 0;
-
-      if (taxi?.commission_type === "PERCENT") {
-        commissionRate = Number(taxi.commission_value);
-      }
-
-      if (taxi?.commission_type === "FIXED_PER_HEAD") {
-        commissionRate = Number(taxi.commission_value);
-      }
-
-      if (taxi?.commission_type === "FIXED_PER_ORDER") {
-        commissionRate = Number(taxi.commission_value);
-      }
-
       const { error: commissionError } =
         await supabaseAdmin
           .from("taxi_commissions")
           .insert({
             order_id: orderRow.id,
             taxi_id: taxi_id,
-            agent_id: orderRow.agent_id ?? null, // ถ้ามี agent
+            agent_id: taxiAgentId,  
             commission_rate: commissionRate,
             base_amount: Number(total_amount),
             commission_amount: commissionAmount,
-            status: "pending",   // 👈 ต้องเพิ่ม column นี้ใน table
+            status: "pending",
           });
 
       if (commissionError) {
         console.error("Insert taxi_commissions error:", commissionError);
+        throw commissionError;
       }
     }
 
