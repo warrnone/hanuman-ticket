@@ -109,8 +109,12 @@ body {
 /* #endregion */
 
 
+
+/* #region   AIRPORT LEVEL UI */
+
+
 /* ================================
-  #region AIRPORT LEVEL UI
+    AIRPORT LEVEL UI
 ================================ */
 
 /* Background Gradient */
@@ -404,3 +408,54 @@ body {
     opacity: 0;
   }
 }
+
+/* ================================
+   TV HARDENING MODE
+================================ */
+
+.tv-mode {
+  cursor: none;
+  user-select: none;
+}
+
+.tv-mode * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+
+  /* ================================
+   PENDING TEXT BLINK
+================================ */
+
+.pending-badge {
+  display: inline-block;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  background: #facc15;
+  color: #1e293b;
+  animation: pendingBlink 1.2s ease-in-out infinite;
+}
+
+@keyframes pendingBlink {
+  0% {
+    background: #facc15;
+    color: #1e293b;
+    box-shadow: 0 0 10px rgba(250,204,21,0.5);
+  }
+  50% {
+    background: #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 0 25px rgba(250,204,21,0.9);
+  }
+  100% {
+    background: #facc15;
+    color: #1e293b;
+    box-shadow: 0 0 10px rgba(250,204,21,0.5);
+  }
+}
+
+
+/* #endregion */

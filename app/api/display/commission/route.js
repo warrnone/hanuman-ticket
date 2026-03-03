@@ -17,6 +17,7 @@ export async function GET() {
       )
     `)
     .in("status", ["pending", "called"])
+    .gte("created_at", new Date(new Date().setHours(0,0,0,0)).toISOString())
     .order("created_at", { ascending: true })
     .limit(100);
 

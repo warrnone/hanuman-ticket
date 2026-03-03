@@ -151,6 +151,65 @@ export default function CommissionDisplayPage() {
   }, []);
 
   /* ===============================
+   📺 TV HARDENING MODE
+  ================================ */
+  useEffect(() => {
+    document.body.classList.add("tv-mode");
+
+    // Disable right click
+    const preventContext = (e) => e.preventDefault();
+    window.addEventListener("contextmenu", preventContext);
+
+    // Disable F5 / Ctrl+R
+    const preventRefresh = (e) => {
+      if (
+        e.key === "F5" ||
+        (e.ctrlKey && e.key.toLowerCase() === "r")
+      ) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", preventRefresh);
+
+    // Prevent scroll
+    const preventScroll = (e) => e.preventDefault();
+    window.addEventListener("wheel", preventScroll, { passive: false });
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+
+    // Fullscreen auto enter
+    const enterFullscreen = async () => {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (err) {}
+    };
+
+    enterFullscreen();
+
+    // Wake Lock (prevent screen sleep)
+    let wakeLock = null;
+    const requestWakeLock = async () => {
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch (err) {}
+    };
+
+    requestWakeLock();
+
+    return () => {
+      document.body.classList.remove("tv-mode");
+      window.removeEventListener("contextmenu", preventContext);
+      window.removeEventListener("keydown", preventRefresh);
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
+      wakeLock?.release();
+    };
+  }, []);
+
+  /* ===============================
      🎆 Explosion (Limited)
   =============================== */
   const createExplosion = () => {
@@ -232,7 +291,13 @@ export default function CommissionDisplayPage() {
               </div>
 
               <div className="mt-6 text-4xl">
-                {item.status.toUpperCase()}
+                {item.status === "pending" ? (
+                  <span className="pending-badge">รอดำเนินการ</span>
+                ) : item.status === "called" ? (
+                  <span className="text-blue-400 font-semibold">เรียกคิวแล้ว</span>
+                ) : (
+                  <span className="text-green-400 font-semibold">ชำระเงินแล้ว</span>
+                )}
               </div>
 
               {item.created_at && (
