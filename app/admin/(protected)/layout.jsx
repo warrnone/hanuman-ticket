@@ -10,6 +10,7 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
 
   const menuItems = [
     { name: "Dashboard", href: "/admin", icon: "📊" },
@@ -286,8 +287,34 @@ export default function AdminLayout({ children }) {
             </div>
           </div>
 
-          <div className="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center">
-            👤
+          {/* Avatar with hover dropdown */}
+          <div className="relative group">
+            <div className="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center cursor-pointer select-none">
+              👤
+            </div>
+
+            {/* Hover Dropdown */}
+            <div className="
+              absolute right-0 top-full mt-2 w-44
+              bg-white border border-slate-200 rounded-xl shadow-xl
+              opacity-0 invisible group-hover:opacity-100 group-hover:visible
+              translate-y-1 group-hover:translate-y-0
+              transition-all duration-200 ease-out
+              z-50
+            ">
+              {/* Arrow */}
+              <div className="absolute -top-1.5 right-3 w-3 h-3 bg-white border-l border-t border-slate-200 rotate-45" />
+
+              <div className="p-2">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors font-medium"
+                >
+                  <span className="text-base">🚪</span>
+                  ออกจากระบบ
+                </button>
+              </div>
+            </div>
           </div>
         </header>
 
