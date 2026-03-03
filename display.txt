@@ -1,8 +1,3 @@
-📱 QR scan เพื่อจ่าย commission?
-เลือกได้เลยครับ วันนี้คุณทำระบบไปไกลมากแล้ว
-
-
-
 http://localhost:3000/control/commission?token=STAFF_SECRET_456
 สำหรับระบบบัญชี
 
