@@ -55,28 +55,6 @@ export default function AdminDashboard() {
     XLSX.writeFile(wb, "Daily_Report.xlsx");
   };
 
-  const handleExportPhoto = async () => {
-    const res = await fetch("/api/admin/report/photo");
-    const data = await res.json();
-
-    const ws = XLSX.utils.json_to_sheet(data.data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Photo Report");
-
-    XLSX.writeFile(wb, "Photo_Sales_Report.xlsx");
-  };
-
-  const handleExportVideo = async () => {
-    const res = await fetch("/api/admin/report/items?type=VIDEO");
-    const data = await res.json();
-
-    const ws = XLSX.utils.json_to_sheet(data.data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Video Report");
-
-    XLSX.writeFile(wb, "Video_Sales_Report.xlsx");
-  };
-
   useEffect(() => {
     fetchDashboard();
   }, []);
@@ -158,21 +136,6 @@ export default function AdminDashboard() {
         >
           🚖 Export Taxi Commission
         </button>
-
-        <button
-          onClick={handleExportPhoto}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold"
-        >
-          📸 Export Photo Sales
-        </button>
-
-        <button
-          onClick={handleExportVideo}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold"
-        >
-          🎥 Export Video Sales
-        </button>
-
       </div>
 
       {/* ================= CEO HEADER ================= */}
@@ -216,7 +179,6 @@ export default function AdminDashboard() {
           }
         />
       </div>
-
 
       {/* ================= SOURCE CHANNEL PERFORMANCE ================= */}
       <div className="bg-white p-6 rounded-xl shadow">
