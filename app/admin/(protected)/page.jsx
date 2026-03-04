@@ -275,7 +275,7 @@ export default function AdminDashboard() {
 
       {/* ================= TOP PACKAGES ================= */}
       <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="font-semibold mb-4">🔥 Top Packages</h2>
+        <h2 className="font-semibold mb-4">🔥 Top 5 Packages</h2>
         {packageSummary
           .sort((a, b) => b.revenue - a.revenue)
           .slice(0, 5)

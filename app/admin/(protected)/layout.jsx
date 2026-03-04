@@ -11,7 +11,6 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-
   const menuItems = [
     { name: "Dashboard", href: "/admin", icon: "📊" },
     { name: "Users", href: "/admin/users", icon: "👥" },
@@ -91,6 +90,26 @@ export default function AdminLayout({ children }) {
         })}
       </nav>
 
+      {/* 🔹 เส้นคั่น */}
+      <div>
+        <div className="border-t border-slate-700"></div>
+      </div>
+
+      {/* ✅  LET US KNOW */}
+      <div>
+        <Link
+          href="/admin/report"
+          onClick={() => setSidebarOpen(false)}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+            pathname === "/admin/report"
+              ? "bg-orange-500 text-white shadow-lg"
+              : "text-slate-400 hover:bg-slate-800 hover:text-white"
+          }`}
+        >
+          <span className="text-lg">📜</span>
+          <span className="font-medium">Report</span>
+        </Link>
+      </div>
 
       {/* 🔹 เส้นคั่น */}
       <div>
