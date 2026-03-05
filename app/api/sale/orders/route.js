@@ -222,7 +222,7 @@ export async function POST(req) {
 
           // Qrcode 
           qr_token: qrToken,
-          qr_expired_at: qrExpiredAt, // 1 ชม
+          qr_expired_at: qrExpiredAt, // 30 นาที
         })
         .select()
         .single();
@@ -421,10 +421,10 @@ export async function POST(req) {
       //   }
       // );
 
-      if (!itemsRes.ok) {
-        const itemsError = await itemsRes.json();
-        console.error("Hanuman items API error:", itemsError);
-      }
+      // if (!itemsRes.ok) {
+      //   const itemsError = await itemsRes.json();
+      //   console.error("Hanuman items API error:", itemsError);
+      // }
 
       // update order หลังส่งสำเร็จ
       await supabaseAdmin
