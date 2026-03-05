@@ -2,15 +2,15 @@
 
 // http://localhost:3000/display/commission?token=TV_SECRET_123
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 const ITEMS_PER_PAGE = 8;
 const SLIDE_INTERVAL = 5000;
-const MAX_RECORDS = 200; // กันโหลดทั้ง table
+const MAX_RECORDS = 200;
 
-export default function CommissionDisplayPage() {
+function CommissionDisplay() {
   const [data, setData] = useState([]);
   const [now, setNow] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -48,9 +48,7 @@ export default function CommissionDisplayPage() {
   =============================== */
   const loadData = async () => {
     try {
-      const res = await fetch(
-        `/api/display/commission?limit=${MAX_RECORDS}`
-      );
+      const res = await fetch(`/api/display/commission?limit=${MAX_RECORDS}`);
       const json = await res.json();
       setData(json.data || []);
     } catch (err) {
@@ -71,12 +69,11 @@ export default function CommissionDisplayPage() {
         { event: "INSERT", schema: "public", table: "taxi_commissions" },
         () => {
           clearTimeout(debounceRef.current);
-
           debounceRef.current = setTimeout(() => {
             loadData();
             audioPendingRef.current?.play().catch(() => {});
             createExplosion();
-          }, 400); // debounce 400ms
+          }, 400);
         }
       )
       .subscribe();
@@ -117,9 +114,7 @@ export default function CommissionDisplayPage() {
     if (totalPages <= 1) return;
 
     slideTimerRef.current = setInterval(() => {
-      setCurrentPage((prev) =>
-        prev + 1 >= totalPages ? 0 : prev + 1
-      );
+      setCurrentPage((prev) => (prev + 1 >= totalPages ? 0 : prev + 1));
     }, SLIDE_INTERVAL);
 
     return () => clearInterval(slideTimerRef.current);
@@ -151,32 +146,25 @@ export default function CommissionDisplayPage() {
   }, []);
 
   /* ===============================
-   📺 TV HARDENING MODE
-  ================================ */
+     📺 TV HARDENING MODE
+  =============================== */
   useEffect(() => {
     document.body.classList.add("tv-mode");
 
-    // Disable right click
     const preventContext = (e) => e.preventDefault();
     window.addEventListener("contextmenu", preventContext);
 
-    // Disable F5 / Ctrl+R
     const preventRefresh = (e) => {
-      if (
-        e.key === "F5" ||
-        (e.ctrlKey && e.key.toLowerCase() === "r")
-      ) {
+      if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
         e.preventDefault();
       }
     };
     window.addEventListener("keydown", preventRefresh);
 
-    // Prevent scroll
     const preventScroll = (e) => e.preventDefault();
     window.addEventListener("wheel", preventScroll, { passive: false });
     window.addEventListener("touchmove", preventScroll, { passive: false });
 
-    // Fullscreen auto enter
     const enterFullscreen = async () => {
       try {
         if (!document.fullscreenElement) {
@@ -184,10 +172,8 @@ export default function CommissionDisplayPage() {
         }
       } catch (err) {}
     };
-
     enterFullscreen();
 
-    // Wake Lock (prevent screen sleep)
     let wakeLock = null;
     const requestWakeLock = async () => {
       try {
@@ -196,7 +182,6 @@ export default function CommissionDisplayPage() {
         }
       } catch (err) {}
     };
-
     requestWakeLock();
 
     return () => {
@@ -226,29 +211,25 @@ export default function CommissionDisplayPage() {
   /* ===============================
      🎨 Theme Logic
   =============================== */
-  const themeClass = pendingCount < 5 ? "theme-low" : pendingCount < 15 ? "theme-medium" : "theme-high";
+  const themeClass =
+    pendingCount < 5
+      ? "theme-low"
+      : pendingCount < 15
+      ? "theme-medium"
+      : "theme-high";
   const hour = now?.getHours() || 12;
   const modeClass = hour >= 6 && hour < 18 ? "mode-day" : "mode-night";
 
   return (
     <div
       className={`${modeClass} ${themeClass} text-white`}
-      style={{
-        position: "fixed",
-        inset: 0,
-        overflow: "hidden",
-      }}
+      style={{ position: "fixed", inset: 0, overflow: "hidden" }}
     >
       {explosions.map((p) => (
         <div
           key={p.id}
           className="explosion"
-          style={{
-            left: "50%",
-            top: "50%",
-            "--x": p.x,
-            "--y": p.y,
-          }}
+          style={{ left: "50%", top: "50%", "--x": p.x, "--y": p.y }}
         />
       ))}
 
@@ -269,14 +250,8 @@ export default function CommissionDisplayPage() {
           <h1 className="text-8xl font-extrabold tracking-widest">
             TAXI COMMISSION
           </h1>
-
-          <div className="text-5xl opacity-80">
-            {now?.toLocaleTimeString()}
-          </div>
-
-          <div className="text-5xl font-semibold">
-            {displayPending} Pending
-          </div>
+          <div className="text-5xl opacity-80">{now?.toLocaleTimeString()}</div>
+          <div className="text-5xl font-semibold">{displayPending} Pending</div>
         </div>
 
         {/* GRID */}
@@ -312,5 +287,14 @@ export default function CommissionDisplayPage() {
         <audio ref={audioPendingRef} src="/sound/notify.mp3" />
       </div>
     </div>
+  );
+}
+
+// ✅ Wrap ด้วย Suspense เพื่อแก้ error useSearchParams()
+export default function CommissionDisplayPage() {
+  return (
+    <Suspense fallback={null}>
+      <CommissionDisplay />
+    </Suspense>
   );
 }

@@ -1,11 +1,11 @@
 "use client";
 // http://localhost:3000/control/commission?token=STAFF_SECRET_456
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function CommissionControlPage() {
+function CommissionControlContent() {
   const [data, setData] = useState([]);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -97,7 +97,6 @@ export default function CommissionControlPage() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [pending, called]);
 
-  
   return (
     <div className="min-h-screen bg-black text-white p-16">
       <h1 className="text-5xl font-bold mb-16 tracking-wide">
@@ -111,9 +110,7 @@ export default function CommissionControlPage() {
         </h2>
 
         {called.length === 0 && (
-          <p className="text-gray-500 text-xl">
-            No active call
-          </p>
+          <p className="text-gray-500 text-xl">No active call</p>
         )}
 
         {called.map((item) => (
@@ -142,9 +139,7 @@ export default function CommissionControlPage() {
         </h2>
 
         {pending.length === 0 && (
-          <p className="text-gray-500 text-xl">
-            No pending queue
-          </p>
+          <p className="text-gray-500 text-xl">No pending queue</p>
         )}
 
         {pending.map((item) => (
@@ -177,13 +172,20 @@ export default function CommissionControlPage() {
   );
 }
 
+export default function CommissionControlPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CommissionControlContent />
+    </Suspense>
+  );
+}
 
 /***
- *  
+ *
  *  1️⃣ เปิด /control/commission?token=...
  *  2️⃣ รถเข้ามา → กด Enter
     3️⃣ TV แสดง CALLED
     4️⃣ จ่ายเงิน → กด Enter อีกครั้ง
     5️⃣ รถถัดไป → กด Enter
- * 
+ *
  */
