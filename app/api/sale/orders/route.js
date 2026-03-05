@@ -335,11 +335,6 @@ export async function POST(req) {
        4. Send order to Partner (Hanuman API)
        - เราเป็นฝั่ง POST ไปหาเค้า
     ===================================== */
-    /**
-     * 
-        ยังต้องเพิ่ม หรือ แยกอีกตารางนึง ในการส่งงงไปอีกระบบนึงของเค้าาา 
-     * 
-     */
     let externalRef = null;
 
     try {
@@ -404,27 +399,28 @@ export async function POST(req) {
       externalRef = hanumanData?.ref ?? null;
 
       // ── 4.2 POST order items แยก (ส่งพร้อมกัน) ────────────
-      const itemsRes = await fetch(
-        `${process.env.HANUMAN_API_URL}/items`,   // 👈 เปลี่ยน URL ตาม Partner กำหนด
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.HANUMAN_API_KEY}`,
-          },
-          body: JSON.stringify({
-            external_order_id: orderRow.id,       // 🔗 ผูกกับ order เดิม
-            ref: externalRef,                     // ref ที่ได้จาก step 4.1
-            items: orderItemsPayload.map((i) => ({
-              item_code: i.item_code,
-              item_name: i.item_name,
-              item_type: i.item_type,
-              price: i.price,
-              quantity: i.quantity,
-            })),
-          }),
-        }
-      );
+      // const itemsRes = await fetch(
+      //   `${process.env.HANUMAN_API_URL}/items`,   // 👈 เปลี่ยน URL ตาม Partner กำหนด
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //       Authorization: `Bearer ${process.env.HANUMAN_API_KEY}`,
+      //     },
+      //     body: JSON.stringify({
+      //       external_order_id: orderRow.id,       // 🔗 ผูกกับ order เดิม
+      //       ref: externalRef,                     // ref ที่ได้จาก step 4.1
+      //       items: orderItemsPayload.map((i) => ({
+      //         item_code: i.item_code,
+      //         item_name: i.item_name,
+      //         item_type: i.item_type,
+      //         price: i.price,
+      //         quantity: i.quantity,
+      //       })),
+      //     }),
+      //   }
+      // );
+
       if (!itemsRes.ok) {
         const itemsError = await itemsRes.json();
         console.error("Hanuman items API error:", itemsError);
@@ -457,7 +453,6 @@ export async function POST(req) {
     /* =====================================
        5. Response กลับไปที่ client
     ===================================== */
-
     return NextResponse.json({
       success: true,
       order_id: orderRow.id,
