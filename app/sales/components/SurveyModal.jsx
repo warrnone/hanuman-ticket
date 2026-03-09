@@ -31,6 +31,8 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
 
   // Qrcode 
   const [qrToken, setQrToken] = useState(null);
+  // Coundown 
+  const [secondsLeft, setSecondsLeft] = useState(0);
 
   const loadChannels = async () => {
     try {
@@ -104,7 +106,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       
       await swalSuccess(`Order Completed!\nOrder Code: ${data.order_code}`);
       setQrToken(data.qr_token);
-      
+      setSecondsLeft(600);  // 10 นาที
     } catch (err) {
       swalError(err.message);
     } finally {
@@ -137,6 +139,16 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
     loadChannels();
     loadTaxis();
   }, []);
+
+  useEffect(() => {
+    if (!qrToken || secondsLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setSecondsLeft(prev => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [qrToken, secondsLeft]);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -172,10 +184,14 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                 {/* ชี้ไปที่ระบบของเค้า “ระบบของเค้า” (Partner System)   */}
                 <div className="relative inline-block">
                   <QRCodeCanvas
-                    value={`${process.env.NEXT_PUBLIC_BASE_URL}/checkin/${qrToken}`}
+                    value={`${process.env.NEXT_PUBLIC_BASE_URL}/sales/payment/${qrToken}`}
                     size={260}
                     level="H"
                   />
+                  <p className="mt-4 text-red-600 font-semibold">
+                    ⏳ Time remaining: {Math.floor(secondsLeft / 60)}:
+                    {String(secondsLeft % 60).padStart(2, "0")}
+                  </p>
                   {/* Logo กลมครอบทับอย่างเดียว */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <img
@@ -188,15 +204,6 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                 <p className="mt-4 text-gray-600">
                   Please present this QR code at the Check-in counter to confirm your ticket. Thank you for choosing us!
                 </p>
-                <button
-                  onClick={() => {
-                    onComplete?.();   // ✅ เคลียร์ cart
-                    onClose();        // ✅ ปิด modal
-                  }}
-                  className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg"
-                >
-                  Close
-                </button>
               </div>
             </>
           ) : (
@@ -521,41 +528,28 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t bg-gray-50 px-6 py-4 flex gap-3">
-          <button
-            onClick={() => {
-              onComplete?.();   // ✅ เคลียร์ cart
-              onClose();        // ✅ ปิด modal
-            }}
-            disabled={loading}
-            className="flex-1 bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            Cancel
-          </button>
+        {!qrToken && (
+          <div className="border-t bg-gray-50 px-6 py-4 flex gap-3">
+            <button
+              onClick={() => {
+                onComplete?.();
+                onClose();
+              }}
+              disabled={loading}
+              className="flex-1 bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Cancel
+            </button>
 
-          <button
-            onClick={handleComplete}
-            disabled={loading}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Processing...
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Complete Payment
-              </>
-            )}
-          </button>
-        </div>
+            <button
+              onClick={handleComplete}
+              disabled={loading}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center"
+            >
+              {loading ? "Processing..." : "Complete Payment"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
