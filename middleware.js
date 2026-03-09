@@ -44,6 +44,13 @@ export function middleware(req) {
   }
 
   // ===============================
+  // PUBLIC - ไม่ต้อง login
+  // ===============================
+  if (pathname.startsWith("/payment")) {
+    return NextResponse.next();
+  }
+
+  // ===============================
   // SALES
   // ===============================
   if (pathname.startsWith("/sales")) {
