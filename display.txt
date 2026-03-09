@@ -3,3 +3,21 @@ http://localhost:3000/control/commission?token=STAFF_SECRET_456
 
 http://localhost:3000/display/commission?token=TV_SECRET_123
 สำหรับหน้าจอทีวี
+
+
+
+
+
+
+
+
+
+🚀 Flow ตอนนี้สมบูรณ์ถึงขั้น Cashier ยิง GET ได้แล้ว
+
+ต่อไปถ้าจะต่อ Phase ใหญ่:
+/api/ifeel/order (ให้ Cashier ยิงตรง)
+/api/ifeel/payment-callback
+Auto Cancel Order ถ้า expired
+
+
+

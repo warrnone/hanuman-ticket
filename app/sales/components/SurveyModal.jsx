@@ -20,7 +20,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
   const [child, setChild] = useState(0);
   const [surveyGroups, setSurveyGroups] = useState([]);
   const [answers, setAnswers] = useState({});
-  const TIME_SLOTS = ["09:00", "11:00", "14:00", "16:00"];
+  const TIME_SLOTS = ["08:00", "10:00", "13:00", "15:00"];
   const [startTime, setStartTime] = useState(TIME_SLOTS[0]);
   const [remark, setRemark] = useState("");
 
@@ -150,6 +150,8 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
     return () => clearInterval(timer);
   }, [qrToken, secondsLeft]);
 
+  const qrUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/payment/${qrToken}`;
+  
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
@@ -182,24 +184,35 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                   🎟 Booking Confirmed
                 </h2>
                 {/* ชี้ไปที่ระบบของเค้า “ระบบของเค้า” (Partner System)   */}
-                <div className="relative inline-block">
-                  <QRCodeCanvas
-                    value={`${process.env.NEXT_PUBLIC_BASE_URL}/sales/payment/${qrToken}`}
-                    size={260}
-                    level="H"
-                  />
+                <div className="flex flex-col items-center">
+                  {/* QR + Logo */}
+                  <div className="relative inline-block">
+                    <QRCodeCanvas
+                      value={qrUrl}
+                      size={260}
+                      level="H"
+                    />
+                    {/* Logo ตรงกลาง */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <img
+                        src="/hanuman-logo.jpg"
+                        alt="logo"
+                        className="w-40 h-40 rounded-full object-cover border-3 border-white shadow-lg"
+                      />
+                    </div>
+                  </div>
+                  {/* Link อยู่นอก relative div */}
+                  <a href={qrUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 text-blue-600 underline text-sm break-all max-w-xs"
+                  >
+                    {qrUrl}
+                  </a>
                   <p className="mt-4 text-red-600 font-semibold">
                     ⏳ Time remaining: {Math.floor(secondsLeft / 60)}:
                     {String(secondsLeft % 60).padStart(2, "0")}
                   </p>
-                  {/* Logo กลมครอบทับอย่างเดียว */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <img
-                      src="/hanuman-logo.jpg"
-                      alt="logo"
-                      className="w-40 h-40 rounded-full object-cover border-3 border-white shadow-lg"
-                    />
-                  </div>
                 </div>
                 <p className="mt-4 text-gray-600">
                   Please present this QR code at the Check-in counter to confirm your ticket. Thank you for choosing us!
