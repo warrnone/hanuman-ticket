@@ -63,5 +63,5 @@ export function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/admin/:path*", "/sales/:path*"], // ✅ เพิ่ม /login
+  matcher: ["/", "/login", "/admin/:path*", "/sales/:path*" , "/payment/:path*",], // ✅ เพิ่ม /login
 };
