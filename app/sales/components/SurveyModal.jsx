@@ -7,6 +7,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Select from "react-select";
 import { QRCodeCanvas } from "qrcode.react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,discountRate,onClose,onComplete, selectedChannel, onSelectChannel,}) {
   const [loading, setLoading] = useState(false);
@@ -149,6 +150,38 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
 
     return () => clearInterval(timer);
   }, [qrToken, secondsLeft]);
+
+  /* Detect QR Scan */
+  useEffect(() => {
+    if (!qrToken) return;
+
+    const channel = supabase
+      .channel("qr-scan-listener")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+        },
+        (payload) => {
+          if (
+            payload.new.qr_token === qrToken &&
+            payload.new.qr_scanned === true
+          ) {
+            onComplete?.();
+            onClose();
+          }
+        }
+      )
+      .subscribe((status) => {
+        // console.log("Realtime status:", status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qrToken]);
 
   const qrUrl = `${window.location.origin}/payment/${qrToken}`;
   

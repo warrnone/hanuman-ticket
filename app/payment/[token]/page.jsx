@@ -31,6 +31,22 @@ export default function PaymentPage() {
       });
   }, [token]);
 
+  /* 👇 เพิ่มอันนี้ */
+  useEffect(() => {
+    if (!token) return;
+
+    fetch("/api/orders/scanned", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token: token,
+      }),
+    });
+
+  }, [token]);
+
   useEffect(() => {
     if (!loaded) return;
     if (secondsLeft <= 0) {
