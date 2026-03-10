@@ -50,7 +50,7 @@ export async function GET(req) {
     ========================= */
     const now = new Date();
     const expiredAt = new Date(order.qr_expired_at);
-
+    
     if (expiredAt < now) {
       // auto mark expired
       await supabaseAdmin

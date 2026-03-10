@@ -150,7 +150,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
     return () => clearInterval(timer);
   }, [qrToken, secondsLeft]);
 
-  const qrUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/payment/${qrToken}`;
+  const qrUrl = `${window.location.origin}/payment/${qrToken}`;
   
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -197,7 +197,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                       <img
                         src="/hanuman-logo.jpg"
                         alt="logo"
-                        className="w-40 h-40 rounded-full object-cover border-3 border-white shadow-lg"
+                        className="w-20 h-20 rounded-full object-cover border-3 border-white shadow-lg"
                       />
                     </div>
                   </div>

@@ -8,6 +8,7 @@ export const metadata = {
     shortcut: "/hanuman-logo.jpg",
     apple: "/hanuman-logo.jpg",
   },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }) {
