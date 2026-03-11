@@ -34,6 +34,12 @@ export async function GET(req) {
 
     if (error) throw error;
 
+
+    if (error) {
+      console.error("pricing table missing or query error:", error);
+      return NextResponse.json({ data: [] });
+    }
+
     return NextResponse.json({ data });
 
   } catch (err) {
