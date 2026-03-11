@@ -1,4 +1,21 @@
-// Response  กลับมายัง API นี้
+// Response กลับมายัง API นี้
+
+/*
+  ส่งกลับบ Confirm Payment
+
+  Endpoint
+  POST https://your-domain.com/api/payment/confirm
+  
+  Header
+  x-partner-key: IFEEL_SECRET_123
+  Content-Type: application/json
+
+  Body
+  {
+    "token": "9766639e6034892a5a0cd1369b4ece52"
+  }
+*/
+
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 
