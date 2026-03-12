@@ -636,7 +636,7 @@ export default function AdminTaxiPage() {
               {/* Commission Value */}
               <div>
                 <label className="block text-sm font-semibold mb-2">
-                  Commission Value
+                  Commission Value 
                 </label>
 
                 <input
@@ -655,9 +655,9 @@ export default function AdminTaxiPage() {
 
                 <p className="text-xs text-slate-500 mt-2">
                   {form.commission_type === "FIXED_PER_HEAD" &&
-                    "💡 Amount per person"}
+                    "💡 Amount bath per person"}
                   {form.commission_type === "FIXED_PER_ORDER" &&
-                    "💡 Amount per order"}
+                    "💡 Amount bath per order"}
                   {form.commission_type === "PERCENT" &&
                     "💡 Percentage from base amount"}
                 </p>
