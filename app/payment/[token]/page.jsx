@@ -31,6 +31,8 @@ export default function PaymentPage() {
       });
   }, [token]);
 
+  const TOTAL_TIME = order?.qr_total_seconds || 1800;
+
   /* 👇 เพิ่มอันนี้ */
   useEffect(() => {
     if (!token) return;
@@ -49,15 +51,20 @@ export default function PaymentPage() {
 
   useEffect(() => {
     if (!loaded) return;
-    if (secondsLeft <= 0) {
-      setExpired(true);
-      return;
-    }
+
     const timer = setInterval(() => {
-      setSecondsLeft((prev) => prev - 1);
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
+
     return () => clearInterval(timer);
-  }, [loaded, secondsLeft]);
+  }, [loaded]);
 
   /* ── Expired ── */
   if (expired) {
@@ -159,7 +166,7 @@ export default function PaymentPage() {
                 className={`ring-fill${isUrgent ? " ring-fill-urgent" : ""}`}
                 style={{
                   strokeDasharray: "119.4",
-                  strokeDashoffset: `${119.4 * (secondsLeft / 600)}`,
+                  strokeDashoffset: `${119.4 * (secondsLeft / TOTAL_TIME)}`,
                 }}
               />
             </svg>
