@@ -1,13 +1,10 @@
 // Response กลับมายัง API นี้
-
 /*
-  ส่งกลับบ Confirm Payment
-
   Endpoint
   POST https://your-domain.com/api/payment/confirm
   
   Header
-  x-partner-key: IFEEL_SECRET_123
+  x-partner-key: IFEEL_SECRET_123_pATw0rd
   Content-Type: application/json
 
   Body

@@ -1,31 +1,14 @@
 //  ข้อมูลที่จะส่งไป ยังระบบ Ifeel 
 /*
-  Get ข้อมูลเรา 
   Header
-  x-partner-key: IFEEL_SECRET_123
+  x-partner-key: IFEEL_SECRET_123_pATw0rd
   GET https://your-domain.com/api/payment/verify?token=xxxxx
-*/
-/*
-  ส่งให้เค้าา 
-  Header
-  x-partner-key: IFEEL_SECRET_123
-  GET https://your-domain.com/api/payment/verify?token=xxxxx
-
-  Header
-  x-partner-key: IFEEL_SECRET_123
-  Content-Type: application/json
-  POST https://your-domain.com/api/payment/confirm
-  Body
-  {
-    "token": "9766639e6034892a5a0cd1369b4ece52"
-  }
 */
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export async function GET(req) {
-
   try {
     /* =========================
       API KEY AUTH
