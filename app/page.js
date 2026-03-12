@@ -22,7 +22,15 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-800">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center"
+      style={{
+        backgroundImage: "url('/images/Hanuman-World_Photoroom.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       <div className="bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl w-[380px] text-center">
 
         {/* LOGO */}
