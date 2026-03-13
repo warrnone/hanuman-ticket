@@ -110,8 +110,9 @@ export async function GET(req) {
         quantity,
         item_type
       `)
-      .eq("order_id", order.id);
-
+      .eq("order_id", order.id)
+      .ilike("item_type", "PACKAGE");
+      //  ส่งแต่ package ไป
     if (itemsError) {
       console.error("verify items error", itemsError);
       return NextResponse.json({
