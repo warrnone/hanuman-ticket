@@ -104,8 +104,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       });
       
       if (!data) return;
-      
-      await swalSuccess(`Order Completed!\nOrder Code: ${data.order_code}`);
+      await swalSuccess(`Order Completed!\nOrder Code: ${data.order_id}`);
       setQrToken(data.qr_token);
       setSecondsLeft(600);  // 10 นาที
     } catch (err) {
@@ -150,6 +149,15 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
 
     return () => clearInterval(timer);
   }, [qrToken, secondsLeft]);
+
+  // Detect หมดเวลา → auto close modals
+  useEffect(() => {
+    if (secondsLeft !== 0) return;   // ยังไม่หมด หรือยังไม่เริ่ม
+    if (!qrToken) return;            // ยังไม่มี QR (state เริ่มต้น = 0)
+
+    onComplete?.();
+    onClose();
+  }, [secondsLeft , qrToken]);
 
   /* Detect QR Scan */
   useEffect(() => {
@@ -235,13 +243,13 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                     </div>
                   </div>
                   {/* Link อยู่นอก relative div */}
-                  <a href={qrUrl}
+                  {/* <a href={qrUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-3 text-blue-600 underline text-sm break-all max-w-xs"
                   >
                     {qrUrl}
-                  </a>
+                  </a> */}
                   <p className="mt-4 text-red-600 font-semibold">
                     ⏳ Time remaining: {Math.floor(secondsLeft / 60)}:
                     {String(secondsLeft % 60).padStart(2, "0")}
