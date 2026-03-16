@@ -80,14 +80,14 @@ export async function POST(req) {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 60 * 30,
+      maxAge: 60 * 60 * 8,
     });
 
     res.cookies.set("user_id", user.id, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 60 * 30,
+      maxAge: 60 * 60 * 8,
     });
 
     return res;
