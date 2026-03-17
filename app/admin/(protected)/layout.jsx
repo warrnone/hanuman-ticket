@@ -111,12 +111,12 @@ export default function AdminLayout({ children }) {
         </Link>
       </div>
 
-      {/* 🔹 เส้นคั่น */}
-      <div>
+   
+      {/* <div>
         <div className="border-t border-slate-700"></div>
       </div>
 
-      {/* ✅  LET US KNOW */}
+     
       <div>
         <Link
           href="/admin/pricing"
@@ -130,7 +130,7 @@ export default function AdminLayout({ children }) {
           <span className="text-lg">💰</span>
           <span className="font-medium">Pricing</span>
         </Link>
-      </div>
+      </div> */}
 
       {/* 🔹 เส้นคั่น */}
       <div>
