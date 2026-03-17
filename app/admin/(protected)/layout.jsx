@@ -111,26 +111,26 @@ export default function AdminLayout({ children }) {
         </Link>
       </div>
 
-   
-      {/* <div>
+      {/* 🔹 เส้นคั่น */}    
+      <div>
         <div className="border-t border-slate-700"></div>
       </div>
 
-     
+      {/* ✅  Orders */}
       <div>
         <Link
-          href="/admin/pricing"
+          href="/admin/orders"
           onClick={() => setSidebarOpen(false)}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
-            pathname === "/admin/pricing"
+            pathname === "/admin/orders"
               ? "bg-orange-500 text-white shadow-lg"
               : "text-slate-400 hover:bg-slate-800 hover:text-white"
           }`}
         >
-          <span className="text-lg">💰</span>
-          <span className="font-medium">Pricing</span>
+          <span className="text-lg">📃</span>
+          <span className="font-medium">orders</span>
         </Link>
-      </div> */}
+      </div>
 
       {/* 🔹 เส้นคั่น */}
       <div>
