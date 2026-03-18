@@ -1,18 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import OrderDetailModal from "../components/OrderDetailModal";
 
 export default function OrdersPage() {
-  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
 
   const loadOrders = async () => {
-    const res = await fetch(
-      `/api/admin/orders?search=${search}&status=${status}`
-    );
+    const res = await fetch(`/api/admin/orders?search=${search}&status=${status}`);
     const json = await res.json();
     setOrders(json.data || []);
   };
@@ -65,7 +63,7 @@ export default function OrdersPage() {
             {orders.map((o) => (
               <tr 
                 key={o.id} 
-                onClick={() => router.push(`/admin/orders/${o.id}`)}
+                onClick={() => setSelectedOrderId(o.id)}
                 className="border-t cursor-pointer hover:bg-gray-50 transition"
               >
                 <td className="p-3">{o.guest_name}</td>
@@ -93,6 +91,13 @@ export default function OrdersPage() {
           <div className="p-6 text-center text-gray-400">
             No orders found
           </div>
+        )}
+
+        {selectedOrderId && (
+          <OrderDetailModal
+            id={selectedOrderId}
+            onClose={() => setSelectedOrderId(null)}
+          />
         )}
       </div>
     </div>

@@ -56,7 +56,7 @@ export default function Home() {
           onClick={goRegister}
           className="w-full mb-4 py-2.5 rounded-xl border border-blue-500 text-blue-600 font-semibold hover:bg-blue-50 transition-all"
         >
-          📝 Register Sales
+          📝 Ticket Sales Register 
         </button>
 
         {/* SALES BUTTON */}
@@ -65,7 +65,7 @@ export default function Home() {
           className="role-btn sales-btn w-full mb-4"
         >
           <span className="role-icon">🎟️</span>
-          <span className="role-text">Sales Login</span>
+          <span className="role-text">GRA Login</span>
         </button>
 
         {/* ADMIN BUTTON */}

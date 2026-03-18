@@ -112,7 +112,7 @@ export default function AdminTaxiPage() {
       swalError("กรุณากรอกเบอร์โทร 10 หลัก");
       return;
     }
-
+    
     if (form.commission_value < 0) {
       swalError("Commission ต้องมากกว่าหรือเท่ากับ 0");
       return;
@@ -134,6 +134,8 @@ export default function AdminTaxiPage() {
     );
     if (!result.isConfirmed) return;
 
+    const isTaxi = form.plate_color === "GREEN" || form.plate_color === "YELLOW";
+
     try {
       setSaving(true);
 
@@ -150,8 +152,8 @@ export default function AdminTaxiPage() {
           driver_first_name_en: form.driver_first_name_en,
           driver_last_name_en: form.driver_last_name_en,
           driver_phone: form.driver_phone,
-          commission_type: form.commission_type,
-          commission_value: form.commission_value ?? null,
+          commission_type:  isTaxi ? form.commission_type : null,
+          commission_value: isTaxi ? form.commission_value : null,
         }),
       });
 
@@ -345,6 +347,29 @@ export default function AdminTaxiPage() {
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
   };
 
+  const isTaxiValid = form.plate_color === "GREEN" || form.plate_color === "YELLOW";
+
+  useEffect(() => {
+    const isTaxi = form.plate_color === "GREEN" || form.plate_color === "YELLOW";
+    setForm((f) => {
+      if (isTaxi) {
+        return {
+          ...f,
+          commission_type: f.commission_type || "FIXED_PER_HEAD",
+          commission_value: f.commission_value > 0 ? f.commission_value : 200,
+          vehicle_type: f.vehicle_type || "TAXI",
+        };
+      } else {
+          return {
+            ...f,
+            commission_type: "",
+            commission_value: 0,
+            vehicle_type: "",
+          };
+        }
+      });
+  }, [form.plate_color]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -516,6 +541,8 @@ export default function AdminTaxiPage() {
                   >
                     <option value="YELLOW">🟨 ป้ายเหลือง</option>
                     <option value="GREEN">🟩 ป้ายเขียว</option>
+                    <option value="BLACK">⬛ ป้ายดำ</option>
+                    <option value="APP">📱 Application</option>
                   </select>
                 </div>
 
@@ -524,7 +551,8 @@ export default function AdminTaxiPage() {
                     ประเภทรถ
                   </label>
                   <select
-                    value={form.vehicle_type}
+                    disabled={!isTaxiValid}
+                    value={form.vehicle_type || ""}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, vehicle_type: e.target.value }))
                     }
@@ -618,6 +646,7 @@ export default function AdminTaxiPage() {
                 </label>
 
                 <select
+                  disabled={!isTaxiValid}
                   value={form.commission_type}
                   onChange={(e) =>
                     setForm((f) => ({
@@ -640,6 +669,7 @@ export default function AdminTaxiPage() {
                 </label>
 
                 <input
+                  disabled={!isTaxiValid}
                   type="number"
                   step={form.commission_type === "PERCENT" ? "0.01" : "1"}
                   min="0"

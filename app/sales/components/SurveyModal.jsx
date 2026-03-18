@@ -264,7 +264,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
             <>
               {/* ถ้าเป็น Taxi → แสดง dropdown */}
               <div className="mb-6">
-                <label className="text-md font-medium"> <span className="text-red-500">*</span> Order Source</label>
+                <label className="text-md font-medium"> <span className="text-red-500">*</span> Arrival by</label>
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   {channels.map((ch) => (
                     <button
