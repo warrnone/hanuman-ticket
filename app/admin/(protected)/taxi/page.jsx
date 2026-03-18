@@ -88,73 +88,130 @@ export default function AdminTaxiPage() {
   }, []);
 
   /* =========================
-     ADD TAXI
+   ADD TAXI (PRO VERSION)
   ========================= */
   const addTaxi = async () => {
-
-    const carNumber = form.car_number.trim().toUpperCase();
-    if (!carNumber) {
-      swalError("กรุณากรอกเลขทะเบียนรถ");
-      return;
-    }
-
-    if (!form.driver_first_name_th.trim()) {
-      swalError("กรุณากรอกชื่อภาษาไทย");
-      return;
-    }
-
-    if (!form.driver_last_name_th.trim()) {
-      swalError("กรุณากรอกนามสกุลภาษาไทย");
-      return;
-    }
-
-    if (!form.driver_phone || form.driver_phone.length !== 10) {
-      swalError("กรุณากรอกเบอร์โทร 10 หลัก");
-      return;
-    }
-    
-    if (form.commission_value < 0) {
-      swalError("Commission ต้องมากกว่าหรือเท่ากับ 0");
-      return;
-    }
-
-    if (form.commission_type === "PERCENT" && form.commission_value > 100) {
-      swalError("Percent ต้องไม่เกิน 100%");
-      return;
-    }
-
-    if (!agentId) {
-      swalError("กรุณาเลือก Agent");
-      return;
-    }
-
-    const result = await swalConfirm(
-      "เพิ่ม Taxi",
-      `ต้องการเพิ่มรถ ${form.car_number} ใช่หรือไม่`
-    );
-    if (!result.isConfirmed) return;
-
-    const isTaxi = form.plate_color === "GREEN" || form.plate_color === "YELLOW";
-
     try {
+      /* =========================
+        VALIDATION
+      ========================= */
+      const carNumber = form.car_number.trim().toUpperCase();
+
+      if (!carNumber) {
+        swalError("กรุณากรอกเลขทะเบียนรถ");
+        return;
+      }
+
+      if (!form.driver_first_name_th.trim()) {
+        swalError("กรุณากรอกชื่อภาษาไทย");
+        return;
+      }
+
+      if (!form.driver_last_name_th.trim()) {
+        swalError("กรุณากรอกนามสกุลภาษาไทย");
+        return;
+      }
+
+      if (!form.driver_phone || form.driver_phone.length !== 10) {
+        swalError("กรุณากรอกเบอร์โทร 10 หลัก");
+        return;
+      }
+
+      if (form.commission_value < 0) {
+        swalError("Commission ต้องมากกว่าหรือเท่ากับ 0");
+        return;
+      }
+
+      if (
+        form.commission_type === "PERCENT" &&
+        form.commission_value > 100
+      ) {
+        swalError("Percent ต้องไม่เกิน 100%");
+        return;
+      }
+
+      /* =========================
+        CONFIRM
+      ========================= */
+      const result = await swalConfirm(
+        "เพิ่ม Taxi",
+        `ต้องการเพิ่มรถ ${carNumber} ใช่หรือไม่`
+      );
+
+      if (!result.isConfirmed) return;
+
+      /* =========================
+        AUTO CREATE AGENT
+      ========================= */
+      let finalAgentId = agentId;
+
+      if (!finalAgentId) {
+        const fullName = `${form.driver_first_name_th} ${form.driver_last_name_th}`;
+
+        const existing = agents.find((a) => a.name === fullName);
+
+        if (existing) {
+          finalAgentId = existing.id;
+        } else {
+          const resAgent = await fetch("/api/admin/agents", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: fullName,
+              agent_type: "TAXI",
+              phone: form.driver_phone,
+              commission_rate: 0,
+            }),
+          });
+
+          if (!resAgent.ok) {
+            const err = await resAgent.json();
+            throw new Error(err.error || "Create agent failed");
+          }
+
+          const agent = await resAgent.json();
+          finalAgentId = agent.id;
+        }
+      }
+
+      /* =========================
+        TAXI TYPE CHECK
+      ========================= */
+      const isTaxi =
+        form.plate_color === "GREEN" ||
+        form.plate_color === "YELLOW";
+
+      /* =========================
+        BUILD PAYLOAD (สำคัญมาก)
+      ========================= */
+      const payload = {
+        car_number: carNumber,
+        plate_color: form.plate_color,
+        vehicle_type: form.vehicle_type || "TAXI", // กันว่าง
+        agent_id: finalAgentId,
+
+        driver_first_name_th: form.driver_first_name_th,
+        driver_last_name_th: form.driver_last_name_th,
+        driver_first_name_en: form.driver_first_name_en,
+        driver_last_name_en: form.driver_last_name_en,
+        driver_phone: form.driver_phone,
+      };
+
+      // ✅ ใส่ commission เฉพาะ Taxi เท่านั้น
+      if (isTaxi) {
+        payload.commission_type = form.commission_type;
+        payload.commission_value = form.commission_value;
+      }
+
+      /* =========================
+        API CALL
+      ========================= */
       setSaving(true);
 
       const res = await fetch("/api/admin/taxi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          car_number: form.car_number.trim(),
-          plate_color: form.plate_color,
-          vehicle_type: form.vehicle_type,
-          agent_id: agentId, // ✅ สำคัญมาก
-          driver_first_name_th: form.driver_first_name_th,
-          driver_last_name_th: form.driver_last_name_th,
-          driver_first_name_en: form.driver_first_name_en,
-          driver_last_name_en: form.driver_last_name_en,
-          driver_phone: form.driver_phone,
-          commission_type:  isTaxi ? form.commission_type : null,
-          commission_value: isTaxi ? form.commission_value : null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -162,6 +219,9 @@ export default function AdminTaxiPage() {
         throw new Error(err.error || "Add taxi failed");
       }
 
+      /* =========================
+        SUCCESS
+      ========================= */
       swalSuccess("เพิ่ม Taxi สำเร็จ");
 
       setForm({
@@ -176,9 +236,11 @@ export default function AdminTaxiPage() {
         commission_type: "FIXED_PER_HEAD",
         commission_value: 200,
       });
+
       setAgentId("");
 
       loadTaxis();
+
     } catch (err) {
       console.error(err);
       swalError(err.message || "เพิ่ม Taxi ไม่สำเร็จ");
@@ -577,7 +639,26 @@ export default function AdminTaxiPage() {
               {/* Agent */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  <span className="text-red-500">*</span> Agent
+                  <span className="relative group cursor-help inline-flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-3.5 h-3.5 text-gray-400 mr-1"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span className="absolute left-1/2 -translate-x-1/2 -top-8 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                      Optional
+                    </span>
+                  </span>
+                  Agent
                 </label>
                 <div className="relative" ref={dropdownRef}>
                   <input
@@ -605,10 +686,16 @@ export default function AdminTaxiPage() {
                   />
 
                   {/* DROPDOWN */}
-                  {showAgentDropdown && (
-                    <div className="absolute z-20 mt-2 w-full bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
-                      {agents.filter((a) => a.name.toLowerCase().includes(agentSearch.toLowerCase()))
-                        .map((a, i) => (
+                  {showAgentDropdown && agentSearch.trim() && (() => {
+                    const filteredAgents = agents.filter((a) =>
+                      a.name.toLowerCase().includes(agentSearch.toLowerCase())
+                    );
+
+                    return (
+                      <div className="absolute z-20 mt-2 w-full bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
+
+                        {/* LIST AGENTS */}
+                        {filteredAgents.map((a, i) => (
                           <div
                             key={a.id}
                             onMouseEnter={() => setActiveIndex(i)}
@@ -621,22 +708,34 @@ export default function AdminTaxiPage() {
                             className={`px-4 py-3 cursor-pointer transition-colors
                               ${i === activeIndex ? "bg-green-100 text-green-800" : "hover:bg-slate-50"}
                               ${i === 0 ? "rounded-t-xl" : ""}
-                              ${i === agents.filter((a) =>a.agent_type === "TAXI" && a.name.toLowerCase().includes(agentSearch.toLowerCase())).length - 1 ? "rounded-b-xl" : ""}`}
+                              ${i === filteredAgents.length - 1 ? "rounded-b-xl" : ""}
+                            `}
                           >
                             {highlightText(a.name, agentSearch)}
                           </div>
                         ))}
 
-                      {!agents.some((a) =>
-                        a.name.toLowerCase().includes(agentSearch.toLowerCase())
-                      ) && (
-                        <div className="px-4 py-6 text-slate-400 text-sm text-center">
-                          ❌ ไม่พบ Agent
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        {/* CREATE NEW AGENT */}
+                        {filteredAgents.length === 0 && (
+                          <div
+                            className="px-4 py-3 cursor-pointer text-blue-600 hover:bg-blue-50"
+                            onClick={() => {
+                              setAgentSearch(agentSearch);
+                              setAgentId(""); // 👉 trigger auto create
+                              setShowAgentDropdown(false);
+                            }}
+                          >
+                            ➕ สร้าง Agent ใหม่: "{agentSearch}"
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 ถ้าไม่เลือก ระบบจะสร้าง Agent อัตโนมัติจากชื่อคนขับ
+                </p>
               </div>
 
               {/* Commission Type */}
