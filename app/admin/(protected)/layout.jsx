@@ -180,7 +180,7 @@ export default function AdminLayout({ children }) {
       </div>
 
       {/* ✅  Taxi */}
-      <div>
+      {/* <div>
         <Link
           href="/admin/agents"
           onClick={() => setSidebarOpen(false)}
@@ -193,12 +193,12 @@ export default function AdminLayout({ children }) {
           <span className="text-lg">🧑‍💼</span>
           <span className="font-medium">Agent</span>
         </Link>
-      </div>
+      </div> */}
 
       {/* 🔹 เส้นคั่น */}
-      <div>
+      {/* <div>
         <div className="border-t border-slate-700"></div>
-      </div>
+      </div> */}
 
       {/* ✅  Taxi */}
       <div>
