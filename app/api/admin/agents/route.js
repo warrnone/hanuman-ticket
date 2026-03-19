@@ -119,11 +119,13 @@ export async function POST(req) {
         commission_rate: Number(commission_rate),
         phone,
         status,
-      });
+      })
+      .select("id")  // ✅ เพิ่มตรงนี้
+      .single();     // ✅ เพิ่มตรงนี้
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, id: newAgent.id });
   } catch (err) {
     console.error("POST agents error:", err);
     return NextResponse.json(

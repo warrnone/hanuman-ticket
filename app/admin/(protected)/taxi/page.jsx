@@ -88,7 +88,7 @@ export default function AdminTaxiPage() {
   }, []);
 
   /* =========================
-   ADD TAXI (PRO VERSION)
+   ADD TAXI (FINAL VERSION)
   ========================= */
   const addTaxi = async () => {
     try {
@@ -117,17 +117,18 @@ export default function AdminTaxiPage() {
         return;
       }
 
-      if (form.commission_value < 0) {
-        swalError("Commission ต้องมากกว่าหรือเท่ากับ 0");
-        return;
-      }
+      const isTaxi = form.plate_color === "GREEN" || form.plate_color === "YELLOW";
 
-      if (
-        form.commission_type === "PERCENT" &&
-        form.commission_value > 100
-      ) {
-        swalError("Percent ต้องไม่เกิน 100%");
-        return;
+      if (isTaxi) {
+        if (form.commission_value === null || form.commission_value < 0) {
+          swalError("Commission ต้องมากกว่าหรือเท่ากับ 0");
+          return;
+        }
+
+        if (form.commission_type === "PERCENT" && form.commission_value > 100) {
+          swalError("Percent ต้องไม่เกิน 100%");
+          return;
+        }
       }
 
       /* =========================
@@ -146,8 +147,9 @@ export default function AdminTaxiPage() {
       let finalAgentId = agentId;
 
       if (!finalAgentId) {
-        const fullName = `${form.driver_first_name_th} ${form.driver_last_name_th}`;
+        const fullName = `${form.driver_first_name_th.trim()} ${form.driver_last_name_th.trim()}`;
 
+        // เช็คใน list ที่โหลดมาแล้วก่อน
         const existing = agents.find((a) => a.name === fullName);
 
         if (existing) {
@@ -164,44 +166,46 @@ export default function AdminTaxiPage() {
             }),
           });
 
-          if (!resAgent.ok) {
+          if (resAgent.status === 409) {
+            // ชื่อซ้ำ — reload agents แล้วหา id
+            const resFetch = await fetch("/api/admin/agents/taxi?status=ACTIVE");
+            const fetchData = await resFetch.json();
+            const match = (fetchData.data || []).find((a) => a.name === fullName);
+            if (!match) throw new Error("ไม่พบ Agent ที่มีชื่อซ้ำ");
+            finalAgentId = match.id;
+          } else if (!resAgent.ok) {
             const err = await resAgent.json();
             throw new Error(err.error || "Create agent failed");
+          } else {
+            const agentData = await resAgent.json();
+            finalAgentId = agentData.id; // ✅ ต้องแก้ route.js ให้ return id ด้วย
           }
-
-          const agent = await resAgent.json();
-          finalAgentId = agent.id;
         }
       }
 
-      /* =========================
-        TAXI TYPE CHECK
-      ========================= */
-      const isTaxi =
-        form.plate_color === "GREEN" ||
-        form.plate_color === "YELLOW";
+      // ✅ guard — ถ้ายังไม่มี id หยุดเลย
+      if (!finalAgentId) {
+        swalError("ไม่สามารถสร้าง Agent ได้ กรุณาลองใหม่");
+        return;
+      }
 
       /* =========================
-        BUILD PAYLOAD (สำคัญมาก)
+        BUILD PAYLOAD
       ========================= */
       const payload = {
         car_number: carNumber,
         plate_color: form.plate_color,
-        vehicle_type: form.vehicle_type || "TAXI", // กันว่าง
+        vehicle_type: isTaxi ? (form.vehicle_type || "TAXI") : "TAXI",
         agent_id: finalAgentId,
-
         driver_first_name_th: form.driver_first_name_th,
         driver_last_name_th: form.driver_last_name_th,
         driver_first_name_en: form.driver_first_name_en,
         driver_last_name_en: form.driver_last_name_en,
         driver_phone: form.driver_phone,
+        // ✅ null ตาม DB constraint สำหรับ BLACK/APP
+        commission_type: isTaxi ? form.commission_type : null,
+        commission_value: isTaxi ? form.commission_value : null,
       };
-
-      // ✅ ใส่ commission เฉพาะ Taxi เท่านั้น
-      if (isTaxi) {
-        payload.commission_type = form.commission_type;
-        payload.commission_value = form.commission_value;
-      }
 
       /* =========================
         API CALL
@@ -238,7 +242,8 @@ export default function AdminTaxiPage() {
       });
 
       setAgentId("");
-
+      setAgentSearch("");
+      await loadAgents(); // ✅ reload agents ด้วยเพื่อให้ list อัปเดต
       loadTaxis();
 
     } catch (err) {
@@ -413,23 +418,12 @@ export default function AdminTaxiPage() {
 
   useEffect(() => {
     const isTaxi = form.plate_color === "GREEN" || form.plate_color === "YELLOW";
-    setForm((f) => {
-      if (isTaxi) {
-        return {
-          ...f,
-          commission_type: f.commission_type || "FIXED_PER_HEAD",
-          commission_value: f.commission_value > 0 ? f.commission_value : 200,
-          vehicle_type: f.vehicle_type || "TAXI",
-        };
-      } else {
-          return {
-            ...f,
-            commission_type: "",
-            commission_value: 0,
-            vehicle_type: "",
-          };
-        }
-      });
+    setForm((f) => ({
+      ...f,
+      commission_type: isTaxi ? (f.commission_type || "FIXED_PER_HEAD") : null,
+      commission_value: isTaxi ? (f.commission_value > 0 ? f.commission_value : 200) : null,
+      vehicle_type: isTaxi ? (f.vehicle_type || "TAXI") : "TAXI",
+    }));
   }, [form.plate_color]);
 
   return (
@@ -739,7 +733,7 @@ export default function AdminTaxiPage() {
               </div>
 
               {/* Commission Type */}
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <label className="block text-sm font-semibold mb-2">
                   Commission Type
                 </label>
@@ -759,10 +753,10 @@ export default function AdminTaxiPage() {
                   <option value="FIXED_PER_ORDER">Fixed per Order</option>
                   <option value="PERCENT">Percent (%)</option>
                 </select>
-              </div>
+              </div> */}
 
               {/* Commission Value */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-semibold mb-2">
                   Commission Value 
                 </label>
@@ -790,7 +784,45 @@ export default function AdminTaxiPage() {
                   {form.commission_type === "PERCENT" &&
                     "💡 Percentage from base amount"}
                 </p>
-              </div>
+              </div> */}
+
+              {/* Commission Type & Value — แสดงเฉพาะ YELLOW/GREEN */}
+              {isTaxiValid && (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold mb-2">Commission Type</label>
+                    <select
+                      value={form.commission_type || "FIXED_PER_HEAD"}
+                      onChange={(e) => setForm((f) => ({ ...f, commission_type: e.target.value }))}
+                      className="w-full border-2 rounded-xl px-4 py-3"
+                    >
+                      <option value="FIXED_PER_HEAD">Fixed per Head</option>
+                      <option value="FIXED_PER_ORDER">Fixed per Order</option>
+                      <option value="PERCENT">Percent (%)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Commission Value</label>
+                    <input
+                      type="number"
+                      step={form.commission_type === "PERCENT" ? "0.01" : "1"}
+                      min="0"
+                      value={form.commission_value ?? 200}
+                      onChange={(e) => setForm((f) => ({ ...f, commission_value: parseFloat(e.target.value) || 0 }))}
+                      className="w-full border-2 rounded-xl px-4 py-3"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* แสดง badge แทนเมื่อป้ายดำ/APP */}
+              {!isTaxiValid && (
+                <div className="flex items-center gap-2 text-slate-500 bg-slate-100 rounded-xl px-4 py-3">
+                  <span>🚫</span>
+                  <span className="text-sm">ป้ายดำ / APP ไม่มี Commission</span>
+                </div>
+              )}      
 
             </div>
 

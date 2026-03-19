@@ -46,13 +46,15 @@ export async function POST(req) {
   try {
     const body = await req.json();
 
+    console.log("📦 POST /api/admin/taxi body:", JSON.stringify(body, null, 2)); return
+
     const {
       car_number,
       plate_color,
       vehicle_type,
       agent_id,
-      commission_type = "FIXED_PER_HEAD",
-      commission_value = null,
+      commission_type,
+      commission_value,
       driver_first_name_th,
       driver_last_name_th,
       driver_first_name_en,
@@ -60,16 +62,17 @@ export async function POST(req) {
       driver_phone,
     } = body;
 
-
-    // ================================================
-    // Normalize inputs 
+    // =========================
+    // Normalize
+    // =========================
     const normalizedCarNumber = car_number?.trim().toUpperCase();
     const normalizedPhone = driver_phone?.trim();
     const normalizedFirstTH = driver_first_name_th?.trim();
     const normalizedLastTH = driver_last_name_th?.trim();
 
-    // ================================================
-
+    // =========================
+    // Validation — required fields
+    // =========================
     if (!car_number || !plate_color || !vehicle_type || !agent_id) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -77,6 +80,9 @@ export async function POST(req) {
       );
     }
 
+    // =========================
+    // Duplicate car_number check
+    // =========================
     const { data: existing } = await supabaseAdmin
       .from("taxis")
       .select("id")
@@ -90,6 +96,9 @@ export async function POST(req) {
       );
     }
 
+    // =========================
+    // Agent type check
+    // =========================
     const { data: agent } = await supabaseAdmin
       .from("agents")
       .select("agent_type")
@@ -103,54 +112,75 @@ export async function POST(req) {
       );
     }
 
-    if (commission_value < 0) {
+    // =========================
+    // Commission validation
+    // =========================
+    const isCommissionRequired = ["YELLOW", "GREEN"].includes(plate_color);
+
+    if (isCommissionRequired) {
+      if (!commission_type) {
+        return NextResponse.json(
+          { error: "Commission type is required" },
+          { status: 400 }
+        );
+      }
+      if (commission_value === undefined || commission_value === null) {
+        return NextResponse.json(
+          { error: "Commission value is required" },
+          { status: 400 }
+        );
+      }
+      if (commission_value < 0) {
         return NextResponse.json(
           { error: "Commission ต้องมากกว่าหรือเท่ากับ 0" },
           { status: 400 }
         );
       }
-
-    if (commission_type === "PERCENT" && commission_value > 100) {
-      return NextResponse.json(
-        { error: "Commission ต้องไม่เกิน 100%" },
-        { status: 400 }
-      );
+      if (commission_type === "PERCENT" && commission_value > 100) {
+        return NextResponse.json(
+          { error: "Commission ต้องไม่เกิน 100%" },
+          { status: 400 }
+        );
+      }
     }
 
-    /* =========================
-      Generate taxi_code (SAFE)
-    ========================= */
-
-    const { data: seqData, error: seqError } = await supabaseAdmin.rpc("get_next_taxi_code");
+    // =========================
+    // Generate taxi_code
+    // =========================
+    const { data: seqData, error: seqError } =
+      await supabaseAdmin.rpc("get_next_taxi_code");
 
     if (seqError) throw seqError;
 
     const nextNumber = String(seqData).padStart(5, "0");
-
     const prefix = vehicle_type === "VAN" ? "VAN" : "TX";
-
     const taxi_code = `${prefix}${nextNumber}`;
 
-    /* =========================
-       Insert
-    ========================= */
+    // =========================
+    // Build insert data
+    // =========================
+    const insertData = {
+      taxi_code,
+      car_number: normalizedCarNumber,
+      plate_color,
+      vehicle_type,
+      agent_id,
+      driver_first_name_th: normalizedFirstTH,
+      driver_last_name_th: normalizedLastTH,
+      driver_first_name_en,
+      driver_last_name_en,
+      driver_phone: normalizedPhone,
+      // ✅ null ชัดเจน ตรงกับ DB constraint
+      commission_type: isCommissionRequired ? commission_type : null,
+      commission_value: isCommissionRequired ? commission_value : null,
+    };
 
+    // =========================
+    // Insert
+    // =========================
     const { error } = await supabaseAdmin
       .from("taxis")
-      .insert({
-        taxi_code,
-        car_number: normalizedCarNumber,
-        plate_color,
-        vehicle_type,
-        agent_id,
-        commission_type,
-        commission_value,
-        driver_first_name_th: normalizedFirstTH,
-        driver_last_name_th: normalizedLastTH,
-        driver_first_name_en,
-        driver_last_name_en,
-        driver_phone: normalizedPhone,
-      });
+      .insert(insertData);
 
     if (error) throw error;
 
