@@ -8,6 +8,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import Select from "react-select";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "@/lib/supabaseClient";
+import { SectionLoader, TaxiSelectLoader, SurveyCardLoader } from "../../components/SurveyLoading";
 
 export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,discountRate,onClose,onComplete, selectedChannel, onSelectChannel,}) {
   const [loading, setLoading] = useState(false);
@@ -35,20 +36,34 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
   // Coundown 
   const [secondsLeft, setSecondsLeft] = useState(0);
 
+  const [loadingChannels, setLoadingChannels] = useState(true);
+  const [loadingTaxis, setLoadingTaxis] = useState(true);
+  const [loadingSurvey, setLoadingSurvey] = useState(true);
+
   const loadChannels = async () => {
     try {
+      setLoadingChannels(true);
       const res = await fetch("/api/sale/source-channels");
       const json = await res.json();
       setChannels(json.data || []);
     } catch (err) {
       swalError("Load channels error", err.message);
+    } finally {
+      setLoadingChannels(false);
     }
   };
 
   const loadTaxis = async () => {
-    const res = await fetch("/api/sale/taxi/active");
-    const json = await res.json();
-    setTaxiList(json.data || []);
+    try {
+      setLoadingTaxis(true);
+      const res = await fetch("/api/sale/taxi/active");
+      const json = await res.json();
+      setTaxiList(json.data || []);
+    } catch (error) {
+      swalError("Load Taxis error", err.message);
+    } finally {
+      setLoadingTaxis(false);
+    }
   };
 
   const handleComplete = async () => {
@@ -122,9 +137,16 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
   );
 
   const loadSurvey = async () => {
-    const res = await fetch("/api/sale/survey");
-    const json = await res.json();
-    setSurveyGroups(json.data || []);
+    try {
+      setLoadingSurvey(true);
+      const res = await fetch("/api/sale/survey");
+      const json = await res.json();
+      setSurveyGroups(json.data || []);
+    } catch (error) {
+      swalError("Load Survey error", err.message);
+    } finally {
+      setLoadingSurvey(false);
+    }
   };
 
   const formatDateLocal = (date) => {
@@ -192,6 +214,13 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
   }, [qrToken]);
 
   const qrUrl = `${window.location.origin}/payment/${qrToken}`;
+  
+  const plateEmoji = {
+    YELLOW: "🟨",
+    GREEN: "🟩",
+    BLACK: "⬛",
+    APP: "📱",
+  };
   
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -262,50 +291,6 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
             </>
           ) : (
             <>
-              {/* ถ้าเป็น Taxi → แสดง dropdown */}
-              <div className="mb-6">
-                <label className="text-md font-medium"> <span className="text-red-500">*</span> Arrival by</label>
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  {channels.map((ch) => (
-                    <button
-                      key={ch.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectChannel(ch);
-                        setSelectedTaxi(null);
-                      }}
-                      className={`p-3 rounded-xl border-2 font-semibold transition
-                        ${
-                          selectedChannel?.id === ch.id
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white border-gray-300 hover:border-blue-400"
-                        }
-                      `}
-                    >
-                      {ch.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {selectedChannel?.commissionable && (
-                <div className="mb-4">
-                  <label className="text-md font-medium block mb-2">
-                    <span className="text-red-500">*</span> Select : Agent/Taxi/Van
-                  </label>
-
-                  <Select
-                    options={taxiList.map((t) => ({
-                      value: t.id,
-                      label: `${t.vehicle_type === "VAN" ? "🚐" : "🚕"} ${t.car_number}  ${t.driver_first_name_en}  ${t.driver_last_name_en}`,
-                    }))}
-                    onChange={(selected) =>
-                      setSelectedTaxi(selected?.value || null)
-                    }
-                    placeholder="Search Taxi/Van..."
-                  />
-                </div>
-              )}
-
               {/* Survey Groups */}
               {surveyGroups.length > 0 && (
                 <div className="mb-6">
@@ -315,6 +300,59 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                     </svg>
                     Quick Survey
                   </h3>
+
+                  
+                  {/* ถ้าเป็น Taxi → แสดง dropdown */}
+                  <div className="mb-6">
+                    <label className="text-md font-medium"> <span className="text-red-500">*</span>How did you come here? Arrival by</label>
+                    {(loadingSurvey) ? (
+                      <div className="mt-3">
+                        <SectionLoader title="Loading channels..." subtitle="Please wait" />
+                      </div>
+                    ):(
+                      <>
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          {channels.map((ch) => (
+                            <button
+                              key={ch.id}
+                              type="button"
+                              onClick={() => {
+                                onSelectChannel(ch);
+                                setSelectedTaxi(null);
+                              }}
+                              className={`p-3 rounded-xl border-2 font-semibold transition
+                                ${
+                                  selectedChannel?.id === ch.id
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white border-gray-300 hover:border-blue-400"
+                                }
+                              `}
+                            >
+                              {ch.name}
+                            </button>
+                          ))}
+                        </div>
+                        {selectedChannel?.commissionable && (
+                          <div className="mb-4">
+                            <label className="text-md font-medium block mb-2">
+                              <span className="text-red-500">*</span> Select : Agent/Taxi/Van
+                            </label>
+          
+                            <Select
+                              options={taxiList.map((t) => ({
+                                value: t.id,
+                                label: `${plateEmoji[t.plate_color] ?? "🚕"} ${t.car_number}  ${t.driver_first_name_en}  ${t.driver_last_name_en}`,
+                              }))}
+                              onChange={(selected) =>
+                                setSelectedTaxi(selected?.value || null)
+                              }
+                              placeholder="Search Taxi/Van..."
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
 
                   {surveyGroups.map((group) => (
                     <div key={group.id} className="mb-6 bg-gray-50 rounded-xl p-4">

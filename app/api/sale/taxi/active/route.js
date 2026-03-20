@@ -7,19 +7,17 @@ export async function GET() {
       .from("taxis")
       .select(`
         id,
+        taxi_code,
         car_number,
         plate_color,
         vehicle_type,
         commission_type,
         commission_value,
         driver_phone,
+        driver_first_name_th,
+        driver_last_name_th,
         driver_first_name_en,
-        driver_last_name_en,
-        agent_id,
-        agents (
-          id,
-          name
-        )
+        driver_last_name_en
       `)
       .eq("status", "ACTIVE")
       .order("created_at", { ascending: true });
@@ -27,7 +25,6 @@ export async function GET() {
     if (error) throw error;
 
     return NextResponse.json({ data });
-
   } catch (err) {
     console.error("GET ACTIVE TAXIS ERROR:", err);
     return NextResponse.json(
