@@ -292,7 +292,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
           ) : (
             <>
               {/* Survey Groups */}
-              {surveyGroups.length > 0 && (
+              {(surveyGroups.length || loadingSurvey) > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,9 +305,9 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                   {/* ถ้าเป็น Taxi → แสดง dropdown */}
                   <div className="mb-6">
                     <label className="text-md font-medium"> <span className="text-red-500">*</span>How did you come here? Arrival by</label>
-                    {(loadingSurvey) ? (
+                    {loadingChannels ? (
                       <div className="mt-3">
-                        <SectionLoader title="Loading channels..." subtitle="Please wait" />
+                        <SurveyCardLoader />
                       </div>
                     ):(
                       <>
@@ -332,6 +332,15 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                             </button>
                           ))}
                         </div>
+                      </>
+                    )}
+
+                    {loadingTaxis ? (
+                      <>
+                        <TaxiSelectLoader />
+                      </>
+                    ):(
+                      <>
                         {selectedChannel?.commissionable && (
                           <div className="mb-4">
                             <label className="text-md font-medium block mb-2">
@@ -354,72 +363,80 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                     )}
                   </div>
 
-                  {surveyGroups.map((group) => (
-                    <div key={group.id} className="mb-6 bg-gray-50 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-semibold text-gray-700">
-                          {group.title}
-                        </h4>
-                        <span className="text-xs text-gray-400 bg-white px-2 py-1 rounded-full">
-                          Select one or more
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {group.options.map((opt) => {
-                          const selectedValues = answers[group.id] || [];
-                          const isSelected = selectedValues.includes(opt.label);
-
-                          const toggleOption = () => {
-                            let updated;
-                            if (isSelected) {
-                              updated = selectedValues.filter((v) => v !== opt.label);
-                            } else {
-                              updated = [...selectedValues, opt.label];
-                            }
-                            setAnswers({ ...answers, [group.id]: updated });
-                          };
-
-                          return (
-                            <button
-                              key={opt.id}
-                              onClick={toggleOption}
-                              type="button"
-                              className={`
-                                relative rounded-lg border-2 px-3 py-2.5 text-sm font-medium
-                                transition-all duration-200 ease-in-out text-left
-                                ${
-                                  isSelected
-                                    ? "bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]"
-                                    : "bg-white border-gray-200 text-gray-700 hover:border-blue-400 hover:shadow-sm"
+                  {loadingSurvey ? (
+                    <>
+                      <SectionLoader  />
+                    </>
+                  ) : (
+                    <>
+                      {surveyGroups.map((group) => (
+                        <div key={group.id} className="mb-6 bg-gray-50 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-semibold text-gray-700">
+                              {group.title}
+                            </h4>
+                            <span className="text-xs text-gray-400 bg-white px-2 py-1 rounded-full">
+                              Select one or more
+                            </span>
+                          </div>
+    
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {group.options.map((opt) => {
+                              const selectedValues = answers[group.id] || [];
+                              const isSelected = selectedValues.includes(opt.label);
+    
+                              const toggleOption = () => {
+                                let updated;
+                                if (isSelected) {
+                                  updated = selectedValues.filter((v) => v !== opt.label);
+                                } else {
+                                  updated = [...selectedValues, opt.label];
                                 }
-                              `}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="flex-1">{opt.label}</span>
-                                <div
+                                setAnswers({ ...answers, [group.id]: updated });
+                              };
+    
+                              return (
+                                <button
+                                  key={opt.id}
+                                  onClick={toggleOption}
+                                  type="button"
                                   className={`
-                                    w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0
+                                    relative rounded-lg border-2 px-3 py-2.5 text-sm font-medium
+                                    transition-all duration-200 ease-in-out text-left
                                     ${
                                       isSelected
-                                        ? "bg-white text-blue-600"
-                                        : "border-2 border-gray-300"
+                                        ? "bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]"
+                                        : "bg-white border-gray-200 text-gray-700 hover:border-blue-400 hover:shadow-sm"
                                     }
                                   `}
                                 >
-                                  {isSelected && (
-                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  )}
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="flex-1">{opt.label}</span>
+                                    <div
+                                      className={`
+                                        w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0
+                                        ${
+                                          isSelected
+                                            ? "bg-white text-blue-600"
+                                            : "border-2 border-gray-300"
+                                        }
+                                      `}
+                                    >
+                                      {isSelected && (
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}    
                 </div>
               )}
 
