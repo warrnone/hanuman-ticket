@@ -59,7 +59,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       const res = await fetch("/api/sale/taxi/active");
       const json = await res.json();
       setTaxiList(json.data || []);
-    } catch (error) {
+    } catch (err) {
       swalError("Load Taxis error", err.message);
     } finally {
       setLoadingTaxis(false);
@@ -122,6 +122,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       await swalSuccess(`Order Completed!\nOrder Code: ${data.order_id}`);
       setQrToken(data.qr_token);
       setSecondsLeft(600);  // 10 นาที
+      onComplete?.();
     } catch (err) {
       swalError(err.message);
     } finally {
@@ -142,7 +143,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       const res = await fetch("/api/sale/survey");
       const json = await res.json();
       setSurveyGroups(json.data || []);
-    } catch (error) {
+    } catch (err) {
       swalError("Load Survey error", err.message);
     } finally {
       setLoadingSurvey(false);
@@ -613,7 +614,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
 
                     {discount > 0 && (
                       <div className="flex justify-between text-green-600 pt-2 border-t border-gray-200">
-                        <span>Discount</span>
+                        <span>Discount ({discountRate})%</span>
                         <span>-{money(discount)}฿</span>
                       </div>
                     )}

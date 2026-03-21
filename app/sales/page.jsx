@@ -35,6 +35,14 @@ export default function SalePage() {
     enable_discount: true,
   });
 
+  //  ให้ User ปรับส่วนลดได้เอง หน้างาน 
+  const [orderPricing, setOrderPricing] = useState({
+    vat_rate: 7,
+    enable_vat: false,
+    discount_rate: 5,
+    enable_discount: true,
+  });
+
   const loadPricing = async () => {
     try {
       const res = await fetch("/api/admin/settings");
@@ -42,12 +50,16 @@ export default function SalePage() {
 
       const data = await res.json();
 
-      setPricing({
+      const nextPricing = {
         vat_rate: Number(data.vat_rate),
         enable_vat: Boolean(data.enable_vat), 
         discount_rate: Number(data.discount_rate),
         enable_discount: Boolean(data.enable_discount),
-      });
+      };
+
+      setPricing(nextPricing);
+      setOrderPricing(nextPricing);
+
     } catch (err) {
       console.error("load pricing failed", err);
     }
@@ -177,8 +189,12 @@ export default function SalePage() {
       return sum + price * item.quantity;
     }, 0)
   );
-  const discount = pricing.enable_discount ? round2(subtotal * pricing.discount_rate / 100) : 0;
-  const tax = pricing.enable_vat ? round2((subtotal - discount) * pricing.vat_rate / 100) : 0;
+  // const discount = pricing.enable_discount ? round2(subtotal * pricing.discount_rate / 100) : 0;
+  // const tax = pricing.enable_vat ? round2((subtotal - discount) * pricing.vat_rate / 100) : 0;
+  // const total = round2(subtotal - discount + tax);
+
+  const discount = orderPricing.enable_discount ? round2(subtotal * Number(orderPricing.discount_rate || 0) / 100) : 0;
+  const tax = orderPricing.enable_vat ? round2((subtotal - discount) * Number(orderPricing.vat_rate || 0) / 100) : 0;
   const total = round2(subtotal - discount + tax);
 
   const getFinalPrice = (item) => {
@@ -301,7 +317,7 @@ export default function SalePage() {
             ${showCart ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
           `}
         >
-          <CartPanel
+          {/* <CartPanel
             cart={cart}
             subtotal={subtotal}
             discount={discount}
@@ -317,6 +333,37 @@ export default function SalePage() {
             enableDiscount={pricing.enable_discount}
             enableVat={pricing.enable_vat}
             getFinalPrice={getFinalPrice}
+          /> */}
+
+          <CartPanel
+            cart={cart}
+            subtotal={subtotal}
+            discount={discount}
+            tax={tax}
+            total={total}
+            onQty={updateQuantity}
+            onRemove={removeFromCart}
+            onCheckout={() => setShowSurvey(true)}
+            onClear={() => setCart([])}
+            onClose={() => setShowCart(false)}
+            discountRate={orderPricing.discount_rate}
+            vatRate={orderPricing.vat_rate}
+            enableDiscount={orderPricing.enable_discount}
+            enableVat={orderPricing.enable_vat}
+            getFinalPrice={getFinalPrice}
+            onChangeDiscountRate={(value) =>
+              setOrderPricing((prev) => ({ ...prev, discount_rate: value }))
+            }
+            onChangeVatRate={(value) =>
+              setOrderPricing((prev) => ({ ...prev, vat_rate: value }))
+            }
+            onToggleDiscount={(value) =>
+              setOrderPricing((prev) => ({ ...prev, enable_discount: value }))
+            }
+            onToggleVat={(value) =>
+              setOrderPricing((prev) => ({ ...prev, enable_vat: value }))
+            }
+            onResetPricing={() => setOrderPricing(pricing)}
           />
         </div>
 
@@ -332,19 +379,19 @@ export default function SalePage() {
         {showSurvey && (
           <SurveyModal
             cart={cart}
-            // ✅ ส่ง breakdown เงินให้ครบ
             subtotal={subtotal}
             discount={discount}
             tax={tax}
             total={total}
-            vatRate={pricing.vat_rate}
-            discountRate={pricing.discount_rate}
+            vatRate={orderPricing.vat_rate}
+            discountRate={orderPricing.discount_rate}
             onClose={() => setShowSurvey(false)}
             selectedChannel={selectedChannel}
             onSelectChannel={setSelectedChannel}
             onComplete={() => {
               setCart([]);
               setShowSurvey(false);
+              setOrderPricing(pricing);
             }}
           />
         )}
