@@ -122,7 +122,6 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       await swalSuccess(`Order Completed!\nOrder Code: ${data.order_id}`);
       setQrToken(data.qr_token);
       setSecondsLeft(600);  // 10 นาที
-      onComplete?.();
     } catch (err) {
       swalError(err.message);
     } finally {
