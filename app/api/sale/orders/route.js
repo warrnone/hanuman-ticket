@@ -109,18 +109,18 @@ export async function POST(req) {
     ===================================== */
     let commissionAmount = 0;
     let commissionRate = 0;
-    let taxiAgentId = null;
+    // let taxiAgentId = null;
 
     if (taxi_id) {
       const { data: taxi , error: taxiError  } = await supabaseAdmin
         .from("taxis")
-        .select("commission_type, commission_value , agent_id")
+        .select("commission_type, commission_value")
         .eq("id", taxi_id)
         .single();
 
       if (taxi) {
 
-        taxiAgentId = taxi.agent_id;  // ✅ เอามาจาก taxi
+        // taxiAgentId = taxi.agent_id;  // ✅ เอามาจาก taxi
         commissionRate = Number(taxi.commission_value);
         const totalHeads = Number(adult_count) + Number(child_count);
 
@@ -209,7 +209,7 @@ export async function POST(req) {
           .insert({
             order_id: orderRow.id,
             taxi_id: taxi_id,
-            agent_id: taxiAgentId,  
+            // agent_id: taxiAgentId,  
             commission_rate: commissionRate,
             base_amount: Number(total_amount),
             commission_amount: commissionAmount,
