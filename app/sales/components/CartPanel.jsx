@@ -1,6 +1,11 @@
 "use client";
 
+import {useState} from "react";
 import CartItem from "./CartItem";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiSettings } from "react-icons/fi";
+import { FiPercent } from "react-icons/fi";
+import { FiDollarSign } from "react-icons/fi";
 
 export default function CartPanel({
   cart,
@@ -24,6 +29,9 @@ export default function CartPanel({
   onToggleVat,
   onResetPricing,
 }) {
+
+  const [openPricing, setOpenPricing] = useState(false);
+
   const money = (n) =>
     Number(n || 0).toLocaleString("th-TH", {
       minimumFractionDigits: 2,
@@ -64,106 +72,173 @@ export default function CartPanel({
 
       {cart.length > 0 && (
         <div className="border-t p-4 space-y-3 bg-gray-50">
-          <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm text-gray-700">
-                Order Pricing
-              </h3>
 
-              <button
-                type="button"
-                onClick={onResetPricing}
-                className="text-xs font-medium text-orange-600 hover:text-orange-700"
-              >
-                Reset Default
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              <div className="border border-gray-200 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Discount
-                  </span>
-
-                  <label className="inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!enableDiscount}
-                      onChange={(e) => onToggleDiscount?.(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="relative w-11 h-6 bg-gray-200 rounded-full transition peer-checked:bg-green-500">
-                      <div className="absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
-                    </div>
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={discountRate ?? 0}
-                    disabled={!enableDiscount}
-                    onChange={(e) =>
-                      onChangeDiscountRate?.(Number(e.target.value))
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 disabled:bg-gray-100 disabled:text-gray-400"
-                  />
-                  <span className="text-sm font-semibold text-gray-500">%</span>
-                </div>
+          {/* Discount/vat  */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            {/* HEADER */}
+            <div
+              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50 transition"
+              onClick={() => setOpenPricing((prev) => !prev)}
+            >
+              <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
+                <FiSettings className="text-slate-600 text-[16px]" />
               </div>
 
-              <div className="border border-gray-200 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">VAT</span>
+              <div>
+                <h3 className="font-semibold text-sm text-slate-800">
+                  Order Pricing
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Adjust discount and VAT
+                </p>
+              </div>
 
-                  <label className="inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!enableVat}
-                      onChange={(e) => onToggleVat?.(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="relative w-11 h-6 bg-gray-200 rounded-full transition peer-checked:bg-blue-500">
-                      <div className="absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
-                    </div>
-                  </label>
-                </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onResetPricing?.();
+                  }}
+                  className="text-xs font-medium text-orange-600 hover:text-orange-700"
+                >
+                  Reset
+                </button>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={vatRate ?? 0}
-                    disabled={!enableVat}
-                    onChange={(e) => onChangeVatRate?.(Number(e.target.value))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100 disabled:text-gray-400"
-                  />
-                  <span className="text-sm font-semibold text-gray-500">%</span>
-                </div>
+                <motion.div
+                  animate={{ rotate: openPricing ? 180 : 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 border"
+                >
+                  ▼
+                </motion.div>
               </div>
             </div>
+
+            {/* CONTENT (Motion) */}
+            <AnimatePresence initial={false}>
+              {openPricing && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4 pt-2 space-y-3 border-t bg-slate-50/50">
+                    
+                    {/* DISCOUNT */}
+                    <div className="bg-white border rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <FiPercent className="text-green-500 text-[14px]" />
+                        <span className="text-sm font-medium text-slate-700">
+                          Discount
+                        </span>
+
+                        <label className="inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!enableDiscount}
+                            onChange={(e) => onToggleDiscount?.(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="relative w-11 h-6 bg-slate-200 rounded-full transition peer-checked:bg-green-500
+                            after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                            after:w-5 after:h-5 after:bg-white after:rounded-full
+                            after:transition-transform peer-checked:after:translate-x-5" />
+                        </label>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={discountRate ?? 0}
+                          disabled={!enableDiscount}
+                          onChange={(e) => {
+                            let val = Number(e.target.value);
+                            if (val > 100) val = 100;
+                            if (val < 0) val = 0;
+                            onChangeDiscountRate?.(val);
+                          }}
+                          className="w-full h-10 border rounded-lg px-3 pr-8 text-sm
+                            focus:border-green-500 focus:ring-2 focus:ring-green-100
+                            disabled:bg-gray-100"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                          %
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* VAT */}
+                    <div className="bg-white border rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <FiDollarSign className="text-blue-500 text-[14px]" />
+                        <span className="text-sm font-medium text-slate-700">
+                          VAT
+                        </span>
+
+                        <label className="inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!enableVat}
+                            onChange={(e) => onToggleVat?.(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="relative w-11 h-6 bg-slate-200 rounded-full transition peer-checked:bg-blue-500
+                            after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                            after:w-5 after:h-5 after:bg-white after:rounded-full
+                            after:transition-transform peer-checked:after:translate-x-5" />
+                        </label>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={vatRate ?? 0}
+                          disabled={!enableVat}
+                          onChange={(e) => {
+                            let val = Number(e.target.value);
+                            if (val > 100) val = 100;
+                            if (val < 0) val = 0;
+                            onChangeVatRate?.(val);
+                          }}
+                          className="w-full h-10 border rounded-lg px-3 pr-8 text-sm
+                            focus:border-blue-500 focus:ring-2 focus:ring-blue-100
+                            disabled:bg-gray-100"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                          %
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-md">
             <span>Subtotal</span>
             <span>{money(subtotal)}฿</span>
           </div>
 
           {enableDiscount && (
-            <div className="flex justify-between text-sm text-green-600">
+            <div className="flex justify-between text-md text-green-600">
               <span>Discount {discountRate}%</span>
               <span>-{money(discount)}฿</span>
             </div>
           )}
 
           {enableVat && (
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-md text-blue-600">
               <span>VAT {vatRate}%</span>
               <span>{money(tax)}฿</span>
             </div>
@@ -187,6 +262,7 @@ export default function CartPanel({
           >
             Clear Cart
           </button>
+
         </div>
       )}
     </div>
