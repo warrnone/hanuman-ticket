@@ -192,6 +192,16 @@ export default function AdminPackagesPage() {
     }
   };
 
+
+  const getStoragePathFromUrl = (url) => {
+    if (!url) return "";
+
+    const marker = "/storage/v1/object/public/package/";
+    if (!url.includes(marker)) return "";
+
+    return url.split(marker)[1];
+  };
+
   const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
   const handleUploadImage = async (file) => {
     if (!file) return;
@@ -220,6 +230,12 @@ export default function AdminPackagesPage() {
     try {
       const form = new FormData();
       form.append("file", file);
+
+      // ✅ ส่ง path รูปเก่าไปด้วย
+      const oldPath = getStoragePathFromUrl(formData.image_url);
+      if (oldPath) {
+        form.append("oldPath", oldPath);
+      }
 
       const res = await fetch("/api/admin/packages/upload", {
         method: "POST",
