@@ -268,7 +268,7 @@ export default function AdminPhotoVideoPage() {
               <tr>
                 <th className="p-3 text-left">ลำดับ</th>
                 <th className="p-3 text-left">Activity</th>
-                <th className="p-3 text-left">Detail</th>
+                <th className="p-3 text-left">Type</th>
                 <th className="p-3 text-left">PAX</th>
                 <th className="p-3 text-left">Price</th>
                 <th className="p-3 text-left">Action</th>
@@ -279,15 +279,9 @@ export default function AdminPhotoVideoPage() {
                 <tr key={rule.id} className="border-t">
                   <td className="p-3">{index + 1}</td>
                   <td className="p-3">{rule.categories?.name}</td>
-                  <td className="p-3 text-gray-600">
-                    {rule.media_type === "photo"
-                      ? "Photo"
-                      : `${rule.video_type} • ${rule.duration_value} ${rule.duration_unit}`}
-                  </td>
+                  <td className="p-3 text-gray-600">{rule.media_type}</td>
                   <td className="p-3">{rule.pax_min} – {rule.pax_max}</td>
-                  <td className="p-3 font-bold text-purple-600">
-                    {Number(rule.price).toLocaleString()}฿
-                  </td>
+                  <td className="p-3 font-bold text-purple-600">{Number(rule.price).toLocaleString()}฿</td>
                   <td className="p-3">
                     <div className="flex gap-3">
                       <button
