@@ -6,50 +6,54 @@ export async function GET() {
     /* =========================
        CATEGORIES (ACTIVE)
     ========================= */
-    const { data: categories, error: catError } =
-      await supabaseAdmin
-        .from("categories")
-        .select("id, name")
-        .eq("status", "active")
-        .eq("is_deleted", false)
-        .order("sort_order", { ascending: true });
+    const { data: categories, error: catError } = await supabaseAdmin
+      .from("categories")
+      .select("id, name")
+      .eq("status", "active")
+      .eq("is_deleted", false)
+      .order("sort_order", { ascending: true });
 
     if (catError) throw catError;
 
     /* =========================
        PACKAGES (ACTIVE)
+       MAIN / ADDON
     ========================= */
-    const { data: packages, error: pkgError } =
-      await supabaseAdmin
-        .from("packages")
-        .select("id, name, price, category_id , image_url")
-        .eq("status", "active")
-        .order("price", { ascending: true }); // น้อย -> มาก
+    const { data: packages, error: pkgError } = await supabaseAdmin
+      .from("packages")
+      .select(`
+        id,
+        name,
+        price,
+        category_id,
+        image_url,
+        package_type,
+        charge_type
+      `)
+      .eq("status", "active")
+      .order("price", { ascending: true });
 
     if (pkgError) throw pkgError;
-    // .order("price", { ascending: false }); มาก -> น้อย
 
     /* =========================
-       PHOTO / VIDEO PRICES
+       PHOTO / VIDEO RULES
+       ใช้เช็กว่า activity ไหนมี media
     ========================= */
-    const { data: pvPrices, error: pvError } =
-      await supabaseAdmin
-        .from("photo_video_prices")
-        .select(`
-          id,
-          activity_category_id,
-          media_type,
-          video_type,
-          duration_value,
-          duration_unit,
-          pax_min,
-          pax_max,
-          price,
-          image_url
-        `)
-        .eq("status", "active")
-        .order("media_type", { ascending: true })
-        .order("price", { ascending: true });
+    const { data: pvPrices, error: pvError } = await supabaseAdmin
+      .from("photo_video_prices")
+      .select(`
+        id,
+        activity_category_id,
+        media_type,
+        video_type,
+        duration_value,
+        duration_unit,
+        pax_min,
+        pax_max,
+        price,
+        image_url
+      `)
+      .eq("status", "active");
 
     if (pvError) throw pvError;
 
@@ -57,48 +61,56 @@ export async function GET() {
        BUILD MENU BY CATEGORY
     ========================= */
     const menu = categories.map((cat) => {
-      /* ---------- Packages ---------- */
-      const packageItems = packages
+      /* ---------- MAIN PACKAGES + FIXED ADDONS ---------- */
+      const categoryPackages = packages
         .filter((p) => p.category_id === cat.id)
         .map((p) => ({
           id: p.id,
           name: p.name,
           price: p.price,
-          type: "PACKAGE",
+          type: p.package_type === "ADDON" ? "ADDON" : "PACKAGE",
+          package_type: p.package_type ?? "MAIN",
+          charge_type: p.charge_type ?? "PER_PAX",
           image: p.image_url ?? null,
           description: "",
         }));
 
-      /* ---------- Photo / Video ---------- */
-      const pvItems = pvPrices
-        .filter((r) => r.activity_category_id === cat.id)
-        .map((r) => ({
-          id: r.id,
-          name:
-            r.media_type === "photo"
-              ? `Photo ${r.pax_min}-${r.pax_max} PAX`
-              : `Video ${r.video_type ?? ""}`,
-          price: r.price,
-          type: r.media_type.toUpperCase(), // PHOTO | VIDEO
-          pax_min: r.pax_min,
-          pax_max: r.pax_max,
-          duration:
-            r.duration_value && r.duration_unit
-              ? `${r.duration_value} ${r.duration_unit}`
-              : null,
-          image: r.image_url ?? null,
-          description:
-            r.media_type === "photo"
-              ? `${r.pax_min}-${r.pax_max} persons`
-              : r.duration_value
-              ? `${r.duration_value} ${r.duration_unit}`
-              : "",
-        }));
+      /* ---------- MEDIA FLAGS ---------- */
+      const categoryPvRules = pvPrices.filter(
+        (r) => r.activity_category_id === cat.id
+      );
+
+      const hasPhoto = categoryPvRules.some((r) => r.media_type === "photo");
+      const hasVideo = categoryPvRules.some((r) => r.media_type === "video");
+
+      const mediaItems = [];
+
+      if (hasPhoto) {
+        mediaItems.push({
+          id: `photo-${cat.id}`,
+          name: "Photo",
+          price: null,
+          type: "PHOTO",
+          image: null,
+          description: "Photo pricing by pax",
+        });
+      }
+
+      if (hasVideo) {
+        mediaItems.push({
+          id: `video-${cat.id}`,
+          name: "Video",
+          price: null,
+          type: "VIDEO",
+          image: null,
+          description: "Video pricing by type, duration and pax",
+        });
+      }
 
       return {
         id: cat.id,
         name: cat.name,
-        items: [...packageItems, ...pvItems],
+        items: [...categoryPackages, ...mediaItems],
       };
     });
 

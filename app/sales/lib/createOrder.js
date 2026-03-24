@@ -11,16 +11,16 @@ export async function createOrder(cart, survey) {
       service_date: survey.service_date,
       adult_count: survey.adult_count,
       child_count: survey.child_count,
-      // Taxi 
+
       taxi_id: survey.taxi_id,
       source_channel_id: survey.source_channel_id,
       start_time: survey.start_time,
       remark: survey.remark,
-      // survey_answers
+
       survey_answers: survey.survey_answers || {},
-      
+
       // ======================
-      // 💰 money breakdown (สำคัญมาก)
+      // 💰 money breakdown
       // ======================
       subtotal_amount: Number(survey.subtotal_amount),
       discount_amount: Number(survey.discount_amount),
@@ -30,20 +30,30 @@ export async function createOrder(cart, survey) {
       discount_rate: Number(survey.discount_rate),
 
       // ======================
-      // items
+      // items (🔥 FIXED)
       // ======================
-      items: cart.map((i) => ({
-        item_id: i.id,
-        item_type: i.type,   // package | photo | video
-        item_code: i.code,   // code ของฝั่งระบบเค้า
-        item_name: i.name,
-        price: Number(i.price),
-        quantity: Number(i.quantity),
-      })),
+      items: cart.map((i) => {
+        // 🔥 normalize type
+        let itemType = (i.item_type || i.type || "PACKAGE").toUpperCase();
+
+        // 🔥 safety fallback
+        if (!["PACKAGE", "ADDON", "PHOTO", "VIDEO"].includes(itemType)) {
+          itemType = "PACKAGE";
+        }
+
+        return {
+          item_id: i.id,
+          item_type: itemType, // ✅ PACKAGE / ADDON / PHOTO / VIDEO
+          item_code: i.code ?? null,
+          item_name: i.name,
+          price: Number(i.price),
+          quantity: Number(i.quantity),
+        };
+      }),
     }),
   });
 
-  // 🔴 ถ้า session หมดอายุ
+  // 🔴 session หมด
   if (res.status === 401) {
     localStorage.removeItem("role");
     window.location.href = "/";
@@ -51,8 +61,10 @@ export async function createOrder(cart, survey) {
   }
 
   const data = await res.json();
+
   if (!res.ok) {
     throw new Error(data.error || "Create order failed");
   }
+
   return data;
 }

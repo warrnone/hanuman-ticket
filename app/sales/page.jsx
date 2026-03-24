@@ -7,7 +7,7 @@ import ProductGrid from "./components/ProductGrid";
 import CartPanel from "./components/CartPanel";
 import SurveyModal from "./components/SurveyModal";
 import LoadingOverlay from "./components/LoadingOverlay";
-import { swalSuccess, swalConfirm } from "@/app/components/Swal";
+import { swalSuccess, swalConfirm, swalError } from "@/app/components/Swal";
 import { useRouter } from "next/navigation";
 
 export default function SalePage() {
@@ -16,26 +16,25 @@ export default function SalePage() {
   /* ========================= STATE ========================= */
   const [menu, setMenu] = useState([]);
   const [selectedActivity, setSelectedActivity] = useState(null);
-  const [selectedMode, setSelectedMode] = useState("PACKAGE");
   const [cart, setCart] = useState([]);
   const [showSurvey, setShowSurvey] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  // 👉 เพิ่ม state สำหรับ toggle cart บน tablet/mobile
+
+  // mobile / tablet cart
   const [showCart, setShowCart] = useState(false);
 
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [pricingRules, setPricingRules] = useState([]);
 
-  //  pricing setting (Vat / Discount)
+  // pricing setting from admin
   const [pricing, setPricing] = useState({
     vat_rate: 7,
-    enable_vat: false,      
+    enable_vat: false,
     discount_rate: 5,
     enable_discount: true,
   });
 
-  //  ให้ User ปรับส่วนลดได้เอง หน้างาน 
+  // editable pricing for current order
   const [orderPricing, setOrderPricing] = useState({
     vat_rate: 7,
     enable_vat: false,
@@ -43,6 +42,7 @@ export default function SalePage() {
     enable_discount: true,
   });
 
+  /* ========================= LOAD DATA ========================= */
   const loadPricing = async () => {
     try {
       const res = await fetch("/api/admin/settings");
@@ -52,14 +52,13 @@ export default function SalePage() {
 
       const nextPricing = {
         vat_rate: Number(data.vat_rate),
-        enable_vat: Boolean(data.enable_vat), 
+        enable_vat: Boolean(data.enable_vat),
         discount_rate: Number(data.discount_rate),
         enable_discount: Boolean(data.enable_discount),
       };
 
       setPricing(nextPricing);
       setOrderPricing(nextPricing);
-
     } catch (err) {
       console.error("load pricing failed", err);
     }
@@ -78,10 +77,17 @@ export default function SalePage() {
       setLoading(true);
       const res = await fetch("/api/sale/menu");
       if (!handleApiResponse(res)) return;
+
       const json = await res.json();
-      setMenu(json.data || []);
-      if (json.data && json.data.length > 0) {
-        setSelectedActivity(json.data[0].name);
+      const nextMenu = json.data || [];
+
+      // ซ่อน category "Photo & Video" ออกจาก activity หลัก
+      const filteredMenu = nextMenu.filter((c) => c.name !== "Photo & Video");
+
+      setMenu(filteredMenu);
+
+      if (filteredMenu.length > 0) {
+        setSelectedActivity(filteredMenu[0].name);
       }
     } catch (err) {
       console.error("Load sale menu error:", err);
@@ -95,68 +101,63 @@ export default function SalePage() {
     loadPricing();
   }, []);
 
-  useEffect(() => {
-    if (!selectedChannel) return;
-
-    const loadChannelPricing = async () => {
-      const res = await fetch(
-        `/api/sale/pricing?source_channel_id=${selectedChannel.id}`
-      );
+  const loadChannelPricing = async () => {
+    try {
+      const res = await fetch(`/api/sale/pricing?source_channel_id=${selectedChannel.id}`);
       const json = await res.json();
       setPricingRules(json.data || []);
-    };
-
+    } catch (err) {
+      console.error("load channel pricing error:", err);
+    }
+  };
+  useEffect(() => {
+    if (!selectedChannel) return;
     loadChannelPricing();
   }, [selectedChannel]);
 
   /* ========================= CART LOGIC ========================= */
   const addToCart = (item) => {
     const found = cart.find((c) => c.id === item.id);
+
     if (found) {
-      setCart(
-        cart.map((c) =>
+      setCart((prev) =>
+        prev.map((c) =>
           c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
         )
       );
     } else {
-      setCart([...cart, { ...item, quantity: 1 }]);
+      setCart((prev) => [...prev, { ...item, quantity: 1 }]);
     }
   };
 
   const updateQuantity = (id, delta) => {
-    setCart(
-      cart
-        .map((i) =>
-          i.id === id ? { ...i, quantity: i.quantity + delta } : i
-        )
+    setCart((prev) =>
+      prev
+        .map((i) => (i.id === id ? { ...i, quantity: i.quantity + delta } : i))
         .filter((i) => i.quantity > 0)
     );
   };
 
   const removeFromCart = (id) => {
-    setCart(cart.filter((i) => i.id !== id));
+    setCart((prev) => prev.filter((i) => i.id !== id));
   };
 
-  /* ========================= CURRENT ACTIVITY + ITEMS ========================= */
+  /* ========================= CURRENT ACTIVITY ========================= */
   const currentActivity = menu.find((c) => c.name === selectedActivity);
-  const items = (currentActivity?.items || []).filter((item) => {
-    if (selectedMode === "PACKAGE") {
-      return item.type === "PACKAGE";
-    }
 
-    if (selectedMode === "ADDON") {
-      return item.type === "ADDON";
-    }
+  // แสดงใน grid เฉพาะ package หลัก
+  const packageItems = (currentActivity?.items || []).filter(
+    (item) => item.type === "PACKAGE"
+  );
 
-    if (selectedMode === "PHOTO_VIDEO") {
-      return item.type === "PHOTO" || item.type === "VIDEO";
-    }
+  // fixed add-ons เช่น DOUBLING
+  const addonItems = (currentActivity?.items || []).filter(
+    (item) => item.type === "ADDON"
+  );
 
-    return false;
-  });
-
+  // media add-ons ใช้เปิด flow อื่นในอนาคต
   const hasPhotoVideo = (currentActivity?.items || []).some(
-     (item) => item.type === "PHOTO" || item.type === "VIDEO"
+    (item) => item.type === "PHOTO" || item.type === "VIDEO"
   );
 
   /* ========================= LOGOUT ========================= */
@@ -179,62 +180,73 @@ export default function SalePage() {
     router.replace("/login");
   };
 
-  /* ========================= TOTALS vat , discount ========================= */
+  /* ========================= TOTALS ========================= */
   const round2 = (n) => Math.round(n * 100) / 100;
+
   const subtotal = round2(
     cart.reduce((sum, item) => {
-      const rule = pricingRules.find(r => r.package_id === item.id);
+      const rule = pricingRules.find((r) => r.package_id === item.id);
 
-      let price = item.price;
+      let price = Number(item.price || 0);
 
       if (rule?.price_override) {
-        price = rule.price_override;
+        price = Number(rule.price_override);
       } else if (rule?.discount_type === "PERCENT") {
-        price = price - (price * rule.discount_value / 100);
+        price = price - (price * Number(rule.discount_value || 0)) / 100;
       } else if (rule?.discount_type === "FIXED") {
-        price = price - rule.discount_value;
+        price = price - Number(rule.discount_value || 0);
       }
 
       return sum + price * item.quantity;
     }, 0)
   );
-  // const discount = pricing.enable_discount ? round2(subtotal * pricing.discount_rate / 100) : 0;
-  // const tax = pricing.enable_vat ? round2((subtotal - discount) * pricing.vat_rate / 100) : 0;
-  // const total = round2(subtotal - discount + tax);
 
-  const discount = orderPricing.enable_discount ? round2(subtotal * Number(orderPricing.discount_rate || 0) / 100) : 0;
-  const tax = orderPricing.enable_vat ? round2((subtotal - discount) * Number(orderPricing.vat_rate || 0) / 100) : 0;
+  const discount = orderPricing.enable_discount
+    ? round2((subtotal * Number(orderPricing.discount_rate || 0)) / 100)
+    : 0;
+
+  const tax = orderPricing.enable_vat
+    ? round2(((subtotal - discount) * Number(orderPricing.vat_rate || 0)) / 100)
+    : 0;
+
   const total = round2(subtotal - discount + tax);
 
   const getFinalPrice = (item) => {
-    const rule = pricingRules.find(r => r.package_id === item.id);
+    const rule = pricingRules.find((r) => r.package_id === item.id);
 
-    let price = item.price;
+    let price = Number(item.price || 0);
 
     if (rule?.price_override) {
-      price = rule.price_override;
+      price = Number(rule.price_override);
     } else if (rule?.discount_type === "PERCENT") {
-      price = price - (price * rule.discount_value / 100);
+      price = price - (price * Number(rule.discount_value || 0)) / 100;
     } else if (rule?.discount_type === "FIXED") {
-      price = price - rule.discount_value;
+      price = price - Number(rule.discount_value || 0);
     }
 
     return round2(price);
   };
 
+  /* ========================= MEDIA PLACEHOLDER ========================= */
+  const handleMediaClick = (mediaMode) => {
+    swalError(
+      `${mediaMode} setup ยังไม่เสร็จ`,
+      "ตอนนี้เตรียมปุ่มไว้แล้ว ขั้นต่อไปค่อยต่อ modal + query ราคา photo_video_prices"
+    );
+  };
+
   return (
     <>
       {loading && <LoadingOverlay />}
+
       <div className="flex h-screen bg-gray-100 overflow-hidden">
         {/* ========================= LEFT: ACTIVITY SIDEBAR ========================= */}
-        {/* 👉 ซ่อน sidebar บน tablet/mobile, แสดงเฉพาะ desktop */}
         <div className="hidden lg:block">
           <CategorySidebar
             categories={menu.map((c) => c.name)}
             selected={selectedActivity}
             onSelect={(name) => {
               setSelectedActivity(name);
-              setSelectedMode("PACKAGE");
             }}
             onLogout={logout}
           />
@@ -244,76 +256,183 @@ export default function SalePage() {
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           <TopBar
             cart={cart}
-            onCartClick={() => setShowCart(!showCart)} // 👉 เพิ่ม prop
+            onCartClick={() => setShowCart(!showCart)}
             onLogout={logout}
           />
 
-          {/* 👉 Dropdown สำหรับเลือก Activity บน tablet/mobile */}
+          {/* ========================= MOBILE ACTIVITY SELECT ========================= */}
           <div className="lg:hidden w-full px-4 py-3 bg-white border-b">
             <div className="w-full max-w-full overflow-hidden">
               <select
                 value={selectedActivity || ""}
                 onChange={(e) => {
                   setSelectedActivity(e.target.value);
-                  setSelectedMode("PACKAGE");
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg text-base"
               >
-                {menu
-                  .filter((c) => c.name !== "Photo & Video")
-                  .map((c) => (
-                    <option key={c.name} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
+                {menu.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
-          {/* 👉 MODE TABS - แสดงเฉพาะเมื่อมี Photo/Video */}
-          {hasPhotoVideo && (
-            <div className="flex bg-white border-b">
-              <button
-                className={`flex-1 lg:flex-none px-4 lg:px-6 py-3 font-medium text-sm lg:text-base ${
-                  selectedMode === "PACKAGE"
-                    ? "border-b-2 border-orange-500 text-orange-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setSelectedMode("PACKAGE")}
-              >
-                📦 Packages
-              </button>
+          {/* ========================= SCROLLABLE CONTENT ========================= */}
+          <div className="flex-1 overflow-y-auto">
+            {/* PACKAGE GRID */}
+            <ProductGrid
+              title={selectedActivity}
+              items={packageItems}
+              onAdd={(item) => {
+                const wasEmpty = cart.length === 0;
+                addToCart(item);
 
-              <button
-                className={`flex-1 lg:flex-none px-4 lg:px-6 py-3 font-medium text-sm lg:text-base ${
-                  selectedMode === "PHOTO_VIDEO"
-                    ? "border-b-2 border-orange-500 text-orange-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setSelectedMode("PHOTO_VIDEO")}
-              >
-                📷 Photo & Video
-              </button>
-            </div>
-          )}
+                if (window.innerWidth < 1024 && wasEmpty) {
+                  setShowCart(true);
+                }
+              }}
+            />
 
-          {/* PRODUCT GRID */}
-          <ProductGrid
-            title={selectedActivity}
-            items={items}
-            onAdd={(item) => {
-              const wasEmpty = cart.length === 0;
-              addToCart(item);
-              // 👉 เปิด cart panel อัตโนมัติบน tablet เมื่อเพิ่มสินค้า
-              if (window.innerWidth < 1024 && wasEmpty) {
-                setShowCart(true);
-              }
-            }}
-          />
+            {/* ========================= OPTIONAL ADD-ONS ========================= */}
+            {(addonItems.length > 0 || hasPhotoVideo) && (
+              <div className="px-4 lg:px-6 pb-6">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 lg:p-5 shadow-sm">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-slate-800">
+                      Optional Add-ons
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      Add extra services for this activity
+                    </p>
+                  </div>
+
+                  {/* FIXED ADDONS */}
+                  {addonItems.length > 0 && (
+                    <div className="mb-5">
+                      <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                        Fixed Add-ons
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {addonItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:border-orange-300 hover:bg-orange-50 transition"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h5 className="font-semibold text-slate-800 truncate">
+                                  {item.name}
+                                </h5>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Add-on service
+                                </p>
+                                <div className="mt-3 text-orange-600 font-bold text-lg">
+                                  {Number(item.price || 0).toLocaleString()}฿
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const wasEmpty = cart.length === 0;
+                                  addToCart(item);
+
+                                  if (window.innerWidth < 1024 && wasEmpty) {
+                                    setShowCart(true);
+                                  }
+                                }}
+                                className="shrink-0 w-11 h-11 rounded-full bg-orange-500 text-white text-xl flex items-center justify-center hover:bg-orange-600 transition shadow-sm"
+                                aria-label={`Add ${item.name}`}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PHOTO / VIDEO ACTIONS */}
+                  {hasPhotoVideo && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                        Photo & Video
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleMediaClick("PHOTO")}
+                          className="text-left rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:border-orange-300 hover:bg-orange-50 transition"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-lg font-semibold text-slate-800">
+                                📷 Photo
+                              </div>
+                              <div className="text-sm text-slate-500 mt-1">
+                                Select pax and pricing rule
+                              </div>
+                            </div>
+                            <span className="text-orange-500 font-bold text-lg">
+                              Select
+                            </span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleMediaClick("VIDEO")}
+                          className="text-left rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:border-orange-300 hover:bg-orange-50 transition"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-lg font-semibold text-slate-800">
+                                🎥 Video
+                              </div>
+                              <div className="text-sm text-slate-500 mt-1">
+                                Select type, duration and pax
+                              </div>
+                            </div>
+                            <span className="text-orange-500 font-bold text-lg">
+                              Select
+                            </span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleMediaClick("PHOTO_VIDEO")}
+                          className="text-left rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:border-orange-300 hover:bg-orange-50 transition"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-lg font-semibold text-slate-800">
+                                🎞 Photo + Video
+                              </div>
+                              <div className="text-sm text-slate-500 mt-1">
+                                Bundle media options
+                              </div>
+                            </div>
+                            <span className="text-orange-500 font-bold text-lg">
+                              Select
+                            </span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ========================= RIGHT: CART ========================= */}
-        {/* 👉 Desktop: แสดงตลอด, Tablet/Mobile: แสดงเป็น overlay เมื่อ showCart = true */}
         <div
           className={`
             fixed lg:relative
@@ -326,24 +445,6 @@ export default function SalePage() {
             ${showCart ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
           `}
         >
-          {/* <CartPanel
-            cart={cart}
-            subtotal={subtotal}
-            discount={discount}
-            tax={tax}
-            total={total}
-            onQty={updateQuantity}
-            onRemove={removeFromCart}
-            onCheckout={() => setShowSurvey(true)}
-            onClear={() => setCart([])}
-            onClose={() => setShowCart(false)} // 👉 เพิ่ม prop สำหรับปิด cart บน mobile
-            discountRate={pricing.discount_rate}
-            vatRate={pricing.vat_rate}
-            enableDiscount={pricing.enable_discount}
-            enableVat={pricing.enable_vat}
-            getFinalPrice={getFinalPrice}
-          /> */}
-
           <CartPanel
             cart={cart}
             subtotal={subtotal}
@@ -376,7 +477,7 @@ export default function SalePage() {
           />
         </div>
 
-        {/* 👉 Overlay สำหรับ mobile/tablet */}
+        {/* ========================= MOBILE OVERLAY ========================= */}
         {showCart && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"

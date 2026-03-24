@@ -22,7 +22,7 @@ export default function TopBar({  cart, onCartClick, onLogout }) {
   }, []);
 
   return (
-    <div className="bg-white border-b px-4 py-3 flex items-center justify-between lg:hidden">
+    <div className="bg-white border-b px-4 py-3 flex items-center justify-between lg:hidden relative z-50">
       {/* Left: Logo & Title (แสดงบน tablet/mobile) */}
       <div className="flex items-center gap-3 lg:hidden">
         <Link
@@ -61,7 +61,7 @@ export default function TopBar({  cart, onCartClick, onLogout }) {
 
           {/* Dropdown Menu */}
           {openMenu && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl overflow-hidden z-50 border border-gray-200">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl overflow-hidden z-[999] border border-gray-200">
               <button
                 onClick={() => {
                   setOpenMenu(false);

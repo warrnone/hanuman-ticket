@@ -11,13 +11,15 @@ import { supabase } from "@/lib/supabaseClient";
 import { SectionLoader, TaxiSelectLoader, SurveyCardLoader } from "../../components/SurveyLoading";
 
 export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,discountRate,onClose,onComplete, selectedChannel, onSelectChannel,}) {
+
   const [loading, setLoading] = useState(false);
   const [guestName, setGuestName] = useState("");
-  const [serviceDate, setServiceDate] = useState( () => {
+  const [serviceDate, setServiceDate] = useState(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return today;
   });
+
   const [adult, setAdult] = useState(1);
   const [child, setChild] = useState(0);
   const [surveyGroups, setSurveyGroups] = useState([]);
@@ -26,20 +28,18 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
   const [startTime, setStartTime] = useState(TIME_SLOTS[0]);
   const [remark, setRemark] = useState("");
 
-  // โครงสร้าง Survey Modal
   const [selectedTaxi, setSelectedTaxi] = useState(null);
   const [taxiList, setTaxiList] = useState([]);
   const [channels, setChannels] = useState([]);
 
-  // Qrcode 
   const [qrToken, setQrToken] = useState(null);
-  // Coundown 
   const [secondsLeft, setSecondsLeft] = useState(0);
 
   const [loadingChannels, setLoadingChannels] = useState(true);
   const [loadingTaxis, setLoadingTaxis] = useState(true);
   const [loadingSurvey, setLoadingSurvey] = useState(true);
 
+  /* ========================= LOAD ========================= */
   const loadChannels = async () => {
     try {
       setLoadingChannels(true);
@@ -66,6 +66,26 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
     }
   };
 
+  const loadSurvey = async () => {
+    try {
+      setLoadingSurvey(true);
+      const res = await fetch("/api/sale/survey");
+      const json = await res.json();
+      setSurveyGroups(json.data || []);
+    } catch (err) {
+      swalError("Load Survey error", err.message);
+    } finally {
+      setLoadingSurvey(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSurvey();
+    loadChannels();
+    loadTaxis();
+  }, []);
+
+  /* ========================= ORDER ========================= */
   const handleComplete = async () => {
     try {
       setLoading(true);
@@ -98,9 +118,15 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
         return;
       }
 
-      const data = await createOrder(cart, {
+      /* 🔥 FIX: รองรับ PACKAGE / ADDON / MEDIA */
+      const normalizedCart = cart.map((item) => ({
+        ...item,
+        item_type: item.type || "PACKAGE",
+      }));
+
+      const data = await createOrder(normalizedCart, {
         guest_name: guestName || "Walk-in",
-        service_date: serviceDate ? formatDateLocal(serviceDate): null,
+        service_date: formatDateLocal(serviceDate),
         adult_count: adult,
         child_count: child,
 
@@ -117,11 +143,14 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
         discount_rate: discountRate,
         survey_answers: answers,
       });
-      
+
       if (!data) return;
+
       await swalSuccess(`Order Completed!\nOrder Code: ${data.order_id}`);
+
       setQrToken(data.qr_token);
-      setSecondsLeft(600);  // 10 นาที
+      setSecondsLeft(600);
+
     } catch (err) {
       swalError(err.message);
     } finally {
@@ -129,26 +158,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
     }
   };
 
-  const money = (n) =>
-    n.toLocaleString("th-TH", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }
-  );
-
-  const loadSurvey = async () => {
-    try {
-      setLoadingSurvey(true);
-      const res = await fetch("/api/sale/survey");
-      const json = await res.json();
-      setSurveyGroups(json.data || []);
-    } catch (err) {
-      swalError("Load Survey error", err.message);
-    } finally {
-      setLoadingSurvey(false);
-    }
-  };
-
+  /* ========================= HELPERS ========================= */
   const formatDateLocal = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -156,12 +166,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
     return `${year}-${month}-${day}`;
   };
 
-  useEffect(() => {
-    loadSurvey();
-    loadChannels();
-    loadTaxis();
-  }, []);
-
+  /* ========================= QR FLOW (ห้ามแตะ) ========================= */
   useEffect(() => {
     if (!qrToken || secondsLeft <= 0) return;
 
@@ -172,16 +177,14 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
     return () => clearInterval(timer);
   }, [qrToken, secondsLeft]);
 
-  // Detect หมดเวลา → auto close modals
   useEffect(() => {
-    if (secondsLeft !== 0) return;   // ยังไม่หมด หรือยังไม่เริ่ม
-    if (!qrToken) return;            // ยังไม่มี QR (state เริ่มต้น = 0)
+    if (secondsLeft !== 0) return;
+    if (!qrToken) return;
 
     onComplete?.();
     onClose();
   }, [secondsLeft , qrToken]);
 
-  /* Detect QR Scan */
   useEffect(() => {
     if (!qrToken) return;
 
@@ -204,9 +207,7 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
           }
         }
       )
-      .subscribe((status) => {
-        // console.log("Realtime status:", status);
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);

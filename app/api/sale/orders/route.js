@@ -232,7 +232,7 @@ export async function POST(req) {
       order_id: orderRow.id,
 
       item_type: i.item_type,
-      item_id: i.item_type === "package" ? i.item_id : null,
+      item_id: i.item_type === "PACKAGE" ? i.item_id : null,
       item_code: i.item_code ?? null,
       item_name: i.item_name,
 
