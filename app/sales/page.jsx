@@ -143,7 +143,16 @@ export default function SalePage() {
     if (selectedMode === "PACKAGE") {
       return item.type === "PACKAGE";
     }
-    return item.type === "PHOTO" || item.type === "VIDEO";
+
+    if (selectedMode === "ADDON") {
+      return item.type === "ADDON";
+    }
+
+    if (selectedMode === "PHOTO_VIDEO") {
+      return item.type === "PHOTO" || item.type === "VIDEO";
+    }
+
+    return false;
   });
 
   const hasPhotoVideo = (currentActivity?.items || []).some(
