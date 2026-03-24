@@ -28,6 +28,8 @@ export default function AdminPackagesPage() {
     price: '',
     status: 'active',
     image_url: "",
+    package_type: 'MAIN',
+    charge_type: 'PER_PAX',
   });
 
   /* ======================
@@ -69,8 +71,7 @@ export default function AdminPackagesPage() {
      FILTER
   ====================== */
   const filteredPackages = packages.filter((pkg) => {
-    const matchCategory =
-      filterCategory === 'all' || pkg.category_id === filterCategory;
+    const matchCategory = filterCategory === 'all' || pkg.category_id === filterCategory;
 
     const matchSearch =
       pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,6 +105,8 @@ export default function AdminPackagesPage() {
       price: '',
       status: 'active',
       image_url: '',
+      package_type: 'MAIN',
+      charge_type: 'PER_PAX',
     });
     setShowModal(true);
   };
@@ -117,6 +120,8 @@ export default function AdminPackagesPage() {
       price: pkg.price,
       status: pkg.status,
       image_url: pkg.image_url ?? '', // ✅ โหลดรูปเดิม
+      package_type: pkg.package_type ?? 'MAIN',
+      charge_type: pkg.charge_type ?? 'PER_PAX',
     });
     setShowModal(true);
   };
@@ -134,6 +139,8 @@ export default function AdminPackagesPage() {
       price: parseInt(formData.price, 10),
       status: formData.status,
       image_url: formData.image_url,
+      package_type: formData.package_type,
+      charge_type: formData.charge_type,
     };
 
     if (Number.isNaN(payload.price)) {
@@ -301,9 +308,7 @@ export default function AdminPackagesPage() {
         >
           <option value="all">All Categories</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
 
@@ -324,21 +329,27 @@ export default function AdminPackagesPage() {
         <table className="w-full">
           <thead className="bg-gray-100">
             <tr>
+              <th className="p-3 text-left">ลำดับ</th>
               <th className="p-3 text-left">Name</th>
-              <th className="p-3">Category</th>
-              <th className="p-3">Price</th>
-              <th className="p-3">Status</th>
+              <th className="p-3 text-left">Package</th>
+              <th className="p-3 text-left">Category</th>
+              <th className="p-3 text-left">Price</th>
+              <th className="p-3 text-left">Per</th>
+              <th className="p-3 text-left">Status</th>
               <th className="p-3">Action</th>
             </tr>
           </thead>
           <tbody>
-            {paginatedPackages.map((pkg) => (
+            {paginatedPackages.map((pkg , index) => (
               <tr key={pkg.id} className="border-t">
+                <td className="p-3">{index+1}</td>
                 <td className="p-3">{pkg.name}</td>
+                <td className="p-3">{pkg.package_type}</td>
                 <td className="p-3">{pkg.categories?.name || '-'}</td>
                 <td className="p-3 font-bold text-orange-600">
                   {pkg.price.toLocaleString()}฿
                 </td>
+                <td className="p-3">{pkg.charge_type}</td>
                 <td className="p-3">{pkg.status}</td>
                 <td className="p-3">
                   <div className="flex gap-2 justify-center">
@@ -400,6 +411,8 @@ export default function AdminPackagesPage() {
             </h2>
 
             <div className="space-y-3">
+
+              {/* Category */}
               <select
                 value={formData.category_id}
                 onChange={(e) =>
@@ -409,11 +422,33 @@ export default function AdminPackagesPage() {
               >
                 <option value="">Select category</option>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+
+              {/* main / add on */}
+              <select
+                value={formData.package_type}
+                onChange={(e) =>
+                  setFormData({ ...formData, package_type: e.target.value })
+                }
+                className="border w-full px-3 py-2 rounded"
+              >
+                <option value="MAIN">Main Package</option>
+                <option value="ADDON">Add-on</option>
+              </select>
+
+              {/* per pax / per order  */}
+              <select
+                value={formData.charge_type}
+                onChange={(e) =>
+                  setFormData({ ...formData, charge_type: e.target.value })
+                }
+                className="border w-full px-3 py-2 rounded"
+              >
+                <option value="PER_PAX">Per Pax</option>
+                <option value="PER_ORDER">Per Order</option>
+              </select>  
 
               <input
                 type="text"

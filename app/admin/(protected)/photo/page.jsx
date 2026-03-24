@@ -211,24 +211,16 @@ export default function AdminPhotoVideoPage() {
   /* =========================
      FILTER + PAGINATION
   ========================= */
-  const filteredRules = selectedCategoryId ? photoRules.filter(
-        r =>
-          r.activity_category_id === selectedCategoryId ||
-          r.categories?.id === selectedCategoryId
-      ) : photoRules;
-
+  const filteredRules = selectedCategoryId ? photoRules.filter(r => r.activity_category_id === selectedCategoryId || r.categories?.id === selectedCategoryId) : photoRules;
   const totalPages = Math.max(1, Math.ceil(filteredRules.length / PAGE_SIZE));
-
-  const paginatedRules = filteredRules.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
-  );
+  const paginatedRules = filteredRules.slice( (page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   /* =========================
      RENDER
   ========================= */
   return (
     <>
+      // มาทำ upload Vedio / Photo เพิ่ม 
       {/* HEADER */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-xl mb-6">
         <div className="flex justify-between items-center">
@@ -274,16 +266,18 @@ export default function AdminPhotoVideoPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-100">
               <tr>
+                <th className="p-3 text-left">ลำดับ</th>
                 <th className="p-3 text-left">Activity</th>
                 <th className="p-3 text-left">Detail</th>
                 <th className="p-3 text-left">PAX</th>
                 <th className="p-3 text-left">Price</th>
-                <th className="p-3 text-center">Action</th>
+                <th className="p-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedRules.map(rule => (
+              {paginatedRules.map((rule , index) => (
                 <tr key={rule.id} className="border-t">
+                  <td className="p-3">{index + 1}</td>
                   <td className="p-3">{rule.categories?.name}</td>
                   <td className="p-3 text-gray-600">
                     {rule.media_type === "photo"
@@ -294,7 +288,7 @@ export default function AdminPhotoVideoPage() {
                   <td className="p-3 font-bold text-purple-600">
                     {Number(rule.price).toLocaleString()}฿
                   </td>
-                  <td className="p-3 text-center">
+                  <td className="p-3">
                     <div className="flex gap-3">
                       <button
                         onClick={() => handleEdit(rule)}

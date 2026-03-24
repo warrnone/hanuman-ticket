@@ -38,6 +38,8 @@ export async function PATCH(req, { params }) {
       status: body.status,
       category_id: body.category_id,
       image_url: body.image_url ?? null,
+      package_type: body.package_type,
+      charge_type: body.charge_type,
     };
 
     const { error: updateError } = await supabaseAdmin

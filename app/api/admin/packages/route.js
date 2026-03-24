@@ -16,6 +16,8 @@ export async function GET() {
         status,
         image_url,
         category_id,
+        package_type,
+        charge_type,
         categories (
           id,
           name
@@ -56,6 +58,8 @@ export async function POST(req) {
       price: parseInt(body.price, 10),
       status: body.status ?? "active",
       image_url: body.image_url ?? null, // ✅ เพิ่ม image_url
+      package_type: body.package_type,
+      charge_type: body.charge_type,
     };
 
     if (Number.isNaN(payload.price)) {
