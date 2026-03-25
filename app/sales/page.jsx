@@ -344,7 +344,7 @@ export default function SalePage() {
                                     setShowCart(true);
                                   }
                                 }}
-                                className="shrink-0 w-11 h-11 rounded-full bg-orange-500 text-white text-xl flex items-center justify-center hover:bg-orange-600 transition shadow-sm"
+                                className="shrink-0 w-11 h-11 rounded-full bg-orange-500 text-white text-xl flex items-center justify-center hover:bg-orange-600 transition shadow-sm leading-none"
                                 aria-label={`Add ${item.name}`}
                               >
                                 +
