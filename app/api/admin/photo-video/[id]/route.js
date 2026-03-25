@@ -6,7 +6,7 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 ========================= */
 export async function PATCH(req, { params }) {
   try {
-    const { id } = await params; // ⭐ Next.js 15+ ต้อง await
+    const { id } = await params;
     const body = await req.json();
 
     if (!id) {
@@ -16,27 +16,42 @@ export async function PATCH(req, { params }) {
       );
     }
 
-    // 🛡️ whitelist fields
     const payload = {
       activity_category_id: body.activity_category_id,
       media_type: body.media_type,
+      media_package: body.media_package,
+      sale_mode: body.sale_mode,
       pax_min: body.pax_min,
       pax_max: body.pax_max,
-      price: body.price,
+      price: body.price ?? null,
+      base_price: body.base_price ?? null,
+      extra_pax_price: body.extra_pax_price ?? null,
       status: body.status ?? "active",
       image_url: body.image_url ?? null,
     };
 
-    // 🎥 video only
-    if (body.media_type === "video") {
+    /* =========================
+       video detail
+       ใช้เฉพาะ media_package = video
+    ========================= */
+    if (body.media_package === "video") {
       payload.video_type = body.video_type ?? null;
       payload.duration_value = body.duration_value ?? null;
       payload.duration_unit = body.duration_unit ?? null;
     } else {
-      // ถ้าเปลี่ยนจาก video → photo ให้เคลียร์ field video
       payload.video_type = null;
       payload.duration_value = null;
       payload.duration_unit = null;
+    }
+
+    /* =========================
+       pricing mode cleanup
+    ========================= */
+    if (body.sale_mode === "first_next") {
+      payload.price = null;
+    } else {
+      payload.base_price = null;
+      payload.extra_pax_price = null;
     }
 
     const { error } = await supabaseAdmin
@@ -61,7 +76,7 @@ export async function PATCH(req, { params }) {
 ========================= */
 export async function DELETE(req, { params }) {
   try {
-    const { id } = await params; // ⭐ สำคัญมาก
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(

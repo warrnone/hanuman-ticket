@@ -22,8 +22,12 @@ export default function AdminPhotoVideoPage() {
     pax_min: '',
     pax_max: '',
     price: '',
+    base_price: '',
+    extra_pax_price: '',
     status: 'active',
     image_url: '',
+    sale_mode: 'single',
+    media_package: 'photo',
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -79,8 +83,12 @@ export default function AdminPhotoVideoPage() {
       pax_min: '',
       pax_max: '',
       price: '',
+      base_price: '',
+      extra_pax_price: '',
       status: 'active',
       image_url: '',
+      sale_mode: 'single',
+      media_package: 'photo',
     });
     setEditingId(null);
   };
@@ -88,44 +96,99 @@ export default function AdminPhotoVideoPage() {
   const handleSave = async () => {
     let res;
 
-    if (!formData.activity_category_id || !formData.media_type || !formData.price) {
-      swalError("กรุณากรอกข้อมูลให้ครบ");
+    if (!formData.activity_category_id || !formData.media_package) {
+      swalError("กรุณาเลือก Activity และ Media Package");
+      return;
+    }
+
+    const paxMin = parseInt(formData.pax_min, 10);
+    const paxMax = parseInt(formData.pax_max, 10);
+
+    if (Number.isNaN(paxMin) || Number.isNaN(paxMax)) {
+      swalError("กรุณากรอก PAX Min / PAX Max เป็นตัวเลขจำนวนเต็ม");
+      return;
+    }
+
+    if (paxMin > paxMax) {
+      swalError("PAX Min ต้องไม่มากกว่า PAX Max");
       return;
     }
 
     const payload = {
       activity_category_id: formData.activity_category_id,
       media_type: formData.media_type,
-      pax_min: parseInt(formData.pax_min, 10),
-      pax_max: parseInt(formData.pax_max, 10),
-      price: parseInt(formData.price, 10),
+      media_package: formData.media_package,
+      sale_mode: formData.sale_mode,
+      pax_min: paxMin,
+      pax_max: paxMax,
       status: formData.status ?? "active",
     };
 
-    if (
-      Number.isNaN(payload.price) ||
-      Number.isNaN(payload.pax_min) ||
-      Number.isNaN(payload.pax_max)
-    ) {
-      swalError("กรุณากรอกตัวเลขจำนวนเต็มเท่านั้น");
-      return;
-    }
-
-    if (formData.media_type === "video") {
-      if (!formData.video_type || !formData.duration_value || !formData.duration_unit) {
+    /* =========================
+      VIDEO DETAIL
+      ใช้เฉพาะ media_package = video
+    ========================= */
+    if (formData.media_package === "video") {
+      if (
+        !formData.video_type ||
+        !formData.duration_value ||
+        !formData.duration_unit
+      ) {
         swalError("กรุณากรอกข้อมูลวิดีโอให้ครบ");
         return;
       }
 
+      const durationValue = parseInt(formData.duration_value, 10);
+
+      if (Number.isNaN(durationValue) || durationValue <= 0) {
+        swalError("กรุณากรอก Duration ให้ถูกต้อง");
+        return;
+      }
+
       payload.video_type = formData.video_type;
-      payload.duration_value = parseInt(formData.duration_value, 10);
+      payload.duration_value = durationValue;
       payload.duration_unit = formData.duration_unit;
     }
 
+    /* =========================
+      PRICING MODEL
+    ========================= */
+    if (formData.sale_mode === "first_next") {
+      const basePrice = parseInt(formData.base_price, 10);
+      const extraPaxPrice = parseInt(formData.extra_pax_price, 10);
+
+      if (Number.isNaN(basePrice) || Number.isNaN(extraPaxPrice)) {
+        swalError("กรุณากรอก First Person Price และ Next Person Price");
+        return;
+      }
+
+      if (basePrice < 0 || extraPaxPrice < 0) {
+        swalError("ราคา First / Next ต้องมากกว่าหรือเท่ากับ 0");
+        return;
+      }
+
+      payload.base_price = basePrice;
+      payload.extra_pax_price = extraPaxPrice;
+      payload.price = null; // กันสับสน
+    } else {
+      const price = parseInt(formData.price, 10);
+
+      if (Number.isNaN(price)) {
+        swalError("กรุณากรอกราคาให้ถูกต้อง");
+        return;
+      }
+
+      if (price < 0) {
+        swalError("ราคาต้องมากกว่าหรือเท่ากับ 0");
+        return;
+      }
+
+      payload.price = price;
+      payload.base_price = null;
+      payload.extra_pax_price = null;
+    }
+
     try {
-      /* =========================
-        ✅ ตรงนี้แหละที่ต้องเพิ่ม
-      ========================= */
       let imageUrl = formData.image_url || null;
 
       if (imageFile) {
@@ -143,8 +206,10 @@ export default function AdminPhotoVideoPage() {
           swalError(uploadData.error || "Upload failed");
           return;
         }
+
         imageUrl = uploadData.url;
       }
+
       payload.image_url = imageUrl;
 
       res = await fetch(
@@ -162,7 +227,7 @@ export default function AdminPhotoVideoPage() {
 
       if (!res.ok) {
         swalError(result.error || "Save failed");
-        return; // ⭐ สำคัญมาก
+        return;
       }
 
       setShowModal(false);
@@ -175,7 +240,7 @@ export default function AdminPhotoVideoPage() {
     }
   };
 
-  const handleEdit = rule => {
+  const handleEdit = (rule) => {
     setEditingId(rule.id);
     setFormData({
       activity_category_id: rule.activity_category_id,
@@ -185,9 +250,13 @@ export default function AdminPhotoVideoPage() {
       duration_unit: rule.duration_unit || 'sec',
       pax_min: rule.pax_min,
       pax_max: rule.pax_max,
-      price: rule.price,
+      price: rule.price ?? '',
+      base_price: rule.base_price ?? '',
+      extra_pax_price: rule.extra_pax_price ?? '',
       status: rule.status,
       image_url: rule.image_url || '',
+      sale_mode: rule.sale_mode || 'single',
+      media_package: rule.media_package || rule.media_type || 'photo',
     });
     setImagePreview(rule.image_url || null);
     setImageFile(null);
@@ -270,7 +339,7 @@ export default function AdminPhotoVideoPage() {
                 <th className="p-3 text-left">Activity</th>
                 <th className="p-3 text-left">Type</th>
                 <th className="p-3 text-left">PAX</th>
-                <th className="p-3 text-left">Price</th>
+                <th className="p-3 text-left">Sale mode</th>
                 <th className="p-3 text-left">Action</th>
               </tr>
             </thead>
@@ -279,9 +348,13 @@ export default function AdminPhotoVideoPage() {
                 <tr key={rule.id} className="border-t">
                   <td className="p-3">{index + 1}</td>
                   <td className="p-3">{rule.categories?.name}</td>
-                  <td className="p-3 text-gray-600">{rule.media_type}</td>
+                  <td className="p-3 text-gray-600">
+                    {rule.media_package === "photo_video"
+                      ? "photo + video set"
+                      : rule.media_package || rule.media_type}
+                  </td>
                   <td className="p-3">{rule.pax_min} – {rule.pax_max}</td>
-                  <td className="p-3 font-bold text-purple-600">{Number(rule.price).toLocaleString()}฿</td>
+                  <td className="p-3 font-bold text-purple-600">{rule.sale_mode}</td>
                   <td className="p-3">
                     <div className="flex gap-3">
                       <button
@@ -369,128 +442,362 @@ export default function AdminPhotoVideoPage() {
       {/* MODAL */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-          onClick={() => { setShowModal(false); resetForm(); }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowModal(false);
+            resetForm();
+          }}
         >
           <div
-            className="bg-white rounded-xl w-full max-w-lg p-6"
-            onClick={e => e.stopPropagation()}
+            className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-bold mb-4">
-              {editingId ? "Edit Price Rule" : "Add Price Rule"}
-            </h2>
+            {/* Header */}
+            <div className="px-6 py-5 border-b bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+              <h2 className="text-2xl font-bold">
+                {editingId ? "Edit Price Rule" : "Add Price Rule"}
+              </h2>
+              <p className="text-sm text-purple-100 mt-1">
+                Configure media package, pricing mode and upload preview
+              </p>
+            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <select
-                className="border p-2 rounded"
-                value={formData.activity_category_id}
-                onChange={e => setFormData({ ...formData, activity_category_id: e.target.value })}
-              >
-                <option value="">Select Activity</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+            {/* Body */}
+            <div className="p-6 max-h-[80vh] overflow-y-auto space-y-6">
+              {/* Basic Info */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-slate-800 mb-4">
+                  Basic Information
+                </h3>
 
-              <select
-                className="border p-2 rounded"
-                value={formData.media_type}
-                onChange={e => setFormData({ ...formData, media_type: e.target.value })}
-              >
-                <option value="">Select Type</option>
-                <option value="photo">Photo</option>
-                <option value="video">Video</option>
-              </select>
-
-              {formData.media_type === "video" && (
-                <>
-                  <select
-                    className="border p-2 rounded"
-                    value={formData.video_type}
-                    onChange={e => setFormData({ ...formData, video_type: e.target.value })}
-                  >
-                    <option value="">Video Type</option>
-                    <option value="edit">Edit</option>
-                    <option value="reel">Reel</option>
-                    <option value="gopro">GoPro</option>
-                    <option value="phone_mount">PHONE MOUNT</option>
-                  </select>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder="Duration"
-                      className="border p-2 rounded w-full"
-                      value={formData.duration_value}
-                      onChange={e => setFormData({ ...formData, duration_value: e.target.value })}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Activity */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Activity
+                    </label>
                     <select
-                      className="border p-2 rounded"
-                      value={formData.duration_unit}
-                      onChange={e => setFormData({ ...formData, duration_unit: e.target.value })}
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500"
+                      value={formData.activity_category_id}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          activity_category_id: e.target.value,
+                        })
+                      }
                     >
-                      <option value="sec">sec</option>
-                      <option value="min">min</option>
-                      <option value="round">round</option>
-                      <option value="video">video</option>
+                      <option value="">Select Activity</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                </>
+
+                  {/* Media Package */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Media Package
+                    </label>
+                    <select
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500"
+                      value={formData.media_package}
+                      onChange={(e) => {
+                        const value = e.target.value;
+
+                        setFormData({
+                          ...formData,
+                          media_package: value,
+                          media_type: value === "photo" ? "photo" : "video",
+                          sale_mode:
+                            value === "photo_video"
+                              ? "set"
+                              : formData.sale_mode || "single",
+                          video_type: value === "photo" ? "" : formData.video_type,
+                          duration_value:
+                            value === "photo" ? "" : formData.duration_value,
+                          duration_unit:
+                            value === "photo" ? "sec" : formData.duration_unit,
+                        });
+                      }}
+                    >
+                      <option value="photo">📷 Photo</option>
+                      <option value="video">🎥 Video</option>
+                      <option value="photo_video">🎞 Photo + Video Set</option>
+                    </select>
+                  </div>
+
+                  {/* Sale Mode */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Pricing Model
+                    </label>
+                    <select
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500"
+                      value={formData.sale_mode}
+                      onChange={(e) =>
+                        setFormData({ ...formData, sale_mode: e.target.value })
+                      }
+                    >
+                      <option value="single">Single Price</option>
+                      <option value="set">Set Price</option>
+                      <option value="first_next">
+                        First Person + Next Person
+                      </option>
+                    </select>
+
+                    {/* Helper text */}
+                    <div className="mt-3 p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1.5">
+                      {formData.sale_mode === "first_next" ? (
+                        <>
+                          <p className="font-semibold text-slate-700">📌 First Person + Next Person</p>
+                          <p>คนแรกคิดราคาหนึ่ง คนถัดไปคิดอีกราคาหนึ่ง</p>
+                          <p className="text-orange-600">ตัวอย่าง: First 800฿, Next 200฿ → 3 คน = 800 + 200 + 200 = <strong>1,200฿</strong></p>
+                        </>
+                      ) : formData.sale_mode === "set" ? (
+                        <>
+                          <p className="font-semibold text-slate-700">📌 Set Price</p>
+                          <p>ราคาเหมาจ่ายทั้งกลุ่ม ไม่ว่าจะกี่คนก็จ่ายเท่ากัน</p>
+                          <p className="text-orange-600">ตัวอย่าง: Set 1,500฿ → 1 คน หรือ 5 คน จ่ายเท่ากัน</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-semibold text-slate-700">📌 Single Price</p>
+                          <p>ราคาต่อคน คูณด้วยจำนวนผู้เข้าร่วม</p>
+                          <p className="text-orange-600">ตัวอย่าง: 500฿/คน → 3 คน = <strong>1,500฿</strong></p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Status
+                    </label>
+                    <select
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500"
+                      value={formData.status}
+                      onChange={(e) =>
+                        setFormData({ ...formData, status: e.target.value })
+                      }
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Video Details */}
+              {formData.media_package === "video" && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                  <h3 className="text-sm font-semibold text-slate-800 mb-4">
+                    Video Details
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Video Type
+                      </label>
+                      <select
+                        className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                        value={formData.video_type}
+                        onChange={(e) =>
+                          setFormData({ ...formData, video_type: e.target.value })
+                        }
+                      >
+                        <option value="">Select Video Type</option>
+                        <option value="edit">Edit</option>
+                        <option value="reel">Reel</option>
+                        <option value="gopro">GoPro</option>
+                        <option value="phone_mount">Phone Mount</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Duration
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          placeholder="Duration"
+                          className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                          value={formData.duration_value}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              duration_value: e.target.value,
+                            })
+                          }
+                        />
+                        <select
+                          className="border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                          value={formData.duration_unit}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              duration_unit: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="sec">sec</option>
+                          <option value="min">min</option>
+                          <option value="round">round</option>
+                          <option value="video">video</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
 
-              <input
-                type="number"
-                placeholder="PAX Min"
-                className="border p-2 rounded"
-                value={formData.pax_min}
-                onChange={e => setFormData({ ...formData, pax_min: e.target.value })}
-              />
+              {/* PAX + Pricing */}
+              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-slate-800 mb-4">
+                  PAX & Pricing
+                </h3>
 
-              <input
-                type="number"
-                placeholder="PAX Max"
-                className="border p-2 rounded"
-                value={formData.pax_max}
-                onChange={e => setFormData({ ...formData, pax_max: e.target.value })}
-              />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* PAX Min */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      PAX Min
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Minimum pax"
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500"
+                      value={formData.pax_min}
+                      onChange={(e) =>
+                        setFormData({ ...formData, pax_min: e.target.value })
+                      }
+                    />
+                  </div>
 
-              <input
-                type="number"
-                placeholder="Price"
-                className="border p-2 rounded col-span-2"
-                value={formData.price}
-                onChange={e => setFormData({ ...formData, price: e.target.value })}
-              />
+                  {/* PAX Max */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      PAX Max
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Maximum pax"
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500"
+                      value={formData.pax_max}
+                      onChange={(e) =>
+                        setFormData({ ...formData, pax_max: e.target.value })
+                      }
+                    />
+                  </div>
 
-              {/* Image / Video */}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">
-                  Image / Video
-                </label>
+                  {/* Pricing UI */}
+                  {formData.sale_mode === "first_next" ? (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                          First Person Price
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 800"
+                          className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500"
+                          value={formData.base_price || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              base_price: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
 
-                {/* Preview */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                          Next Person Price
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 200"
+                          className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500"
+                          value={formData.extra_pax_price || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              extra_pax_price: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Price
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Enter package price"
+                        className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500"
+                        value={formData.price}
+                        onChange={(e) =>
+                          setFormData({ ...formData, price: e.target.value })
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Helper text */}
+                <div className="mt-3 text-xs text-slate-500">
+                  {formData.sale_mode === "first_next" ? (
+                    <p>
+                      Example: first person 800฿, next person 200฿ → 3 pax = 800 + 200 + 200
+                    </p>
+                  ) : formData.sale_mode === "set" ? (
+                    <p>
+                      Set pricing is ideal for Photo + Video bundle or grouped package pricing.
+                    </p>
+                  ) : (
+                    <p>
+                      Single pricing is ideal for standard photo or video package rules.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Upload */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-slate-800 mb-4">
+                  Preview Media
+                </h3>
+
                 {imagePreview && (
-                  <div className="relative mb-3">
-
+                  <div className="relative mb-4">
                     {imageFile?.type?.startsWith("video/") ? (
                       <video
                         src={imagePreview}
-                        className="w-full h-40 object-cover rounded-lg border"
+                        className="w-full h-48 object-cover rounded-xl border"
                         controls
                         muted
                       />
                     ) : (
                       <img
                         src={imagePreview}
-                        className="w-full h-40 object-cover rounded-lg border"
+                        className="w-full h-48 object-cover rounded-xl border"
                         alt="preview"
                       />
                     )}
-
                   </div>
                 )}
 
-                {/* Upload Input */}
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Image / Video
+                </label>
+
                 <input
                   type="file"
                   accept="image/*,video/mp4"
@@ -511,8 +818,8 @@ export default function AdminPhotoVideoPage() {
                       return;
                     }
 
-                    const MAX_IMAGE = 5 * 1024 * 1024;   // 5MB
-                    const MAX_VIDEO = 10 * 1024 * 1024;  // 10MB
+                    const MAX_IMAGE = 5 * 1024 * 1024;
+                    const MAX_VIDEO = 10 * 1024 * 1024;
 
                     if (isImage && file.size > MAX_IMAGE) {
                       swalError("รูปภาพต้องไม่เกิน 5MB");
@@ -527,11 +834,10 @@ export default function AdminPhotoVideoPage() {
                     setImageFile(file);
                     setImagePreview(URL.createObjectURL(file));
                   }}
-                  className="block w-full text-sm"
+                  className="block w-full text-sm border border-dashed border-slate-300 rounded-xl p-3 bg-white"
                 />
 
-                {/* Requirement Text */}
-                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                <div className="mt-3 text-xs text-slate-500 space-y-1">
                   <div>📷 Image: JPG / PNG / WEBP (Max 5 MB)</div>
                   <div>🎥 Video: MP4 only (Max 10 MB)</div>
                   <div>🎞 Recommended: 720p resolution</div>
@@ -539,15 +845,23 @@ export default function AdminPhotoVideoPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => { setShowModal(false); resetForm(); }}>
+            {/* Footer */}
+            <div className="border-t bg-slate-50 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+                className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
+              >
                 Cancel
               </button>
+
               <button
                 onClick={handleSave}
-                className="bg-purple-600 text-white px-4 py-2 rounded"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:opacity-95 transition shadow"
               >
-                Save
+                Save Rule
               </button>
             </div>
           </div>

@@ -3,23 +3,25 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 
 /* =========================
    GET: list pricing rules
-   (safe version - no implicit join)
 ========================= */
 export async function GET() {
   try {
-    // 1️⃣ ดึง pricing ก่อน (ไม่ join)
     const { data: prices, error } = await supabaseAdmin
       .from("photo_video_prices")
       .select(`
         id,
         activity_category_id,
         media_type,
+        media_package,
+        sale_mode,
         video_type,
         duration_value,
         duration_unit,
         pax_min,
         pax_max,
         price,
+        base_price,
+        extra_pax_price,
         image_url,
         status,
         created_at
@@ -28,10 +30,7 @@ export async function GET() {
 
     if (error) throw error;
 
-    // 2️⃣ ดึง categories แยก
-    const categoryIds = [
-      ...new Set(prices.map(p => p.activity_category_id)),
-    ];
+    const categoryIds = [...new Set((prices || []).map((p) => p.activity_category_id))];
 
     let categoriesMap = {};
     if (categoryIds.length > 0) {
@@ -42,13 +41,10 @@ export async function GET() {
 
       if (catError) throw catError;
 
-      categoriesMap = Object.fromEntries(
-        categories.map(c => [c.id, c])
-      );
+      categoriesMap = Object.fromEntries(categories.map((c) => [c.id, c]));
     }
 
-    // 3️⃣ merge ให้เหมือน join
-    const data = prices.map(p => ({
+    const data = (prices || []).map((p) => ({
       ...p,
       categories: categoriesMap[p.activity_category_id] ?? null,
     }));
@@ -70,43 +66,68 @@ export async function POST(req) {
   try {
     const body = await req.json();
 
-    // ✅ validate required
-    if (
-      !body.activity_category_id ||
-      !body.media_type ||
-      body.price == null
-    ) {
+    /* =========================
+       required fields
+    ========================= */
+    if (!body.activity_category_id || !body.media_package || !body.sale_mode) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // 🛡️ base payload (ตรง schema 100%)
-    const payload = {
-      activity_category_id: body.activity_category_id,
-      media_type: body.media_type,
-      pax_min: Number(body.pax_min ?? 1),
-      pax_max: Number(body.pax_max ?? 1),
-      price: Number(body.price),
-      status: body.status ?? "active",
-      image_url: body.image_url ?? null,
-    };
+    const paxMin = Number(body.pax_min ?? 1);
+    const paxMax = Number(body.pax_max ?? 1);
 
-    // ❗ กัน NaN
-    if (
-      Number.isNaN(payload.pax_min) ||
-      Number.isNaN(payload.pax_max) ||
-      Number.isNaN(payload.price)
-    ) {
+    if (Number.isNaN(paxMin) || Number.isNaN(paxMax)) {
       return NextResponse.json(
-        { error: "Invalid number value" },
+        { error: "Invalid pax value" },
         { status: 400 }
       );
     }
 
-    // 🎥 video only
-    if (body.media_type === "video") {
+    if (paxMin > paxMax) {
+      return NextResponse.json(
+        { error: "PAX Min must not be greater than PAX Max" },
+        { status: 400 }
+      );
+    }
+
+    /* =========================
+       base payload
+    ========================= */
+    const payload = {
+      activity_category_id: body.activity_category_id,
+      media_type: body.media_type,
+      media_package: body.media_package,
+      sale_mode: body.sale_mode,
+      pax_min: paxMin,
+      pax_max: paxMax,
+      status: body.status ?? "active",
+      image_url: body.image_url ?? null,
+      price: null,
+      base_price: null,
+      extra_pax_price: null,
+      video_type: null,
+      duration_value: null,
+      duration_unit: null,
+    };
+
+    /* =========================
+       media_type fallback
+       - photo => photo
+       - video / photo_video => video
+    ========================= */
+    if (!payload.media_type) {
+      payload.media_type =
+        body.media_package === "photo" ? "photo" : "video";
+    }
+
+    /* =========================
+       video-only details
+       ใช้เฉพาะ media_package = video
+    ========================= */
+    if (body.media_package === "video") {
       if (
         !body.video_type ||
         body.duration_value == null ||
@@ -118,9 +139,64 @@ export async function POST(req) {
         );
       }
 
+      const durationValue = Number(body.duration_value);
+
+      if (Number.isNaN(durationValue) || durationValue <= 0) {
+        return NextResponse.json(
+          { error: "Invalid duration value" },
+          { status: 400 }
+        );
+      }
+
       payload.video_type = body.video_type;
-      payload.duration_value = Number(body.duration_value);
+      payload.duration_value = durationValue;
       payload.duration_unit = body.duration_unit;
+    }
+
+    /* =========================
+       pricing mode
+    ========================= */
+    if (body.sale_mode === "first_next") {
+      const basePrice = Number(body.base_price);
+      const extraPaxPrice = Number(body.extra_pax_price);
+
+      if (Number.isNaN(basePrice) || Number.isNaN(extraPaxPrice)) {
+        return NextResponse.json(
+          { error: "Missing first/next pricing fields" },
+          { status: 400 }
+        );
+      }
+
+      if (basePrice < 0 || extraPaxPrice < 0) {
+        return NextResponse.json(
+          { error: "Price must be greater than or equal to 0" },
+          { status: 400 }
+        );
+      }
+
+      payload.base_price = basePrice;
+      payload.extra_pax_price = extraPaxPrice;
+      payload.price = null;
+    } else {
+      if (body.price == null) {
+        return NextResponse.json(
+          { error: "Missing price" },
+          { status: 400 }
+        );
+      }
+
+      const price = Number(body.price);
+
+      if (Number.isNaN(price) || price < 0) {
+        return NextResponse.json(
+          { error: "Invalid price value" },
+          { status: 400 }
+        );
+      }
+
+      payload.price = price;
+      payload.base_price = null;
+      payload.extra_pax_price = null;
     }
 
     const { error } = await supabaseAdmin
