@@ -3,3 +3,10 @@ http://localhost:3000/control/commission?token=STAFF_SECRET_456
 
 http://localhost:3000/display/commission?token=TV_SECRET_123
 สำหรับหน้าจอทีวี
+
+
+
+ตอนนี้ไปต่อ
+
+logic หน้า sales
+query pricing
