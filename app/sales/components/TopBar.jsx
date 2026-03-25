@@ -61,7 +61,7 @@ export default function TopBar({  cart, onCartClick, onLogout }) {
 
           {/* Dropdown Menu */}
           {openMenu && (
-            <div className="fixed right-4 top-16 w-56 bg-white rounded-xl shadow-xl overflow-hidden z-[999] border border-gray-200">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl overflow-hidden z-[999] border border-gray-200">
               <button
                 onClick={() => {
                   setOpenMenu(false);
