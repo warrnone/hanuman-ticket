@@ -65,12 +65,18 @@ export default function SalePage() {
   };
 
   const getRuleMediaKind = (rule) => {
-    // ให้ media_type มีสิทธิ์ก่อน ถ้าไม่มีค่อย fallback ไป media_package
-    const mediaType = normalizeMediaValue(rule?.media_type);
+    const saleMode = normalizeMediaValue(rule?.sale_mode);
     const mediaPackage = normalizeMediaValue(rule?.media_package);
+    const mediaType = normalizeMediaValue(rule?.media_type);
+
+    // photo_video set ให้ถือเป็น photo_video ก่อน
+    if (saleMode === "set" && mediaPackage === "photo_video") {
+      return "photo_video";
+    }
 
     if (mediaType) return mediaType;
     if (mediaPackage) return mediaPackage;
+
     return "";
   };
 
@@ -78,13 +84,12 @@ export default function SalePage() {
     if (mode === "video") return true;
 
     if (mode === "photo_video") {
-      // ถ้า rule มี video_type หรือ duration แปลว่าต้องเลือก
       if (!rule) return false;
 
       return Boolean(
         rule.video_type ||
-          rule.duration_value !== null ||
-          rule.duration_value !== undefined ||
+          (rule.duration_value !== null &&
+            rule.duration_value !== undefined) ||
           rule.duration_unit
       );
     }
@@ -107,15 +112,17 @@ export default function SalePage() {
 
     if (kind === "photo_video") {
       const hasVideoDetail =
-        rule?.video_type ||
-        rule?.duration_value !== null ||
-        rule?.duration_value !== undefined ||
-        rule?.duration_unit;
+        Boolean(rule?.video_type) ||
+        (rule?.duration_value !== null &&
+          rule?.duration_value !== undefined) ||
+        Boolean(rule?.duration_unit);
 
       if (hasVideoDetail) {
         return `Photo + Video ${rule.video_type || ""} ${
           rule.duration_value ?? ""
-        } ${rule.duration_unit || ""} (${pax} pax)`.replace(/\s+/g, " ").trim();
+        } ${rule.duration_unit || ""} (${pax} pax)`
+          .replace(/\s+/g, " ")
+          .trim();
       }
 
       return `Photo + Video (${pax} pax)`;
@@ -123,10 +130,14 @@ export default function SalePage() {
 
     return `Video ${rule?.video_type || ""} ${rule?.duration_value ?? ""} ${
       rule?.duration_unit || ""
-    } (${pax} pax)`.replace(/\s+/g, " ").trim();
+    } (${pax} pax)`
+      .replace(/\s+/g, " ")
+      .trim();
   };
 
-  /* ========================= LOAD DATA ========================= */
+  /* ========================= 
+        LOAD DATA 
+  ========================= */
   const loadPricing = async () => {
     try {
       const res = await fetch("/api/admin/settings");
@@ -148,6 +159,9 @@ export default function SalePage() {
     }
   };
 
+  /*
+
+  */
   const handleApiResponse = (res) => {
     if (res.status === 401 || res.status === 403) {
       router.replace("/login");
@@ -156,6 +170,9 @@ export default function SalePage() {
     return true;
   };
 
+  /*
+
+  */
   const loadMenu = async () => {
     try {
       setLoading(true);
@@ -476,7 +493,9 @@ export default function SalePage() {
     const pax = Number(paxValue || 0);
     if (pax <= 0) return 0;
 
-    if (rule.sale_mode === "first_next") {
+    const saleMode = normalizeMediaValue(rule?.sale_mode);
+
+    if (saleMode === "first_next") {
       return round2(
         Number(rule.base_price || 0) +
           Math.max(0, pax - 1) * Number(rule.extra_pax_price || 0)
@@ -537,11 +556,13 @@ export default function SalePage() {
     const mediaItem = {
       id: cartId,
       item_id: matchedMediaRule.id,
+      rule_id: matchedMediaRule.id,
+      activity_category_id: matchedMediaRule.activity_category_id,
       type: cartType,
       item_type: cartType,
       media_type: kind,
       media_package: normalizeMediaValue(matchedMediaRule.media_package),
-      sale_mode: matchedMediaRule.sale_mode,
+      sale_mode: normalizeMediaValue(matchedMediaRule.sale_mode),
       name: mediaLabel,
       price: totalPrice,
       quantity: 1,
@@ -905,35 +926,32 @@ export default function SalePage() {
 
                       <div className="grid grid-cols-2 gap-3">
                         {availableDurations.length > 0 ? (
-                          <>
-                            <select
-                              value={
-                                mediaForm.duration_value &&
-                                mediaForm.duration_unit
-                                  ? `${mediaForm.duration_value}-${mediaForm.duration_unit}`
-                                  : ""
-                              }
-                              onChange={(e) => {
-                                const [value, unit] = e.target.value.split("-");
-                                setMediaForm((prev) => ({
-                                  ...prev,
-                                  duration_value: value,
-                                  duration_unit: unit || "sec",
-                                }));
-                              }}
-                              className="col-span-2 w-full border border-slate-300 rounded-xl px-4 py-3"
-                            >
-                              <option value="">Select duration</option>
-                              {availableDurations.map((item) => (
-                                <option
-                                  key={`${item.duration_value}-${item.duration_unit}`}
-                                  value={`${item.duration_value}-${item.duration_unit}`}
-                                >
-                                  {item.duration_value} {item.duration_unit}
-                                </option>
-                              ))}
-                            </select>
-                          </>
+                          <select
+                            value={
+                              mediaForm.duration_value && mediaForm.duration_unit
+                                ? `${mediaForm.duration_value}-${mediaForm.duration_unit}`
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const [value, unit] = e.target.value.split("-");
+                              setMediaForm((prev) => ({
+                                ...prev,
+                                duration_value: value,
+                                duration_unit: unit || "sec",
+                              }));
+                            }}
+                            className="col-span-2 w-full border border-slate-300 rounded-xl px-4 py-3"
+                          >
+                            <option value="">Select duration</option>
+                            {availableDurations.map((item) => (
+                              <option
+                                key={`${item.duration_value}-${item.duration_unit}`}
+                                value={`${item.duration_value}-${item.duration_unit}`}
+                              >
+                                {item.duration_value} {item.duration_unit}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <>
                             <input
@@ -973,11 +991,13 @@ export default function SalePage() {
                     {!matchedMediaRule ? (
                       "ยังไม่พบราคา media ที่ตรงกับเงื่อนไข"
                     ) : (
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div>
-                          Matched:{" "}
+                          Package:{" "}
                           <span className="font-semibold">
-                            {matchedMediaRule.sale_mode}
+                            {normalizeMediaValue(
+                              matchedMediaRule.media_package
+                            ) || "-"}
                           </span>
                         </div>
 
@@ -988,23 +1008,45 @@ export default function SalePage() {
                           </span>
                         </div>
 
-                        {matchedMediaRule.sale_mode === "first_next" ? (
-                          <div>
-                            {Number(
-                              matchedMediaRule.base_price || 0
-                            ).toLocaleString()}
-                            ฿{" + "}
-                            {Number(
-                              matchedMediaRule.extra_pax_price || 0
-                            ).toLocaleString()}
-                            ฿ / next person
+                        <div>
+                          Sale mode:{" "}
+                          <span className="font-semibold">
+                            {normalizeMediaValue(matchedMediaRule.sale_mode)}
+                          </span>
+                        </div>
+
+                        {normalizeMediaValue(matchedMediaRule.sale_mode) ===
+                        "first_next" ? (
+                          <div className="space-y-1">
+                            <div>
+                              First:{" "}
+                              <span className="font-semibold">
+                                {Number(
+                                  matchedMediaRule.base_price || 0
+                                ).toLocaleString()}
+                                ฿
+                              </span>
+                            </div>
+                            <div>
+                              Next:{" "}
+                              <span className="font-semibold">
+                                {Number(
+                                  matchedMediaRule.extra_pax_price || 0
+                                ).toLocaleString()}
+                                ฿
+                              </span>{" "}
+                              × {Math.max(0, Number(mediaForm.pax || 0) - 1)}
+                            </div>
                           </div>
                         ) : (
                           <div>
-                            {Number(
-                              matchedMediaRule.price || 0
-                            ).toLocaleString()}
-                            ฿
+                            Price:{" "}
+                            <span className="font-semibold">
+                              {Number(
+                                matchedMediaRule.price || 0
+                              ).toLocaleString()}
+                              ฿
+                            </span>
                           </div>
                         )}
 

@@ -93,6 +93,50 @@ export default function AdminPhotoVideoPage() {
     setEditingId(null);
   };
 
+  // Helper map
+  const normalizeMediaFields = (formData) => {
+    if (formData.media_package === "photo") {
+      return {
+        media_package: "photo",
+        media_type: "photo",
+        sale_mode:
+          formData.sale_mode === "set" || formData.sale_mode === "first_next"
+            ? formData.sale_mode
+            : "single",
+        video_type: null,
+        duration_value: null,
+        duration_unit: null,
+      };
+    }
+
+    if (formData.media_package === "video") {
+      return {
+        media_package: "video",
+        media_type: "video",
+        sale_mode:
+          formData.sale_mode === "first_next" || formData.sale_mode === "set"
+            ? formData.sale_mode
+            : "single",
+        video_type: formData.video_type || null,
+        duration_value:
+          formData.duration_value !== ""
+            ? parseInt(formData.duration_value, 10)
+            : null,
+        duration_unit: formData.duration_unit || null,
+      };
+    }
+
+    // photo + video set
+    return {
+      media_package: "photo_video",
+      media_type: "video", // ใช้ convention นี้ไปก่อน เพราะ DB ยังรับแค่ photo/video
+      sale_mode: "set",    // บังคับให้เป็น set
+      video_type: null,
+      duration_value: null,
+      duration_unit: null,
+    };
+  };
+
   const handleSave = async () => {
     let res;
 
@@ -114,11 +158,21 @@ export default function AdminPhotoVideoPage() {
       return;
     }
 
+    const normalized = normalizeMediaFields(formData);
+
+    if (
+      normalized.media_package === "photo_video" &&
+      normalized.sale_mode !== "set"
+    ) {
+      swalError("Photo + Video Set ต้องใช้ Set Price เท่านั้น");
+      return;
+    }
+
     const payload = {
       activity_category_id: formData.activity_category_id,
-      media_type: formData.media_type,
-      media_package: formData.media_package,
-      sale_mode: formData.sale_mode,
+      media_type: normalized.media_type,
+      media_package: normalized.media_package,
+      sale_mode: normalized.sale_mode,
       pax_min: paxMin,
       pax_max: paxMax,
       status: formData.status ?? "active",
@@ -128,10 +182,10 @@ export default function AdminPhotoVideoPage() {
       VIDEO DETAIL
       ใช้เฉพาะ media_package = video
     ========================= */
-    if (formData.media_package === "video") {
+    if (normalized.media_package === "video") {
       if (
         !formData.video_type ||
-        !formData.duration_value ||
+        formData.duration_value === "" ||
         !formData.duration_unit
       ) {
         swalError("กรุณากรอกข้อมูลวิดีโอให้ครบ");
@@ -148,12 +202,16 @@ export default function AdminPhotoVideoPage() {
       payload.video_type = formData.video_type;
       payload.duration_value = durationValue;
       payload.duration_unit = formData.duration_unit;
+    } else {
+      payload.video_type = null;
+      payload.duration_value = null;
+      payload.duration_unit = null;
     }
 
     /* =========================
       PRICING MODEL
     ========================= */
-    if (formData.sale_mode === "first_next") {
+    if (normalized.sale_mode === "first_next") {
       const basePrice = parseInt(formData.base_price, 10);
       const extraPaxPrice = parseInt(formData.extra_pax_price, 10);
 
@@ -169,7 +227,7 @@ export default function AdminPhotoVideoPage() {
 
       payload.base_price = basePrice;
       payload.extra_pax_price = extraPaxPrice;
-      payload.price = null; // กันสับสน
+      payload.price = null;
     } else {
       const price = parseInt(formData.price, 10);
 
@@ -232,6 +290,8 @@ export default function AdminPhotoVideoPage() {
 
       setShowModal(false);
       resetForm();
+      setImageFile(null);
+      setImagePreview(null);
       fetchRules();
       swalSuccess("บันทึกสำเร็จ");
     } catch (err) {
@@ -289,7 +349,6 @@ export default function AdminPhotoVideoPage() {
   ========================= */
   return (
     <>
-      // มาทำ upload Vedio / Photo เพิ่ม 
       {/* HEADER */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-xl mb-6">
         <div className="flex justify-between items-center">
@@ -506,19 +565,49 @@ export default function AdminPhotoVideoPage() {
                       onChange={(e) => {
                         const value = e.target.value;
 
+                        if (value === "photo") {
+                          setFormData({
+                            ...formData,
+                            media_package: "photo",
+                            media_type: "photo",
+                            sale_mode:
+                              formData.sale_mode === "set" ||
+                              formData.sale_mode === "first_next"
+                                ? formData.sale_mode
+                                : "single",
+                            video_type: "",
+                            duration_value: "",
+                            duration_unit: "sec",
+                          });
+                          return;
+                        }
+
+                        if (value === "video") {
+                          setFormData({
+                            ...formData,
+                            media_package: "video",
+                            media_type: "video",
+                            sale_mode:
+                              formData.sale_mode === "first_next" ||
+                              formData.sale_mode === "set" ||
+                              formData.sale_mode === "single"
+                                ? formData.sale_mode
+                                : "single",
+                            video_type: formData.video_type || "",
+                            duration_value: formData.duration_value || "",
+                            duration_unit: formData.duration_unit || "sec",
+                          });
+                          return;
+                        }
+
                         setFormData({
                           ...formData,
-                          media_package: value,
-                          media_type: value === "photo" ? "photo" : "video",
-                          sale_mode:
-                            value === "photo_video"
-                              ? "set"
-                              : formData.sale_mode || "single",
-                          video_type: value === "photo" ? "" : formData.video_type,
-                          duration_value:
-                            value === "photo" ? "" : formData.duration_value,
-                          duration_unit:
-                            value === "photo" ? "sec" : formData.duration_unit,
+                          media_package: "photo_video",
+                          media_type: "video", // ใช้ convention นี้ไปก่อน เพราะ DB ยังรับแค่ photo/video
+                          sale_mode: "set",
+                          video_type: "",
+                          duration_value: "",
+                          duration_unit: "sec",
                         });
                       }}
                     >
@@ -526,46 +615,71 @@ export default function AdminPhotoVideoPage() {
                       <option value="video">🎥 Video</option>
                       <option value="photo_video">🎞 Photo + Video Set</option>
                     </select>
+
+                    {formData.media_package === "photo_video" && (
+                      <p className="mt-2 text-xs text-purple-600 font-medium">
+                        Photo + Video Set จะถูกบันทึกเป็น Set Price เท่านั้น
+                      </p>
+                    )}
                   </div>
 
-                  {/* Sale Mode */}
+                  {/* Pricing Model */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       Pricing Model
                     </label>
                     <select
-                      className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500"
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       value={formData.sale_mode}
+                      disabled={formData.media_package === "photo_video"}
                       onChange={(e) =>
                         setFormData({ ...formData, sale_mode: e.target.value })
                       }
                     >
                       <option value="single">Single Price</option>
                       <option value="set">Set Price</option>
-                      <option value="first_next">
-                        First Person + Next Person
-                      </option>
+                      <option value="first_next">First Person + Next Person</option>
                     </select>
 
-                    {/* Helper text */}
                     <div className="mt-3 p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1.5">
-                      {formData.sale_mode === "first_next" ? (
+                      {formData.media_package === "photo_video" ? (
                         <>
-                          <p className="font-semibold text-slate-700">📌 First Person + Next Person</p>
+                          <p className="font-semibold text-slate-700">
+                            🎞 Photo + Video Set
+                          </p>
+                          <p>ขายเป็นชุด ราคาเดียวทั้งแพ็ก</p>
+                          <p className="text-orange-600">
+                            ตัวอย่าง: Set 1,500฿ → ได้ทั้ง Photo + Video ในราคาเดียว
+                          </p>
+                        </>
+                      ) : formData.sale_mode === "first_next" ? (
+                        <>
+                          <p className="font-semibold text-slate-700">
+                            📌 First Person + Next Person
+                          </p>
                           <p>คนแรกคิดราคาหนึ่ง คนถัดไปคิดอีกราคาหนึ่ง</p>
-                          <p className="text-orange-600">ตัวอย่าง: First 800฿, Next 200฿ → 3 คน = 800 + 200 + 200 = <strong>1,200฿</strong></p>
+                          <p className="text-orange-600">
+                            ตัวอย่าง: First 800฿, Next 200฿ → 3 คน = 800 + 200 + 200 ={" "}
+                            <strong>1,200฿</strong>
+                          </p>
                         </>
                       ) : formData.sale_mode === "set" ? (
                         <>
                           <p className="font-semibold text-slate-700">📌 Set Price</p>
                           <p>ราคาเหมาจ่ายทั้งกลุ่ม ไม่ว่าจะกี่คนก็จ่ายเท่ากัน</p>
-                          <p className="text-orange-600">ตัวอย่าง: Set 1,500฿ → 1 คน หรือ 5 คน จ่ายเท่ากัน</p>
+                          <p className="text-orange-600">
+                            ตัวอย่าง: Set 1,500฿ → 1 คน หรือ 5 คน จ่ายเท่ากัน
+                          </p>
                         </>
                       ) : (
                         <>
-                          <p className="font-semibold text-slate-700">📌 Single Price</p>
+                          <p className="font-semibold text-slate-700">
+                            📌 Single Price
+                          </p>
                           <p>ราคาต่อคน คูณด้วยจำนวนผู้เข้าร่วม</p>
-                          <p className="text-orange-600">ตัวอย่าง: 500฿/คน → 3 คน = <strong>1,500฿</strong></p>
+                          <p className="text-orange-600">
+                            ตัวอย่าง: 500฿/คน → 3 คน = <strong>1,500฿</strong>
+                          </p>
                         </>
                       )}
                     </div>
@@ -710,6 +824,7 @@ export default function AdminPhotoVideoPage() {
                             setFormData({
                               ...formData,
                               base_price: e.target.value,
+                              price: "",
                             })
                           }
                         />
@@ -728,6 +843,7 @@ export default function AdminPhotoVideoPage() {
                             setFormData({
                               ...formData,
                               extra_pax_price: e.target.value,
+                              price: "",
                             })
                           }
                         />
@@ -740,30 +856,45 @@ export default function AdminPhotoVideoPage() {
                       </label>
                       <input
                         type="number"
-                        placeholder="Enter package price"
+                        placeholder={
+                          formData.media_package === "photo_video"
+                            ? "Enter set price for Photo + Video"
+                            : "Enter package price"
+                        }
                         className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500"
                         value={formData.price}
                         onChange={(e) =>
-                          setFormData({ ...formData, price: e.target.value })
+                          setFormData({
+                            ...formData,
+                            price: e.target.value,
+                            base_price: "",
+                            extra_pax_price: "",
+                          })
                         }
                       />
                     </div>
                   )}
                 </div>
 
-                {/* Helper text */}
                 <div className="mt-3 text-xs text-slate-500">
-                  {formData.sale_mode === "first_next" ? (
+                  {formData.media_package === "photo_video" ? (
                     <p>
-                      Example: first person 800฿, next person 200฿ → 3 pax = 800 + 200 + 200
+                      Photo + Video Set ใช้ราคาชุดเดียว เหมาะสำหรับการขายแบบ bundle
+                    </p>
+                  ) : formData.sale_mode === "first_next" ? (
+                    <p>
+                      Example: first person 800฿, next person 200฿ → 3 pax = 800 + 200
+                      + 200
                     </p>
                   ) : formData.sale_mode === "set" ? (
                     <p>
-                      Set pricing is ideal for Photo + Video bundle or grouped package pricing.
+                      Set pricing is ideal for grouped package pricing where total
+                      price stays the same.
                     </p>
                   ) : (
                     <p>
-                      Single pricing is ideal for standard photo or video package rules.
+                      Single pricing is ideal for standard photo or video package
+                      rules.
                     </p>
                   )}
                 </div>
