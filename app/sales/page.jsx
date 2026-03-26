@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import CategorySidebar from "./components/CategorySidebar";
 import TopBar from "./components/TopBar";
 import ProductGrid from "./components/ProductGrid";
@@ -26,6 +26,18 @@ export default function SalePage() {
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [pricingRules, setPricingRules] = useState([]);
 
+  // media modal
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [mediaMode, setMediaMode] = useState(null); // photo | video | photo_video
+  const [mediaRules, setMediaRules] = useState([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaForm, setMediaForm] = useState({
+    pax: 1,
+    video_type: "",
+    duration_value: "",
+    duration_unit: "sec",
+  });
+
   // pricing setting from admin
   const [pricing, setPricing] = useState({
     vat_rate: 7,
@@ -42,6 +54,78 @@ export default function SalePage() {
     enable_discount: true,
   });
 
+  /* ========================= HELPERS ========================= */
+  const round2 = (n) => Math.round(Number(n || 0) * 100) / 100;
+
+  const normalizeMediaValue = (value) => {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+  };
+
+  const getRuleMediaKind = (rule) => {
+    // ให้ media_type มีสิทธิ์ก่อน ถ้าไม่มีค่อย fallback ไป media_package
+    const mediaType = normalizeMediaValue(rule?.media_type);
+    const mediaPackage = normalizeMediaValue(rule?.media_package);
+
+    if (mediaType) return mediaType;
+    if (mediaPackage) return mediaPackage;
+    return "";
+  };
+
+  const requiresVideoConfig = (mode, rule = null) => {
+    if (mode === "video") return true;
+
+    if (mode === "photo_video") {
+      // ถ้า rule มี video_type หรือ duration แปลว่าต้องเลือก
+      if (!rule) return false;
+
+      return Boolean(
+        rule.video_type ||
+          rule.duration_value !== null ||
+          rule.duration_value !== undefined ||
+          rule.duration_unit
+      );
+    }
+
+    return false;
+  };
+
+  const getMediaCartType = (kind) => {
+    if (kind === "video") return "VIDEO";
+    if (kind === "photo_video") return "PHOTO_VIDEO";
+    return "PHOTO";
+  };
+
+  const buildMediaLabel = (rule, mode, pax) => {
+    const kind = getRuleMediaKind(rule) || mode;
+
+    if (kind === "photo") {
+      return `Photo (${pax} pax)`;
+    }
+
+    if (kind === "photo_video") {
+      const hasVideoDetail =
+        rule?.video_type ||
+        rule?.duration_value !== null ||
+        rule?.duration_value !== undefined ||
+        rule?.duration_unit;
+
+      if (hasVideoDetail) {
+        return `Photo + Video ${rule.video_type || ""} ${
+          rule.duration_value ?? ""
+        } ${rule.duration_unit || ""} (${pax} pax)`.replace(/\s+/g, " ").trim();
+      }
+
+      return `Photo + Video (${pax} pax)`;
+    }
+
+    return `Video ${rule?.video_type || ""} ${rule?.duration_value ?? ""} ${
+      rule?.duration_unit || ""
+    } (${pax} pax)`.replace(/\s+/g, " ").trim();
+  };
+
   /* ========================= LOAD DATA ========================= */
   const loadPricing = async () => {
     try {
@@ -51,9 +135,9 @@ export default function SalePage() {
       const data = await res.json();
 
       const nextPricing = {
-        vat_rate: Number(data.vat_rate),
+        vat_rate: Number(data.vat_rate ?? 7),
         enable_vat: Boolean(data.enable_vat),
-        discount_rate: Number(data.discount_rate),
+        discount_rate: Number(data.discount_rate ?? 0),
         enable_discount: Boolean(data.enable_discount),
       };
 
@@ -87,7 +171,7 @@ export default function SalePage() {
       setMenu(filteredMenu);
 
       if (filteredMenu.length > 0) {
-        setSelectedActivity(filteredMenu[0].name);
+        setSelectedActivity((prev) => prev || filteredMenu[0].name);
       }
     } catch (err) {
       console.error("Load sale menu error:", err);
@@ -96,22 +180,72 @@ export default function SalePage() {
     }
   };
 
+  const loadChannelPricing = async () => {
+    try {
+      if (!selectedChannel?.id) {
+        setPricingRules([]);
+        return;
+      }
+
+      const res = await fetch(
+        `/api/sale/pricing?source_channel_id=${selectedChannel.id}`
+      );
+
+      if (!res.ok) {
+        setPricingRules([]);
+        return;
+      }
+
+      const json = await res.json();
+      setPricingRules(json.data || []);
+    } catch (err) {
+      console.error("load channel pricing error:", err);
+      setPricingRules([]);
+    }
+  };
+
+  const loadMediaRules = async (activityCategoryId) => {
+    if (!activityCategoryId) {
+      setMediaRules([]);
+      return;
+    }
+
+    try {
+      setMediaLoading(true);
+
+      const res = await fetch(
+        `/api/sale/photo-video-rules?activity_category_id=${activityCategoryId}`
+      );
+
+      if (!res.ok) {
+        setMediaRules([]);
+        return;
+      }
+
+      const json = await res.json();
+      const allRules = json.data || [];
+
+      const filtered = allRules.filter(
+        (rule) =>
+          rule.activity_category_id === activityCategoryId &&
+          String(rule.status || "").toLowerCase() === "active"
+      );
+
+      setMediaRules(filtered);
+    } catch (err) {
+      console.error("load media rules error:", err);
+      setMediaRules([]);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadMenu();
     loadPricing();
   }, []);
 
-  const loadChannelPricing = async () => {
-    try {
-      const res = await fetch(`/api/sale/pricing?source_channel_id=${selectedChannel.id}`);
-      const json = await res.json();
-      setPricingRules(json.data || []);
-    } catch (err) {
-      console.error("load channel pricing error:", err);
-    }
-  };
   useEffect(() => {
-    if (!selectedChannel) return;
     loadChannelPricing();
   }, [selectedChannel]);
 
@@ -155,10 +289,18 @@ export default function SalePage() {
     (item) => item.type === "ADDON"
   );
 
-  // media add-ons ใช้เปิด flow อื่นในอนาคต
-  const hasPhotoVideo = (currentActivity?.items || []).some(
-    (item) => item.type === "PHOTO" || item.type === "VIDEO"
+  // media add-ons
+  const hasPhotoVideo = (currentActivity?.items || []).some((item) =>
+    ["PHOTO", "VIDEO", "PHOTO_VIDEO"].includes(item.type)
   );
+
+  useEffect(() => {
+    if (!currentActivity?.id) {
+      setMediaRules([]);
+      return;
+    }
+    loadMediaRules(currentActivity.id);
+  }, [currentActivity?.id]);
 
   /* ========================= LOGOUT ========================= */
   const logout = async () => {
@@ -181,8 +323,6 @@ export default function SalePage() {
   };
 
   /* ========================= TOTALS ========================= */
-  const round2 = (n) => Math.round(n * 100) / 100;
-
   const subtotal = round2(
     cart.reduce((sum, item) => {
       const rule = pricingRules.find((r) => r.package_id === item.id);
@@ -197,7 +337,7 @@ export default function SalePage() {
         price = price - Number(rule.discount_value || 0);
       }
 
-      return sum + price * item.quantity;
+      return sum + price * Number(item.quantity || 0);
     }, 0)
   );
 
@@ -206,7 +346,9 @@ export default function SalePage() {
     : 0;
 
   const tax = orderPricing.enable_vat
-    ? round2(((subtotal - discount) * Number(orderPricing.vat_rate || 0)) / 100)
+    ? round2(
+        ((subtotal - discount) * Number(orderPricing.vat_rate || 0)) / 100
+      )
     : 0;
 
   const total = round2(subtotal - discount + tax);
@@ -227,20 +369,230 @@ export default function SalePage() {
     return round2(price);
   };
 
-  /* ========================= MEDIA PLACEHOLDER ========================= */
-  const handleMediaClick = (mediaMode) => {
-    swalError(
-      `${mediaMode} setup ยังไม่เสร็จ`,
-      "ตอนนี้เตรียมปุ่มไว้แล้ว ขั้นต่อไปค่อยต่อ modal + query ราคา photo_video_prices"
-    );
+  /* ========================= MEDIA LOGIC ========================= */
+  const handleMediaClick = (mode) => {
+    const normalizedMode = normalizeMediaValue(mode);
+
+    setMediaMode(normalizedMode);
+    setMediaForm({
+      pax: 1,
+      video_type: "",
+      duration_value: "",
+      duration_unit: "sec",
+    });
+    setShowMediaModal(true);
   };
+
+  const mediaOptionsForCurrentMode = useMemo(() => {
+    if (!mediaMode) return [];
+
+    return mediaRules.filter((rule) => {
+      const kind = getRuleMediaKind(rule);
+      if (kind !== mediaMode) return false;
+      if (String(rule.status || "").toLowerCase() !== "active") return false;
+      return true;
+    });
+  }, [mediaRules, mediaMode]);
+
+  const availableVideoTypes = useMemo(() => {
+    const set = new Set();
+
+    mediaOptionsForCurrentMode.forEach((rule) => {
+      if (rule.video_type) {
+        set.add(rule.video_type);
+      }
+    });
+
+    return Array.from(set);
+  }, [mediaOptionsForCurrentMode]);
+
+  const availableDurations = useMemo(() => {
+    const targetType = normalizeMediaValue(mediaForm.video_type);
+
+    const rows = mediaOptionsForCurrentMode.filter((rule) => {
+      const ruleType = normalizeMediaValue(rule.video_type);
+      if (!targetType) return Boolean(rule.video_type);
+      return ruleType === targetType;
+    });
+
+    const map = new Map();
+
+    rows.forEach((rule) => {
+      const key = `${rule.duration_value ?? ""}-${rule.duration_unit ?? ""}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          duration_value: rule.duration_value ?? "",
+          duration_unit: rule.duration_unit ?? "",
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [mediaOptionsForCurrentMode, mediaForm.video_type]);
+
+  const matchedMediaRule = useMemo(() => {
+    if (!mediaMode) return null;
+
+    const pax = Number(mediaForm.pax || 0);
+    if (pax <= 0) return null;
+
+    const videoType = normalizeMediaValue(mediaForm.video_type);
+    const durationValue = Number(mediaForm.duration_value || 0);
+    const durationUnit = normalizeMediaValue(mediaForm.duration_unit);
+
+    return (
+      mediaRules.find((rule) => {
+        const kind = getRuleMediaKind(rule);
+
+        if (kind !== mediaMode) return false;
+        if (String(rule.status || "").toLowerCase() !== "active") return false;
+
+        const min = Number(rule.pax_min || 0);
+        const max = Number(rule.pax_max || 0);
+
+        if (pax < min || pax > max) return false;
+
+        const needVideoConfig = requiresVideoConfig(mediaMode, rule);
+        if (!needVideoConfig) return true;
+
+        const ruleVideoType = normalizeMediaValue(rule.video_type);
+        const ruleDurationUnit = normalizeMediaValue(rule.duration_unit);
+        const ruleDurationValue = Number(rule.duration_value || 0);
+
+        if (!videoType || !durationValue || !durationUnit) return false;
+
+        return (
+          ruleVideoType === videoType &&
+          ruleDurationValue === durationValue &&
+          ruleDurationUnit === durationUnit
+        );
+      }) || null
+    );
+  }, [mediaRules, mediaMode, mediaForm]);
+
+  const calcMediaTotal = (rule, paxValue) => {
+    if (!rule) return 0;
+
+    const pax = Number(paxValue || 0);
+    if (pax <= 0) return 0;
+
+    if (rule.sale_mode === "first_next") {
+      return round2(
+        Number(rule.base_price || 0) +
+          Math.max(0, pax - 1) * Number(rule.extra_pax_price || 0)
+      );
+    }
+
+    return round2(Number(rule.price || 0));
+  };
+
+  const addMatchedMediaToCart = () => {
+    const pax = Number(mediaForm.pax || 0);
+
+    if (pax <= 0) {
+      swalError("กรุณาระบุจำนวน PAX");
+      return;
+    }
+
+    if (!matchedMediaRule) {
+      swalError("ไม่พบราคา media ที่ตรงกับเงื่อนไข");
+      return;
+    }
+
+    const kind = getRuleMediaKind(matchedMediaRule) || mediaMode;
+    const needVideoConfig = requiresVideoConfig(kind, matchedMediaRule);
+
+    if (needVideoConfig) {
+      if (!mediaForm.video_type) {
+        swalError("กรุณาเลือก Video Type");
+        return;
+      }
+
+      if (!Number(mediaForm.duration_value || 0)) {
+        swalError("กรุณาระบุ Duration");
+        return;
+      }
+
+      if (!mediaForm.duration_unit) {
+        swalError("กรุณาเลือก Duration Unit");
+        return;
+      }
+    }
+
+    const totalPrice = calcMediaTotal(matchedMediaRule, pax);
+    const mediaLabel = buildMediaLabel(matchedMediaRule, mediaMode, pax);
+    const cartType = getMediaCartType(kind);
+
+    const cartId = [
+      "media",
+      matchedMediaRule.id,
+      kind,
+      pax,
+      matchedMediaRule.video_type || "na",
+      matchedMediaRule.duration_value || "na",
+      matchedMediaRule.duration_unit || "na",
+      matchedMediaRule.sale_mode || "na",
+    ].join("-");
+
+    const mediaItem = {
+      id: cartId,
+      item_id: matchedMediaRule.id,
+      type: cartType,
+      item_type: cartType,
+      media_type: kind,
+      media_package: normalizeMediaValue(matchedMediaRule.media_package),
+      sale_mode: matchedMediaRule.sale_mode,
+      name: mediaLabel,
+      price: totalPrice,
+      quantity: 1,
+      pax,
+      video_type: matchedMediaRule.video_type ?? null,
+      duration_value: matchedMediaRule.duration_value ?? null,
+      duration_unit: matchedMediaRule.duration_unit ?? null,
+      base_price: matchedMediaRule.base_price ?? null,
+      extra_pax_price: matchedMediaRule.extra_pax_price ?? null,
+      code: null,
+      image_url: matchedMediaRule.image_url ?? null,
+    };
+
+    setCart((prev) => {
+      const found = prev.find((item) => item.id === cartId);
+
+      if (found) {
+        return prev.map((item) =>
+          item.id === cartId
+            ? { ...item, quantity: Number(item.quantity || 0) + 1 }
+            : item
+        );
+      }
+
+      return [...prev, mediaItem];
+    });
+
+    setShowMediaModal(false);
+
+    if (window.innerWidth < 1024) {
+      setShowCart(true);
+    }
+  };
+
+  const shouldShowVideoFields = useMemo(() => {
+    if (mediaMode === "video") return true;
+
+    if (mediaMode === "photo_video") {
+      return mediaOptionsForCurrentMode.some((rule) =>
+        requiresVideoConfig("photo_video", rule)
+      );
+    }
+
+    return false;
+  }, [mediaMode, mediaOptionsForCurrentMode]);
 
   return (
     <>
       {loading && <LoadingOverlay />}
 
       <div className="flex h-screen bg-gray-100 overflow-hidden">
-        {/* ========================= LEFT: ACTIVITY SIDEBAR ========================= */}
         <div className="hidden lg:block">
           <CategorySidebar
             categories={menu.map((c) => c.name)}
@@ -252,7 +604,6 @@ export default function SalePage() {
           />
         </div>
 
-        {/* ========================= CENTER: CONTENT ========================= */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           <TopBar
             cart={cart}
@@ -260,7 +611,6 @@ export default function SalePage() {
             onLogout={logout}
           />
 
-          {/* ========================= MOBILE ACTIVITY SELECT ========================= */}
           <div className="lg:hidden w-full px-4 py-3 bg-white border-b">
             <div className="w-full max-w-full overflow-hidden">
               <select
@@ -279,9 +629,7 @@ export default function SalePage() {
             </div>
           </div>
 
-          {/* ========================= SCROLLABLE CONTENT ========================= */}
           <div className="flex-1 overflow-y-auto">
-            {/* PACKAGE GRID */}
             <ProductGrid
               title={selectedActivity}
               items={packageItems}
@@ -295,7 +643,6 @@ export default function SalePage() {
               }}
             />
 
-            {/* ========================= OPTIONAL ADD-ONS ========================= */}
             {(addonItems.length > 0 || hasPhotoVideo) && (
               <div className="px-4 lg:px-6 pb-6">
                 <div className="bg-white rounded-2xl border border-slate-200 p-4 lg:p-5 shadow-sm">
@@ -308,7 +655,6 @@ export default function SalePage() {
                     </p>
                   </div>
 
-                  {/* FIXED ADDONS */}
                   {addonItems.length > 0 && (
                     <div className="mb-5">
                       <h4 className="text-sm font-semibold text-slate-700 mb-3">
@@ -356,7 +702,6 @@ export default function SalePage() {
                     </div>
                   )}
 
-                  {/* PHOTO / VIDEO ACTIONS */}
                   {hasPhotoVideo && (
                     <div>
                       <h4 className="text-sm font-semibold text-slate-700 mb-3">
@@ -432,7 +777,6 @@ export default function SalePage() {
           </div>
         </div>
 
-        {/* ========================= RIGHT: CART ========================= */}
         <div
           className={`
             fixed lg:relative
@@ -477,7 +821,6 @@ export default function SalePage() {
           />
         </div>
 
-        {/* ========================= MOBILE OVERLAY ========================= */}
         {showCart && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
@@ -485,7 +828,219 @@ export default function SalePage() {
           />
         )}
 
-        {/* ========================= SURVEY / CHECKOUT ========================= */}
+        {showMediaModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl p-6">
+              <h3 className="text-xl font-bold text-slate-800 mb-1">
+                Select{" "}
+                {mediaMode === "photo_video"
+                  ? "Photo + Video"
+                  : mediaMode === "photo"
+                  ? "Photo"
+                  : "Video"}
+              </h3>
+              <p className="text-sm text-slate-500 mb-5">
+                Configure media options and auto match pricing rule
+              </p>
+
+              {mediaLoading ? (
+                <div className="py-10 text-center text-slate-500">
+                  Loading media rules...
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      PAX
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={mediaForm.pax}
+                      onChange={(e) =>
+                        setMediaForm((prev) => ({
+                          ...prev,
+                          pax: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3"
+                    />
+                  </div>
+
+                  {shouldShowVideoFields && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Video Type
+                        </label>
+                        <select
+                          value={mediaForm.video_type}
+                          onChange={(e) =>
+                            setMediaForm((prev) => ({
+                              ...prev,
+                              video_type: e.target.value,
+                              duration_value: "",
+                              duration_unit: "sec",
+                            }))
+                          }
+                          className="w-full border border-slate-300 rounded-xl px-4 py-3"
+                        >
+                          <option value="">Select video type</option>
+                          {availableVideoTypes.length > 0 ? (
+                            availableVideoTypes.map((type) => (
+                              <option key={type} value={type}>
+                                {type}
+                              </option>
+                            ))
+                          ) : (
+                            <>
+                              <option value="edit">edit</option>
+                              <option value="reel">reel</option>
+                              <option value="gopro">gopro</option>
+                              <option value="phone_mount">phone_mount</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {availableDurations.length > 0 ? (
+                          <>
+                            <select
+                              value={
+                                mediaForm.duration_value &&
+                                mediaForm.duration_unit
+                                  ? `${mediaForm.duration_value}-${mediaForm.duration_unit}`
+                                  : ""
+                              }
+                              onChange={(e) => {
+                                const [value, unit] = e.target.value.split("-");
+                                setMediaForm((prev) => ({
+                                  ...prev,
+                                  duration_value: value,
+                                  duration_unit: unit || "sec",
+                                }));
+                              }}
+                              className="col-span-2 w-full border border-slate-300 rounded-xl px-4 py-3"
+                            >
+                              <option value="">Select duration</option>
+                              {availableDurations.map((item) => (
+                                <option
+                                  key={`${item.duration_value}-${item.duration_unit}`}
+                                  value={`${item.duration_value}-${item.duration_unit}`}
+                                >
+                                  {item.duration_value} {item.duration_unit}
+                                </option>
+                              ))}
+                            </select>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="number"
+                              placeholder="Duration"
+                              value={mediaForm.duration_value}
+                              onChange={(e) =>
+                                setMediaForm((prev) => ({
+                                  ...prev,
+                                  duration_value: e.target.value,
+                                }))
+                              }
+                              className="w-full border border-slate-300 rounded-xl px-4 py-3"
+                            />
+                            <select
+                              value={mediaForm.duration_unit}
+                              onChange={(e) =>
+                                setMediaForm((prev) => ({
+                                  ...prev,
+                                  duration_unit: e.target.value,
+                                }))
+                              }
+                              className="w-full border border-slate-300 rounded-xl px-4 py-3"
+                            >
+                              <option value="sec">sec</option>
+                              <option value="min">min</option>
+                              <option value="round">round</option>
+                              <option value="video">video</option>
+                            </select>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="bg-slate-50 border rounded-xl p-4 text-sm text-slate-600">
+                    {!matchedMediaRule ? (
+                      "ยังไม่พบราคา media ที่ตรงกับเงื่อนไข"
+                    ) : (
+                      <div className="space-y-1">
+                        <div>
+                          Matched:{" "}
+                          <span className="font-semibold">
+                            {matchedMediaRule.sale_mode}
+                          </span>
+                        </div>
+
+                        <div>
+                          Type:{" "}
+                          <span className="font-semibold">
+                            {getRuleMediaKind(matchedMediaRule)}
+                          </span>
+                        </div>
+
+                        {matchedMediaRule.sale_mode === "first_next" ? (
+                          <div>
+                            {Number(
+                              matchedMediaRule.base_price || 0
+                            ).toLocaleString()}
+                            ฿{" + "}
+                            {Number(
+                              matchedMediaRule.extra_pax_price || 0
+                            ).toLocaleString()}
+                            ฿ / next person
+                          </div>
+                        ) : (
+                          <div>
+                            {Number(
+                              matchedMediaRule.price || 0
+                            ).toLocaleString()}
+                            ฿
+                          </div>
+                        )}
+
+                        <div className="font-bold text-orange-600">
+                          Total{" "}
+                          {calcMediaTotal(
+                            matchedMediaRule,
+                            mediaForm.pax
+                          ).toLocaleString()}
+                          ฿
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowMediaModal(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addMatchedMediaToCart}
+                  disabled={mediaLoading}
+                  className="px-5 py-2.5 rounded-xl bg-orange-500 text-white font-semibold disabled:opacity-50"
+                >
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showSurvey && (
           <SurveyModal
             cart={cart}
