@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo , useRef } from "react";
 import CategorySidebar from "./components/CategorySidebar";
 import TopBar from "./components/TopBar";
 import ProductGrid from "./components/ProductGrid";
@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 
 export default function SalePage() {
   const router = useRouter();
+  const mediaSubmittingRef = useRef(false);
 
   /* ========================= STATE ========================= */
   const [menu, setMenu] = useState([]);
@@ -22,7 +23,6 @@ export default function SalePage() {
 
   // mobile / tablet cart
   const [showCart, setShowCart] = useState(false);
-
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [pricingRules, setPricingRules] = useState([]);
 
@@ -37,6 +37,9 @@ export default function SalePage() {
     duration_value: "",
     duration_unit: "sec",
   });
+
+  // mediaSubmitting
+  const [mediaSubmitting, setMediaSubmitting] = useState(false);
 
   // pricing setting from admin
   const [pricing, setPricing] = useState({
@@ -505,16 +508,17 @@ export default function SalePage() {
     return round2(Number(rule.price || 0));
   };
 
-  const addMatchedMediaToCart = () => {
+  const addMatchedMediaToCart = async () => {
+    if (mediaSubmittingRef.current) return; // ← กันกดซ้ำ
     const pax = Number(mediaForm.pax || 0);
 
     if (pax <= 0) {
-      swalError("กรุณาระบุจำนวน PAX");
+      swalError("Please enter the number of PAX.");
       return;
     }
 
     if (!matchedMediaRule) {
-      swalError("ไม่พบราคา media ที่ตรงกับเงื่อนไข");
+      swalError("No price rule found for the selected package and conditions.");
       return;
     }
 
@@ -523,77 +527,85 @@ export default function SalePage() {
 
     if (needVideoConfig) {
       if (!mediaForm.video_type) {
-        swalError("กรุณาเลือก Video Type");
+        swalError("Please select a Video Type.");
         return;
       }
 
       if (!Number(mediaForm.duration_value || 0)) {
-        swalError("กรุณาระบุ Duration");
+        swalError("Please enter the Duration.");
         return;
       }
 
       if (!mediaForm.duration_unit) {
-        swalError("กรุณาเลือก Duration Unit");
+        swalError("Please select a Duration Unit.");
         return;
       }
     }
 
-    const totalPrice = calcMediaTotal(matchedMediaRule, pax);
-    const mediaLabel = buildMediaLabel(matchedMediaRule, mediaMode, pax);
-    const cartType = getMediaCartType(kind);
+    try {
+      mediaSubmittingRef.current = true; // ← lock ref (กันกดซ้ำ)
+      setMediaSubmitting(true);
 
-    const cartId = [
-      "media",
-      matchedMediaRule.id,
-      kind,
-      pax,
-      matchedMediaRule.video_type || "na",
-      matchedMediaRule.duration_value || "na",
-      matchedMediaRule.duration_unit || "na",
-      matchedMediaRule.sale_mode || "na",
-    ].join("-");
+      const totalPrice = calcMediaTotal(matchedMediaRule, pax);
+      const mediaLabel = buildMediaLabel(matchedMediaRule, mediaMode, pax);
+      const cartType = getMediaCartType(kind);
 
-    const mediaItem = {
-      id: cartId,
-      item_id: matchedMediaRule.id,
-      rule_id: matchedMediaRule.id,
-      activity_category_id: matchedMediaRule.activity_category_id,
-      type: cartType,
-      item_type: cartType,
-      media_type: kind,
-      media_package: normalizeMediaValue(matchedMediaRule.media_package),
-      sale_mode: normalizeMediaValue(matchedMediaRule.sale_mode),
-      name: mediaLabel,
-      price: totalPrice,
-      quantity: 1,
-      pax,
-      video_type: matchedMediaRule.video_type ?? null,
-      duration_value: matchedMediaRule.duration_value ?? null,
-      duration_unit: matchedMediaRule.duration_unit ?? null,
-      base_price: matchedMediaRule.base_price ?? null,
-      extra_pax_price: matchedMediaRule.extra_pax_price ?? null,
-      code: null,
-      image_url: matchedMediaRule.image_url ?? null,
-    };
+      const cartId = [
+        "media",
+        matchedMediaRule.id,
+        kind,
+        pax,
+        matchedMediaRule.video_type || "na",
+        matchedMediaRule.duration_value || "na",
+        matchedMediaRule.duration_unit || "na",
+        matchedMediaRule.sale_mode || "na",
+      ].join("-");
 
-    setCart((prev) => {
-      const found = prev.find((item) => item.id === cartId);
+      const mediaItem = {
+        id: cartId,
+        item_id: matchedMediaRule.id,
+        rule_id: matchedMediaRule.id,
+        activity_category_id: matchedMediaRule.activity_category_id,
+        type: cartType,
+        item_type: cartType,
+        media_type: kind,
+        media_package: normalizeMediaValue(matchedMediaRule.media_package),
+        sale_mode: normalizeMediaValue(matchedMediaRule.sale_mode),
+        name: mediaLabel,
+        price: totalPrice,
+        quantity: 1,
+        pax,
+        video_type: matchedMediaRule.video_type ?? null,
+        duration_value: matchedMediaRule.duration_value ?? null,
+        duration_unit: matchedMediaRule.duration_unit ?? null,
+        base_price: matchedMediaRule.base_price ?? null,
+        extra_pax_price: matchedMediaRule.extra_pax_price ?? null,
+        code: null,
+        image_url: matchedMediaRule.image_url ?? null,
+      };
 
-      if (found) {
-        return prev.map((item) =>
-          item.id === cartId
-            ? { ...item, quantity: Number(item.quantity || 0) + 1 }
-            : item
-        );
+      setCart((prev) => {
+        const found = prev.find((item) => item.id === cartId);
+
+        if (found) {
+          return prev.map((item) =>
+            item.id === cartId
+              ? { ...item, quantity: Number(item.quantity || 0) + 1 }
+              : item
+          );
+        }
+
+        return [...prev, mediaItem];
+      });
+
+      setShowMediaModal(false);
+
+      if (window.innerWidth < 1024) {
+        setShowCart(true);
       }
-
-      return [...prev, mediaItem];
-    });
-
-    setShowMediaModal(false);
-
-    if (window.innerWidth < 1024) {
-      setShowCart(true);
+    } finally {
+      mediaSubmittingRef.current = false; // ← unlock เสมอ
+      setMediaSubmitting(false);
     }
   };
 
@@ -989,7 +1001,7 @@ export default function SalePage() {
 
                   <div className="bg-slate-50 border rounded-xl p-4 text-sm text-slate-600">
                     {!matchedMediaRule ? (
-                      "ยังไม่พบราคา media ที่ตรงกับเงื่อนไข"
+                      "No matching price rule found for this configuration"
                     ) : (
                       <div className="space-y-2">
                         <div>
@@ -1073,10 +1085,20 @@ export default function SalePage() {
                 </button>
                 <button
                   onClick={addMatchedMediaToCart}
-                  disabled={mediaLoading}
-                  className="px-5 py-2.5 rounded-xl bg-orange-500 text-white font-semibold disabled:opacity-50"
+                  disabled={mediaLoading || mediaSubmitting || !matchedMediaRule}
+                  className="px-5 py-2.5 rounded-xl bg-orange-500 text-white font-semibold disabled:opacity-50 flex items-center gap-2"
                 >
-                  Add to Cart
+                  {mediaSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                      Adding...
+                    </>
+                  ) : (
+                    "Add to Cart"
+                  )}
                 </button>
               </div>
             </div>
