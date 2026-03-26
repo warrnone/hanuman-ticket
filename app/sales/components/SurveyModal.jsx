@@ -121,7 +121,31 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
       /* 🔥 FIX: รองรับ PACKAGE / ADDON / MEDIA */
       const normalizedCart = cart.map((item) => ({
         ...item,
-        item_type: item.type || "PACKAGE",
+        item_type: item.item_type || item.type || "PACKAGE",
+        item_id: item.item_id || null,
+        rule_id: item.rule_id || null,
+        activity_category_id: item.activity_category_id || null,
+
+        media_type: item.media_type || null,
+        media_package: item.media_package || null,
+        sale_mode: item.sale_mode || null,
+        pax: Number(item.pax || 0) || null,
+
+        video_type: item.video_type || null,
+        duration_value:
+          item.duration_value !== null && item.duration_value !== undefined
+            ? Number(item.duration_value)
+            : null,
+        duration_unit: item.duration_unit || null,
+
+        base_price:
+          item.base_price !== null && item.base_price !== undefined
+            ? Number(item.base_price)
+            : null,
+        extra_pax_price:
+          item.extra_pax_price !== null && item.extra_pax_price !== undefined
+            ? Number(item.extra_pax_price)
+            : null,
       }));
 
       const data = await createOrder(normalizedCart, {
@@ -165,6 +189,13 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
+
+  const money = (n) =>
+    Number(n || 0).toLocaleString("th-TH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+  );
 
   /* ========================= QR FLOW (ห้ามแตะ) ========================= */
   useEffect(() => {
@@ -605,12 +636,40 @@ export default function SurveyModal({cart,subtotal,discount,tax,total,vatRate,di
                   </h3>
                   
                   <div className="space-y-2 text-sm">
-                    {cart.map((item) => (
-                      <div key={item.id} className="flex justify-between text-gray-600">
-                        <span className="flex-1">{item.name} × {item.quantity}</span>
-                        <span className="font-medium">{(item.price * item.quantity).toLocaleString()}฿</span>
-                      </div>
-                    ))}
+                    {cart.map((item) => {
+                      const isMedia = ["PHOTO", "VIDEO", "PHOTO_VIDEO"].includes(
+                        String(item.item_type || item.type || "").toUpperCase()
+                      );
+
+                      return (
+                        <div key={item.id} className="flex justify-between gap-3 text-gray-600">
+                          <div className="flex-1 min-w-0">
+                            <div>
+                              {item.name} × {item.quantity}
+                            </div>
+
+                            {isMedia && (
+                              <div className="mt-1 text-xs text-slate-500 space-y-0.5">
+                                {item.pax ? <div>PAX: {item.pax}</div> : null}
+                                {item.media_package ? <div>Package: {item.media_package}</div> : null}
+                                {item.sale_mode ? <div>Sale mode: {item.sale_mode}</div> : null}
+
+                                {item.sale_mode === "first_next" ? (
+                                  <div>
+                                    First {Number(item.base_price || 0).toLocaleString()}฿ + Next{" "}
+                                    {Number(item.extra_pax_price || 0).toLocaleString()}฿
+                                  </div>
+                                ) : null}
+                              </div>
+                            )}
+                          </div>
+
+                          <span className="font-medium whitespace-nowrap">
+                            {(Number(item.price || 0) * Number(item.quantity || 0)).toLocaleString()}฿
+                          </span>
+                        </div>
+                      );
+                    })}
 
                     {discount > 0 && (
                       <div className="flex justify-between text-green-600 pt-2 border-t border-gray-200">
