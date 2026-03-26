@@ -29,7 +29,7 @@ export default function ProductGrid({ title, items, onAdd }) {
               "
             >
               {/* IMAGE / VIDEO */}
-              <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+              <div className="aspect-[3/4] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
 
                 {item.image ? (
                   item.type === "VIDEO" ? (
