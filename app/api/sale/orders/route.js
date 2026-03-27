@@ -228,17 +228,96 @@ export async function POST(req) {
        - ถ้าล้มเหลว จะ rollback order
     ===================================== */
 
-    const orderItemsPayload = items.map((i) => ({
-      order_id: orderRow.id,
+    const normalizeItemType = (value, mediaType) => {
+      const type = String(value || "").trim().toUpperCase();
+      const media = String(mediaType || "").trim().toLowerCase();
 
-      item_type: i.item_type,
-      item_id: i.item_type === "PACKAGE" ? i.item_id : null,
-      item_code: i.item_code ?? null,
-      item_name: i.item_name,
+      if (type === "PACKAGE") return "PACKAGE";
+      if (type === "PHOTO") return "PHOTO";
+      if (type === "VIDEO") return "VIDEO";
 
-      price: Number(i.price),
-      quantity: Number(i.quantity),
-    }));
+      if (
+        ["PHOTO_VIDEO", "VIDEO_PHOTO", "PHOTO+VIDEO", "PHOTO-VIDEO"].includes(type) ||
+        ["photo+video", "photo_video", "photo-video", "video_photo", "photovideo"].includes(media)
+      ) {
+        return "PHOTO_VIDEO";
+      }
+
+      return type || "PACKAGE";
+    };
+
+    const normalizeMediaType = (value, itemType) => {
+      const media = String(value || "").trim().toLowerCase();
+      const type = String(itemType || "").trim().toUpperCase();
+
+      if (media === "photo" || type === "PHOTO") return "photo";
+      if (media === "video" || type === "VIDEO") return "video";
+
+      if (
+        ["photo+video", "photo_video", "photo-video", "video_photo", "photovideo"].includes(media) ||
+        ["PHOTO_VIDEO", "VIDEO_PHOTO", "PHOTO+VIDEO", "PHOTO-VIDEO"].includes(type)
+      ) {
+        return "photo+video";
+      }
+
+      return null;
+    };
+
+    const normalizeSaleMode = (value) => {
+      const mode = String(value || "").trim().toLowerCase();
+
+      if (["single"].includes(mode)) return "single";
+      if (["set", "package"].includes(mode)) return "set";
+      if (["addon", "add-on", "add_on"].includes(mode)) return "addon";
+
+      return value ?? null;
+    };
+
+    const orderItemsPayload = items.map((i) => {
+      const originalItemType = String(i.item_type || "").trim().toUpperCase();
+      const sourceType = String(i.source_type || "").trim().toUpperCase();
+
+      const normalizedItemType = normalizeItemType(i.item_type, i.media_type);
+      const normalizedMediaType = normalizeMediaType(i.media_type, i.item_type);
+
+      const paxCount = Number(i.pax_count || i.pax || 0);
+      const includedPax = Number(i.included_pax || 0);
+      const quantity = Number(i.quantity || 1);
+      const price = Number(i.price || 0);
+
+      const isPackageRow =
+        originalItemType === "PACKAGE" ||
+        sourceType === "PACKAGE";
+
+      return {
+        order_id: orderRow.id,
+
+        item_type: normalizedItemType,
+
+        // ✅ เก็บ item_id ได้ ถ้าต้นทางเป็น package แม้ item_type ที่บันทึกจะเป็น PHOTO/VIDEO/PHOTO_VIDEO
+        item_id: isPackageRow ? i.item_id ?? null : null,
+
+        item_code: i.item_code ?? null,
+        item_name: i.item_name ?? i.name ?? "-",
+
+        price,
+        quantity,
+
+        media_type: normalizedMediaType,
+        sale_mode: normalizeSaleMode(i.sale_mode),
+
+        pax_count: paxCount,
+        included_pax: includedPax,
+        extra_pax:
+          i.extra_pax != null
+            ? Number(i.extra_pax)
+            : Math.max(paxCount - includedPax, 0),
+
+        base_price: Number(i.base_price || 0),
+        extra_pax_price: Number(i.extra_pax_price || 0),
+        pricing_note: i.pricing_note ?? null,
+      };
+    });
 
     const { error: itemsError } =
       await supabaseAdmin
