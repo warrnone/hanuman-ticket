@@ -184,8 +184,8 @@ export default function MediaReportPage() {
   return (
     <div className="space-y-8 text-white">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">📊 Media Sales Report</h1>
-        <p className="text-sm text-slate-400">
+        <h1 className="text-3xl font-bold text-slate-700">📊 Media Sales Report</h1>
+        <p className="text-sm text-slate-600">
           รายงาน Photo / Video / Photo+Video พร้อม breakdown แบบ stepping pax
         </p>
       </div>
