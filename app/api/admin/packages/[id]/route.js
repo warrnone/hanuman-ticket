@@ -40,6 +40,7 @@ export async function PATCH(req, { params }) {
       image_url: body.image_url ?? null,
       package_type: body.package_type,
       charge_type: body.charge_type,
+      sort_order: body.sort_order != null ? parseInt(body.sort_order, 10) : undefined,
     };
 
     const { error: updateError } = await supabaseAdmin

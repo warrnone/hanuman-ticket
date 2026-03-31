@@ -31,6 +31,7 @@ export default function AdminPackagesPage() {
     image_url: "",
     package_type: 'MAIN',
     charge_type: 'PER_PAX',
+    sort_order: 0,
   });
 
   /* ======================
@@ -148,6 +149,7 @@ export default function AdminPackagesPage() {
       image_url: '',
       package_type: 'MAIN',
       charge_type: 'PER_PAX',
+      sort_order: 0,
     });
     setShowModal(true);
   };
@@ -168,6 +170,7 @@ export default function AdminPackagesPage() {
       image_url: pkg.image_url ?? '', // ✅ โหลดรูปเดิม
       package_type: pkg.package_type ?? 'MAIN',
       charge_type: pkg.charge_type ?? 'PER_PAX',
+      sort_order: pkg.sort_order ?? 0,
     });
     setShowModal(true);
   };
@@ -192,10 +195,16 @@ export default function AdminPackagesPage() {
       image_url: formData.image_url,
       package_type: formData.package_type,
       charge_type: formData.charge_type,
+      sort_order: parseInt(formData.sort_order, 10) || 0,
     };
 
     if (Number.isNaN(payload.price)) {
       swalError('ราคาต้องเป็นตัวเลขเท่านั้น');
+      return;
+    }
+
+    if (Number.isNaN(payload.sort_order) || payload.sort_order < 0) {
+      swalError('ลำดับต้องเป็นตัวเลข 0 ขึ้นไป');
       return;
     }
 
@@ -551,6 +560,27 @@ export default function AdminPackagesPage() {
                 }
                 className="border w-full px-3 py-2 rounded"
               />
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Sort Order
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="เช่น 1, 2, 3"
+                  value={formData.sort_order}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sort_order: e.target.value })
+                  }
+                  className="border w-full px-3 py-2 rounded"
+                />
+                <p className="text-xs text-gray-500">
+                  ใช้กำหนดลำดับการแสดงผล เลขน้อยจะแสดงก่อน
+                  <br />
+                  Used to control display order. Smaller numbers appear first.
+                </p>
+              </div>
 
               <input
                 type="number"
