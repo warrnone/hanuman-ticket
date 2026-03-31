@@ -41,6 +41,9 @@ export default function SalePage() {
   // mediaSubmitting
   const [mediaSubmitting, setMediaSubmitting] = useState(false);
 
+  // ตรวจเช็คการไม่มี internet
+  const [isOffline, setIsOffline] = useState(false);
+
   // pricing setting from admin
   const [pricing, setPricing] = useState({
     vat_rate: 7,
@@ -142,8 +145,12 @@ export default function SalePage() {
         LOAD DATA 
   ========================= */
   const loadPricing = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return;
+    }
+    
     try {
-      const res = await fetch("/api/admin/settings");
+      const res = await fetch("/api/admin/settings", { cache: "no-store" });
       if (!res.ok) return;
 
       const data = await res.json();
@@ -158,6 +165,8 @@ export default function SalePage() {
       setPricing(nextPricing);
       setOrderPricing(nextPricing);
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) return;
       console.error("load pricing failed", err);
     }
   };
@@ -174,12 +183,16 @@ export default function SalePage() {
   };
 
   /*
-
+    // load Menu
   */
   const loadMenu = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const res = await fetch("/api/sale/menu");
+      const res = await fetch("/api/sale/menu", { cache: "no-store" });
       if (!handleApiResponse(res)) return;
 
       const json = await res.json();
@@ -194,6 +207,8 @@ export default function SalePage() {
         setSelectedActivity((prev) => prev || filteredMenu[0].name);
       }
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) return;
       console.error("Load sale menu error:", err);
     } finally {
       setLoading(false);
@@ -207,9 +222,8 @@ export default function SalePage() {
         return;
       }
 
-      const res = await fetch(
-        `/api/sale/pricing?source_channel_id=${selectedChannel.id}`
-      );
+      if (typeof navigator !== "undefined" && !navigator.onLine) { return;}
+      const res = await fetch(`/api/sale/pricing?source_channel_id=${selectedChannel.id}`, { cache: "no-store" });
 
       if (!res.ok) {
         setPricingRules([]);
@@ -219,6 +233,9 @@ export default function SalePage() {
       const json = await res.json();
       setPricingRules(json.data || []);
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) return;
+
       console.error("load channel pricing error:", err);
       setPricingRules([]);
     }
@@ -230,12 +247,15 @@ export default function SalePage() {
       return;
     }
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setMediaLoading(false);
+      return;
+    }
+
     try {
       setMediaLoading(true);
 
-      const res = await fetch(
-        `/api/sale/photo-video-rules?activity_category_id=${activityCategoryId}`
-      );
+      const res = await fetch(`/api/sale/photo-video-rules?activity_category_id=${activityCategoryId}`, { cache: "no-store" });
 
       if (!res.ok) {
         setMediaRules([]);
@@ -253,6 +273,8 @@ export default function SalePage() {
 
       setMediaRules(filtered);
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) return;
       console.error("load media rules error:", err);
       setMediaRules([]);
     } finally {
@@ -260,10 +282,34 @@ export default function SalePage() {
     }
   };
 
+  const updateNetworkStatus = () => {
+    if (typeof navigator !== "undefined") {
+      setIsOffline(!navigator.onLine);
+    }
+  };
+
   useEffect(() => {
-    loadMenu();
-    loadPricing();
+    updateNetworkStatus();
+    window.addEventListener("online", updateNetworkStatus);
+    window.addEventListener("offline", updateNetworkStatus);
+    return () => {
+      window.removeEventListener("online", updateNetworkStatus);
+      window.removeEventListener("offline", updateNetworkStatus);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isOffline) {
+      loadMenu();
+      loadPricing();
+      if (selectedChannel?.id) {
+        loadChannelPricing();
+      }
+      if (currentActivity?.id) {
+        loadMediaRules(currentActivity.id);
+      }
+    }
+  }, [isOffline]);
 
   useEffect(() => {
     loadChannelPricing();
@@ -333,7 +379,10 @@ export default function SalePage() {
     try {
       await fetch("/api/logout", { method: "POST" });
     } catch (e) {
-      console.error("logout error", e);
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (!offlineNow) {
+        console.error("logout error", e);
+      }
     }
 
     localStorage.removeItem("user");
@@ -391,6 +440,11 @@ export default function SalePage() {
 
   /* ========================= MEDIA LOGIC ========================= */
   const handleMediaClick = (mode) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     const normalizedMode = normalizeMediaValue(mode);
 
     setMediaMode(normalizedMode);
@@ -624,8 +678,12 @@ export default function SalePage() {
   return (
     <>
       {loading && <LoadingOverlay />}
-
-      <div className="flex h-screen bg-gray-100 overflow-hidden">
+      <div className={`flex h-screen bg-gray-100 overflow-hidden ${isOffline ? "pt-10" : ""}`}>
+        {isOffline && (
+          <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-700 text-center font-medium">
+            No internet connection. Some data may be outdated and checkout is currently unavailable.
+          </div>
+        )}
         <div className="hidden lg:block">
           <CategorySidebar
             categories={menu.map((c) => c.name)}
@@ -675,6 +733,14 @@ export default function SalePage() {
                 }
               }}
             />
+
+            {!loading && menu.length === 0 && isOffline && (
+              <div className="p-6">
+                <div className="bg-white border border-amber-200 rounded-2xl p-6 text-center text-amber-700">
+                  Unable to load sales list — please check your connection.
+                </div>
+              </div>
+            )}
 
             {(addonItems.length > 0 || hasPhotoVideo) && (
               <div className="px-4 lg:px-6 pb-6">
@@ -830,7 +896,13 @@ export default function SalePage() {
             total={total}
             onQty={updateQuantity}
             onRemove={removeFromCart}
-            onCheckout={() => setShowSurvey(true)}
+            onCheckout={() =>  {
+              if (isOffline) {
+                swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+                return;
+              }
+              setShowSurvey(true);
+            }}
             onClear={() => setCart([])}
             onClose={() => setShowCart(false)}
             discountRate={orderPricing.discount_rate}
@@ -1105,7 +1177,7 @@ export default function SalePage() {
           </div>
         )}
 
-        {showSurvey && (
+        {showSurvey && !isOffline && (
           <SurveyModal
             cart={cart}
             subtotal={subtotal}

@@ -6,10 +6,13 @@ import { swalSuccess, swalConfirm, swalError } from "@/app/components/Swal";
 /* ===========================================
    TOGGLE SWITCH
 =========================================== */
-function Toggle({ checked, onChange }) {
+function Toggle({ checked, onChange, disabled = false }) {
   return (
     <div
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        if (disabled) return;
+        onChange(!checked);
+      }}
       style={{
         width: 48,
         height: 26,
@@ -18,10 +21,11 @@ function Toggle({ checked, onChange }) {
           ? "linear-gradient(135deg, #f97316, #fb923c)"
           : "#e2e8f0",
         position: "relative",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         transition: "background 0.25s ease",
         flexShrink: 0,
         boxShadow: checked ? "0 2px 8px rgba(249,115,22,0.35)" : "none",
+        opacity: disabled ? 0.6 : 1,
       }}
     >
       <div
@@ -102,7 +106,15 @@ function NumberInput({ value, onChange, disabled }) {
 /* ===========================================
    SETTING CARD ROW
 =========================================== */
-function SettingCard({ icon, title, description, enabled, onToggle, children }) {
+function SettingCard({
+  icon,
+  title,
+  description,
+  enabled,
+  onToggle,
+  children,
+  disabled = false,
+}) {
   return (
     <div
       style={{
@@ -115,10 +127,17 @@ function SettingCard({ icon, title, description, enabled, onToggle, children }) 
         display: "flex",
         flexDirection: "column",
         gap: 0,
+        opacity: disabled ? 0.7 : 1,
       }}
     >
-      {/* Header row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
             style={{
@@ -140,7 +159,14 @@ function SettingCard({ icon, title, description, enabled, onToggle, children }) 
             {icon}
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 15,
+                color: "#1e293b",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
               {title}
             </div>
             <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
@@ -148,21 +174,29 @@ function SettingCard({ icon, title, description, enabled, onToggle, children }) 
             </div>
           </div>
         </div>
-        <Toggle checked={enabled} onChange={onToggle} />
+        <Toggle checked={enabled} onChange={onToggle} disabled={disabled} />
       </div>
 
-      {/* Expandable input area */}
       <div
         style={{
           maxHeight: enabled ? 100 : 0,
           overflow: "hidden",
-          transition: "max-height 0.32s cubic-bezier(.4,0,.2,1), opacity 0.25s ease, margin 0.28s ease",
+          transition:
+            "max-height 0.32s cubic-bezier(.4,0,.2,1), opacity 0.25s ease, margin 0.28s ease",
           opacity: enabled ? 1 : 0,
           marginTop: enabled ? 18 : 0,
         }}
       >
         <div style={{ paddingLeft: 54 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 8, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "#64748b",
+              marginBottom: 8,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
             กำหนดอัตรา
           </div>
           {children}
@@ -187,7 +221,6 @@ function LoadingScreen() {
       }}
     >
       <div style={{ textAlign: "center" }}>
-        {/* Spinner */}
         <div style={{ position: "relative", width: 60, height: 60, margin: "0 auto 20px" }}>
           <div
             style={{
@@ -210,8 +243,12 @@ function LoadingScreen() {
             }}
           />
         </div>
-        <p style={{ fontSize: 15, fontWeight: 700, color: "#475569", margin: 0 }}>กำลังโหลดค่าระบบ</p>
-        <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Please wait a moment...</p>
+        <p style={{ fontSize: 15, fontWeight: 700, color: "#475569", margin: 0 }}>
+          กำลังโหลดค่าระบบ
+        </p>
+        <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
+          Please wait a moment...
+        </p>
       </div>
     </div>
   );
@@ -224,6 +261,8 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+
   const [form, setForm] = useState({
     vat_rate: 7,
     enable_vat: false,
@@ -231,12 +270,41 @@ export default function AdminSettingsPage() {
     enable_discount: true,
   });
 
+  /* ---------- NETWORK STATUS ---------- */
+  useEffect(() => {
+    const updateNetworkStatus = () => {
+      if (typeof navigator !== "undefined") {
+        setIsOffline(!navigator.onLine);
+      }
+    };
+
+    updateNetworkStatus();
+
+    window.addEventListener("online", updateNetworkStatus);
+    window.addEventListener("offline", updateNetworkStatus);
+
+    return () => {
+      window.removeEventListener("online", updateNetworkStatus);
+      window.removeEventListener("offline", updateNetworkStatus);
+    };
+  }, []);
+
   /* ---------- LOAD ---------- */
   const fetchSettings = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/settings");
+
+      const res = await fetch("/api/admin/settings", {
+        cache: "no-store",
+      });
+
       if (!res.ok) throw new Error("Failed to load settings");
+
       const data = await res.json();
       setForm({
         vat_rate: Number(data.vat_rate ?? 7),
@@ -245,22 +313,46 @@ export default function AdminSettingsPage() {
         enable_discount: Boolean(data.enable_discount),
       });
     } catch (err) {
-      console.error(err);
+      const offlineNow =
+        typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (offlineNow) return;
+
+      console.error("fetchSettings error:", err);
       swalError("ไม่สามารถโหลดค่าระบบได้");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchSettings(); }, []);
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  /* ---------- RELOAD WHEN BACK ONLINE ---------- */
+  useEffect(() => {
+    if (!isOffline) {
+      fetchSettings();
+    }
+  }, [isOffline]);
 
   /* ---------- SAVE ---------- */
   const handleSave = async () => {
-    const result = await swalConfirm("บันทึกการตั้งค่า", "ต้องการบันทึกค่า VAT และ Discount ใช่หรือไม่");
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
+    const result = await swalConfirm(
+      "บันทึกการตั้งค่า",
+      "ต้องการบันทึกค่า VAT และ Discount ใช่หรือไม่"
+    );
+
     if (!result.isConfirmed) return;
 
     try {
       setSaving(true);
+
       const res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -271,13 +363,22 @@ export default function AdminSettingsPage() {
           enable_discount: form.enable_discount,
         }),
       });
+
       if (!res.ok) throw new Error("Save failed");
 
       swalSuccess("บันทึกการตั้งค่าเรียบร้อยแล้ว");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
-      console.error(err);
+      const offlineNow =
+        typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (offlineNow) {
+        swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+      }
+
+      console.error("handleSave error:", err);
       swalError("บันทึกข้อมูลไม่สำเร็จ");
     } finally {
       setSaving(false);
@@ -311,11 +412,27 @@ export default function AdminSettingsPage() {
           animation: "fadeIn 0.4s ease",
         }}
       >
+        {isOffline && (
+          <div
+            style={{
+              marginBottom: 16,
+              borderRadius: 12,
+              border: "1px solid #fde68a",
+              background: "#fffbeb",
+              color: "#b45309",
+              padding: "12px 14px",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            ไม่มีการเชื่อมต่ออินเทอร์เน็ต ข้อมูลบางส่วนอาจไม่อัปเดต
+          </div>
+        )}
+
         {loading ? (
           <LoadingScreen />
         ) : (
           <>
-            {/* ===== HEADER ===== */}
             <div style={{ marginBottom: 28 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
                 <div
@@ -335,7 +452,15 @@ export default function AdminSettingsPage() {
                   ⚙️
                 </div>
                 <div>
-                  <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1e293b", margin: 0, lineHeight: 1.2 }}>
+                  <h1
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 800,
+                      color: "#1e293b",
+                      margin: 0,
+                      lineHeight: 1.2,
+                    }}
+                  >
                     System Settings
                   </h1>
                   <p style={{ fontSize: 13, color: "#94a3b8", margin: 0, marginTop: 2 }}>
@@ -345,7 +470,6 @@ export default function AdminSettingsPage() {
               </div>
             </div>
 
-            {/* ===== CARD ===== */}
             <div
               style={{
                 background: "#fff",
@@ -358,41 +482,52 @@ export default function AdminSettingsPage() {
                 gap: 14,
               }}
             >
-              {/* --- VAT Setting --- */}
               <SettingCard
                 icon="🧾"
                 title="ภาษีมูลค่าเพิ่ม (VAT)"
                 description="คำนวณ VAT อัตโนมัติในใบแจ้งหนี้และใบเสร็จ"
                 enabled={form.enable_vat}
+                disabled={isOffline || saving}
                 onToggle={(val) => setForm((p) => ({ ...p, enable_vat: val }))}
               >
                 <NumberInput
                   value={form.vat_rate}
-                  disabled={!form.enable_vat}
-                  onChange={(e) => setForm((p) => ({ ...p, vat_rate: e.target.value }))}
+                  disabled={!form.enable_vat || isOffline || saving}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, vat_rate: e.target.value }))
+                  }
                 />
               </SettingCard>
 
-              {/* --- Discount Setting --- */}
               <SettingCard
                 icon="🏷️"
                 title="ส่วนลด (Discount)"
                 description="เปิดใช้การหักส่วนลดอัตโนมัติจากยอดขาย"
                 enabled={form.enable_discount}
-                onToggle={(val) => setForm((p) => ({ ...p, enable_discount: val }))}
+                disabled={isOffline || saving}
+                onToggle={(val) =>
+                  setForm((p) => ({ ...p, enable_discount: val }))
+                }
               >
                 <NumberInput
                   value={form.discount_rate}
-                  disabled={!form.enable_discount}
-                  onChange={(e) => setForm((p) => ({ ...p, discount_rate: e.target.value }))}
+                  disabled={!form.enable_discount || isOffline || saving}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, discount_rate: e.target.value }))
+                  }
                 />
               </SettingCard>
 
-              {/* --- Divider --- */}
               <div style={{ height: 1, background: "#f1f5f9", margin: "4px 0" }} />
 
-              {/* --- Footer --- */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
                 <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
                   * ค่าที่ตั้งจะถูกนำไปใช้ตอนคำนวณราคาที่หน้า Sale
                 </p>
@@ -400,7 +535,7 @@ export default function AdminSettingsPage() {
                 <button
                   className="save-btn"
                   onClick={handleSave}
-                  disabled={saving}
+                  disabled={saving || isOffline}
                   style={{
                     padding: "10px 22px",
                     borderRadius: 11,
@@ -409,11 +544,13 @@ export default function AdminSettingsPage() {
                       ? "linear-gradient(135deg, #22c55e, #16a34a)"
                       : saving
                       ? "#fdba74"
+                      : isOffline
+                      ? "#cbd5e1"
                       : "linear-gradient(135deg, #f97316, #fb923c)",
                     color: "#fff",
                     fontWeight: 700,
                     fontSize: 14,
-                    cursor: saving ? "not-allowed" : "pointer",
+                    cursor: saving || isOffline ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
@@ -426,14 +563,24 @@ export default function AdminSettingsPage() {
                   }}
                 >
                   {saved ? (
-                    <><span>✓</span> บันทึกแล้ว!</>
+                    <>
+                      <span>✓</span> บันทึกแล้ว!
+                    </>
                   ) : saving ? (
                     <>
-                      <span style={{ display: "inline-block", animation: "spin 0.8s linear infinite" }}>⏳</span>
+                      <span style={{ display: "inline-block", animation: "spin 0.8s linear infinite" }}>
+                        ⏳
+                      </span>
                       กำลังบันทึก...
                     </>
+                  ) : isOffline ? (
+                    <>
+                      <span>📡</span> Offline
+                    </>
                   ) : (
-                    <><span>💾</span> บันทึกการตั้งค่า</>
+                    <>
+                      <span>💾</span> บันทึกการตั้งค่า
+                    </>
                   )}
                 </button>
               </div>

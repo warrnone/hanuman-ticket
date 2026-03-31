@@ -19,6 +19,7 @@ export default function MediaReportPage() {
   const [loading, setLoading] = useState(false);
   const [topLoading, setTopLoading] = useState(false);
   const [dateError, setDateError] = useState("");
+  const [isOffline, setIsOffline] = useState(false);
 
   const isInvalidDateRange =
     startDate && endDate && new Date(startDate) > new Date(endDate);
@@ -31,6 +32,24 @@ export default function MediaReportPage() {
     }
   }, [startDate, endDate, isInvalidDateRange]);
 
+  useEffect(() => {
+    const updateNetworkStatus = () => {
+      if (typeof navigator !== "undefined") {
+        setIsOffline(!navigator.onLine);
+      }
+    };
+
+    updateNetworkStatus();
+
+    window.addEventListener("online", updateNetworkStatus);
+    window.addEventListener("offline", updateNetworkStatus);
+
+    return () => {
+      window.removeEventListener("online", updateNetworkStatus);
+      window.removeEventListener("offline", updateNetworkStatus);
+    };
+  }, []);
+
   const buildParams = () => {
     const params = new URLSearchParams();
     if (type && type !== "ALL") params.append("type", type);
@@ -40,14 +59,20 @@ export default function MediaReportPage() {
   };
 
   const fetchReport = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const res = await fetch(`/api/admin/report/media?${buildParams()}`);
+      const res = await fetch(`/api/admin/report/media?${buildParams()}`, {
+        cache: "no-store",
+      });
       const text = await res.text();
 
       if (!res.ok) {
-        console.error("API Error:", text);
         setData([]);
         return;
       }
@@ -56,13 +81,17 @@ export default function MediaReportPage() {
       try {
         json = JSON.parse(text);
       } catch (err) {
-        console.error("Invalid JSON:", text);
         setData([]);
         return;
       }
 
       setData(Array.isArray(json.data) ? json.data : []);
     } catch (err) {
+      const offlineNow =
+        typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (offlineNow) return;
+
       console.error("Report error:", err);
       setData([]);
     } finally {
@@ -71,14 +100,20 @@ export default function MediaReportPage() {
   };
 
   const fetchTop = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setTopLoading(false);
+      return;
+    }
+
     try {
       setTopLoading(true);
 
-      const res = await fetch(`/api/admin/report/top-media?${buildParams()}`);
+      const res = await fetch(`/api/admin/report/top-media?${buildParams()}`, {
+        cache: "no-store",
+      });
       const text = await res.text();
 
       if (!res.ok) {
-        console.error("Top API Error:", text);
         setDataTop([]);
         return;
       }
@@ -87,13 +122,17 @@ export default function MediaReportPage() {
       try {
         json = JSON.parse(text);
       } catch (err) {
-        console.error("Top Invalid JSON:", text);
         setDataTop([]);
         return;
       }
 
       setDataTop(Array.isArray(json.data) ? json.data : []);
     } catch (err) {
+      const offlineNow =
+        typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (offlineNow) return;
+
       console.error("Top error:", err);
       setDataTop([]);
     } finally {
@@ -103,6 +142,11 @@ export default function MediaReportPage() {
 
   const handleFilter = async () => {
     if (isInvalidDateRange) return;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return;
+    }
+
     await Promise.all([fetchReport(), fetchTop()]);
   };
 
@@ -110,6 +154,13 @@ export default function MediaReportPage() {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!isOffline) {
+      handleFilter();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOffline]);
 
   const totalRevenue = useMemo(() => {
     return data.reduce((sum, item) => sum + Number(item.total_price || 0), 0);
@@ -143,7 +194,12 @@ export default function MediaReportPage() {
     return date.toLocaleDateString("th-TH");
   };
 
-  const reportTitle = type === "PHOTO_VIDEO" ? "PHOTO + VIDEO" : type === "ALL" ? "ALL MEDIA" : type;
+  const reportTitle =
+    type === "PHOTO_VIDEO"
+      ? "PHOTO + VIDEO"
+      : type === "ALL"
+      ? "ALL MEDIA"
+      : type;
 
   const exportRows = data.map((item, index) => ({
     No: index + 1,
@@ -183,6 +239,12 @@ export default function MediaReportPage() {
 
   return (
     <div className="space-y-8 text-white">
+      {isOffline && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+          ไม่มีการเชื่อมต่ออินเทอร์เน็ต ข้อมูลรายงานอาจไม่อัปเดต
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-slate-700">📊 Media Sales Report</h1>
         <p className="text-sm text-slate-600">
@@ -197,7 +259,8 @@ export default function MediaReportPage() {
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading || topLoading}
+              className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             >
               {TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -214,7 +277,8 @@ export default function MediaReportPage() {
               value={startDate}
               max={endDate || undefined}
               onChange={(e) => setStartDate(e.target.value)}
-              className={`invert rounded-lg border px-3 py-2 text-white focus:outline-none focus:ring-2 ${
+              disabled={loading || topLoading}
+              className={`invert rounded-lg border px-3 py-2 text-white focus:outline-none focus:ring-2 disabled:opacity-50 ${
                 isInvalidDateRange
                   ? "border-red-500 bg-slate-900 focus:ring-red-500"
                   : "border-slate-600 bg-slate-900 focus:ring-blue-500"
@@ -229,7 +293,8 @@ export default function MediaReportPage() {
               value={endDate}
               min={startDate || undefined}
               onChange={(e) => setEndDate(e.target.value)}
-              className={`invert rounded-lg border px-3 py-2 text-white focus:outline-none focus:ring-2 ${
+              disabled={loading || topLoading}
+              className={`invert rounded-lg border px-3 py-2 text-white focus:outline-none focus:ring-2 disabled:opacity-50 ${
                 isInvalidDateRange
                   ? "border-red-500 bg-slate-900 focus:ring-red-500"
                   : "border-slate-600 bg-slate-900 focus:ring-blue-500"
@@ -239,7 +304,7 @@ export default function MediaReportPage() {
 
           <button
             onClick={handleFilter}
-            disabled={isInvalidDateRange}
+            disabled={isInvalidDateRange || isOffline || loading || topLoading}
             className="rounded-lg bg-blue-600 px-6 py-2 font-semibold transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Filter
@@ -256,6 +321,10 @@ export default function MediaReportPage() {
 
         {dateError ? (
           <p className="mt-3 text-sm text-red-400">{dateError}</p>
+        ) : isOffline ? (
+          <p className="mt-3 text-sm text-amber-300">
+            ตอนนี้ไม่สามารถโหลดรายงานใหม่ได้จนกว่าจะกลับมาออนไลน์
+          </p>
         ) : null}
       </div>
 
@@ -295,9 +364,16 @@ export default function MediaReportPage() {
         <h2 className="mb-4 text-xl font-bold">🔥 Top 5 {reportTitle} Best Sellers</h2>
 
         {topLoading ? (
-          <p className="text-slate-400">Loading...</p>
+          <div className="w-full">
+            <p className="text-center text-sm text-slate-400 mb-2">Loading...</p>
+            <div className="h-[3px] w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-slate-400 dark:bg-slate-500 rounded-full animate-indeterminate" />
+            </div>
+          </div>
         ) : dataTop.length === 0 ? (
-          <p className="text-slate-400">No data</p>
+          <p className="text-slate-400">
+            {isOffline ? "No internet connection" : "No data"}
+          </p>
         ) : (
           <div className="space-y-3">
             {dataTop.map((item, index) => (
@@ -336,9 +412,13 @@ export default function MediaReportPage() {
 
       <div className="overflow-x-auto rounded-2xl bg-slate-800 p-6">
         {loading ? (
-          <div className="py-10 text-center text-slate-400">Loading report...</div>
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-white border-b-slate-400 animate-spin" />
+          </div>
         ) : data.length === 0 ? (
-          <div className="py-10 text-center text-slate-400">No report data</div>
+          <div className="py-10 text-center text-slate-400">
+            {isOffline ? "No internet connection" : "No report data"}
+          </div>
         ) : (
           <table className="w-full min-w-[1800px] text-sm">
             <thead>

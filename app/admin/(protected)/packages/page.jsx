@@ -16,7 +16,8 @@ export default function AdminPackagesPage() {
 
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-
+  // ✅ ตรวจสอบสถานะออนไลน์/ออฟไลน์
+  const [isOffline, setIsOffline] = useState(false);
   // 🔹 pagination
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(1);
@@ -36,6 +37,10 @@ export default function AdminPackagesPage() {
      FETCH DATA
   ====================== */
   const fetchPackages = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch('/api/admin/packages');
       const result = await res.json();
@@ -43,14 +48,19 @@ export default function AdminPackagesPage() {
       if (!res.ok) throw new Error(result.error);
       setPackages(result.data || []);
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) return;
       console.error(err);
-      swalError('โหลด Packages ไม่สำเร็จ');
+      swalError("โหลด Packages ไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
   };
 
   const fetchCategories = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return;
+    }
     try {
       const res = await fetch('/api/admin/categories');
       const result = await res.json();
@@ -58,14 +68,41 @@ export default function AdminPackagesPage() {
       if (!res.ok) throw new Error(result.error);
       setCategories(result.data || []);
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) return;
       console.error(err);
     }
   };
 
   useEffect(() => {
+    const updateNetworkStatus = () => {
+      if (typeof navigator !== "undefined") {
+        setIsOffline(!navigator.onLine);
+      }
+    };
+
+    updateNetworkStatus();
+
+    window.addEventListener("online", updateNetworkStatus);
+    window.addEventListener("offline", updateNetworkStatus);
+
+    return () => {
+      window.removeEventListener("online", updateNetworkStatus);
+      window.removeEventListener("offline", updateNetworkStatus);
+    };
+  }, []);
+
+  useEffect(() => {
     fetchPackages();
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (!isOffline) {
+      fetchPackages();
+      fetchCategories();
+    }
+  }, [isOffline]);
 
   /* ======================
      FILTER
@@ -97,6 +134,10 @@ export default function AdminPackagesPage() {
      HANDLERS
   ====================== */
   const openAdd = () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
     setEditingId(null);
     setFormData({
       category_id: '',
@@ -112,6 +153,11 @@ export default function AdminPackagesPage() {
   };
 
   const openEdit = (pkg) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     setEditingId(pkg.id);
     setFormData({
       category_id: pkg.category_id,
@@ -127,6 +173,11 @@ export default function AdminPackagesPage() {
   };
 
   const handleSave = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     if (!formData.category_id || !formData.name || !formData.price) {
       swalError('กรุณากรอกข้อมูลให้ครบ');
       return;
@@ -171,12 +222,22 @@ export default function AdminPackagesPage() {
       setShowModal(false);
       fetchPackages();
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) {
+        swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+      }
       console.error(err);
       swalError(err.message || 'บันทึกไม่สำเร็จ');
     }
   };
 
   const handleDelete = async (pkg) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     const ok = await swalConfirm(
       'ลบ Package?',
       `ต้องการลบ ${pkg.name} ใช่หรือไม่`
@@ -194,8 +255,13 @@ export default function AdminPackagesPage() {
       swalSuccess('ลบสำเร็จ');
       fetchPackages();
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) {
+        swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+      }
       console.error(err);
-      swalError('ลบไม่สำเร็จ');
+      swalError("ลบไม่สำเร็จ");
     }
   };
 
@@ -211,6 +277,11 @@ export default function AdminPackagesPage() {
 
   const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
   const handleUploadImage = async (file) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     if (!file) return;
 
     // ✅ รองรับทั้ง image และ video
@@ -263,6 +334,11 @@ export default function AdminPackagesPage() {
       swalSuccess(isVideo ? "อัปโหลดวิดีโอสำเร็จ" : "อัปโหลดรูปสำเร็จ");
 
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) {
+        swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+      }
       console.error(err);
       swalError("อัปโหลดไฟล์ไม่สำเร็จ");
     }
@@ -286,6 +362,12 @@ export default function AdminPackagesPage() {
 
   return (
     <>
+    {isOffline && (
+      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+        ไม่มีการเชื่อมต่ออินเทอร์เน็ต ข้อมูล Package อาจไม่อัปเดต และยังไม่สามารถเพิ่ม แก้ไข ลบ หรืออัปโหลดได้
+      </div>
+    )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">📦 Package Management</h1>
         <button
@@ -355,6 +437,7 @@ export default function AdminPackagesPage() {
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={() => openEdit(pkg)}
+                      disabled={isOffline}
                       className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium shadow-sm hover:shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 active:scale-95"
                     >
                       Edit
@@ -568,6 +651,7 @@ export default function AdminPackagesPage() {
               </button>
               <button
                 onClick={handleSave}
+                disabled={isOffline}
                 className="flex-1 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ease-in-out"
               >
                 Save

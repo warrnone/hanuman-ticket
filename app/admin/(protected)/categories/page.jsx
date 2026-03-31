@@ -9,12 +9,32 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  // ✅ ตรวจสอบสถานะออนไลน์/ออฟไลน์
+  const [isOffline, setIsOffline] = useState(false);
 
   // 🔹 Pagination
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const PAGE_SIZE = 5;
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  useEffect(() => {
+    const updateNetworkStatus = () => {
+      if (typeof navigator !== "undefined") {
+        setIsOffline(!navigator.onLine);
+      }
+    };
+
+    updateNetworkStatus();
+
+    window.addEventListener("online", updateNetworkStatus);
+    window.addEventListener("offline", updateNetworkStatus);
+
+    return () => {
+      window.removeEventListener("online", updateNetworkStatus);
+      window.removeEventListener("offline", updateNetworkStatus);
+    };
+  }, []);
 
   /* ======================
      FETCH CATEGORIES
@@ -23,7 +43,18 @@ export default function CategoriesPage() {
     fetchCategories(page);
   }, [page]);
 
+  useEffect(() => {
+    if (!isOffline) {
+      fetchCategories(page);
+    }
+  }, [isOffline]);
+
   const fetchCategories = async (pageNumber = page) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -43,6 +74,8 @@ export default function CategoriesPage() {
       setTotal(total || 0);
       setError("");
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) return;
       console.error("fetchCategories error:", err);
       setError("ไม่สามารถโหลดข้อมูลได้");
     } finally {
@@ -54,6 +87,11 @@ export default function CategoriesPage() {
      ADD CATEGORY
   ====================== */
   const addCategory = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     if (!newCategory.trim() || isSaving){
       swalError("กรุณากรอกชื่อหมวดหมู่");
       return;
@@ -85,6 +123,13 @@ export default function CategoriesPage() {
       setError("");
       swalSuccess("เพิ่มหมวดหมู่สำเร็จ");
     } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (offlineNow) {
+        swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+      }
+
       console.error("Add error:", err);
       swalError("เพิ่มไม่สำเร็จ");
     } finally {
@@ -96,6 +141,11 @@ export default function CategoriesPage() {
      TOGGLE STATUS
   ====================== */
   const toggleStatus = async (c) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     if (!c?.id) return;
 
     const result = await swalConfirm("ปรับสถานะหมวดหมู่?");
@@ -117,7 +167,12 @@ export default function CategoriesPage() {
         list.map((item) => (item.id === c.id ? data : item))
       );
       swalSuccess("อัปเดตสำเร็จ");
-    } catch {
+    } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+      if (offlineNow) {
+        swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+      }
       swalError("อัปเดตไม่สำเร็จ");
     }
   };
@@ -126,6 +181,11 @@ export default function CategoriesPage() {
      DELETE CATEGORY
   ====================== */
   const deleteCategory = async (id) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     if (!id) return;
 
     const result = await swalConfirm(
@@ -149,7 +209,14 @@ export default function CategoriesPage() {
       }
 
       swalSuccess("ลบหมวดหมู่สำเร็จ");
-    } catch {
+    } catch (err) {
+      const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (offlineNow) {
+        swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+      }
+
       swalError("ลบไม่สำเร็จ");
     }
   };
@@ -159,6 +226,12 @@ export default function CategoriesPage() {
   ====================== */
   return (
     <div className="space-y-6">
+      {isOffline && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl text-sm">
+          ไม่มีการเชื่อมต่ออินเทอร์เน็ต ข้อมูลหมวดหมู่อาจไม่อัปเดต และยังไม่สามารถเพิ่ม แก้ไขสถานะ หรือลบได้
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="flex items-center gap-3">
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-xl shadow-lg">
@@ -189,13 +262,13 @@ export default function CategoriesPage() {
             className="flex-1 border rounded-lg px-4 py-2.5"
             placeholder="ชื่อหมวดหมู่"
             value={newCategory}
-            disabled={isSaving}
+            disabled={isSaving || isOffline}
             onChange={(e) => setNewCategory(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addCategory()}
           />
           <button
             onClick={addCategory}
-            disabled={isSaving}
+            disabled={isSaving || isOffline}
             className="px-6 py-2.5 rounded-lg text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
           >
             {isSaving ? "กำลังเพิ่ม..." : "เพิ่ม"}
@@ -255,6 +328,7 @@ export default function CategoriesPage() {
                       <div className="flex justify-center gap-3">
                         <button
                           onClick={() => toggleStatus(c)}
+                          disabled={isOffline}
                           className={`
                             inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl
                             transition-all duration-200 shadow-sm active:scale-95
@@ -283,6 +357,7 @@ export default function CategoriesPage() {
 
                         <button
                           onClick={() => deleteCategory(c.id)}
+                          disabled={isOffline}
                           className="
                             inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold
                             bg-white border-2 border-red-200 text-red-500

@@ -11,27 +11,67 @@ export default function AdminKnowPage() {
   const [saving, setSaving] = useState(false);
   const [groups, setGroups] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
-
+  const [isOffline, setIsOffline] = useState(false);
   const [groupForm, setGroupForm] = useState({
     title: "",
     options: [],
   });
-
   const [newOptionText, setNewOptionText] = useState("");
+
+
+  /* =========================
+     NETWORK STATUS
+  ========================= */
+  useEffect(() => {
+    const updateNetworkStatus = () => {
+      if (typeof navigator !== "undefined") {
+        setIsOffline(!navigator.onLine);
+      }
+    };
+
+    updateNetworkStatus();
+
+    window.addEventListener("online", updateNetworkStatus);
+    window.addEventListener("offline", updateNetworkStatus);
+
+    return () => {
+      window.removeEventListener("online", updateNetworkStatus);
+      window.removeEventListener("offline", updateNetworkStatus);
+    };
+  }, []);
+
+
+
 
   /* =========================
      LOAD SURVEY
   ========================= */
   const loadSurvey = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/survey");
-      if (!res.ok) throw new Error();
+
+      const res = await fetch("/api/admin/survey", {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to load survey");
+      }
 
       const json = await res.json();
       setGroups(json.data || []);
     } catch (err) {
-      console.error(err);
+      const offlineNow =
+        typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (offlineNow) return;
+
+      console.error("loadSurvey error:", err);
       swalError("โหลดข้อมูลไม่สำเร็จ");
     } finally {
       setLoading(false);
@@ -41,6 +81,15 @@ export default function AdminKnowPage() {
   useEffect(() => {
     loadSurvey();
   }, []);
+
+  /* =========================
+     RELOAD WHEN BACK ONLINE
+  ========================= */
+  useEffect(() => {
+    if (!isOffline) {
+      loadSurvey();
+    }
+  }, [isOffline]);
 
   /* =========================
      MODAL HELPERS
@@ -79,6 +128,11 @@ export default function AdminKnowPage() {
       return;
     }
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -91,13 +145,23 @@ export default function AdminKnowPage() {
         }),
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        throw new Error("Failed to save group");
+      }
 
       swalSuccess("เพิ่มคำถามเรียบร้อย");
       resetModal();
-      loadSurvey();
+      await loadSurvey();
     } catch (err) {
-      console.error(err);
+      const offlineNow =
+        typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (offlineNow) {
+        swalError("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+      }
+
+      console.error("saveGroup error:", err);
       swalError("บันทึกไม่สำเร็จ");
     } finally {
       setSaving(false);
@@ -109,6 +173,12 @@ export default function AdminKnowPage() {
   ========================= */
   return (
     <div className="space-y-8">
+      {isOffline && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          ไม่มีการเชื่อมต่ออินเทอร์เน็ต ข้อมูลบางส่วนอาจไม่อัปเดต
+        </div>
+      )}
+
       {/* ================= HEADER ================= */}
       <div className="flex items-center justify-between">
         <div>
@@ -124,7 +194,8 @@ export default function AdminKnowPage() {
             setNewOptionText("");
             setShowGroupModal(true);
           }}
-          className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+          className="px-4 py-2 bg-emerald-600 text-white rounded-lg disabled:opacity-50"
+          disabled={isOffline}
         >
           + Add Question
         </button>
@@ -141,7 +212,7 @@ export default function AdminKnowPage() {
 
       {!loading && groups.length === 0 && (
         <div className="text-center text-slate-400">
-          ยังไม่มีคำถาม
+          {isOffline ? "ไม่มีอินเทอร์เน็ต" : "ยังไม่มีคำถาม"}
         </div>
       )}
 
@@ -151,9 +222,7 @@ export default function AdminKnowPage() {
           className="bg-white border rounded-2xl shadow-sm"
         >
           <div className="px-6 py-4 border-b">
-            <h2 className="font-semibold text-lg">
-              {group.title}
-            </h2>
+            <h2 className="font-semibold text-lg">{group.title}</h2>
           </div>
 
           <div className="divide-y">
@@ -181,7 +250,6 @@ export default function AdminKnowPage() {
           >
             <h2 className="text-lg font-bold">➕ Add Question</h2>
 
-            {/* QUESTION */}
             <div>
               <label className="text-sm font-medium">Question</label>
               <input
@@ -197,7 +265,6 @@ export default function AdminKnowPage() {
               />
             </div>
 
-            {/* OPTIONS */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 Options (เลือกได้หลายข้อ)
@@ -224,7 +291,6 @@ export default function AdminKnowPage() {
               ))}
             </div>
 
-            {/* ADD OPTION */}
             <div className="flex gap-2">
               <input
                 value={newOptionText}
@@ -246,7 +312,6 @@ export default function AdminKnowPage() {
               </button>
             </div>
 
-            {/* ACTIONS */}
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={resetModal}
@@ -257,7 +322,7 @@ export default function AdminKnowPage() {
 
               <button
                 onClick={saveGroup}
-                disabled={saving}
+                disabled={saving || isOffline}
                 className="px-4 py-2 bg-emerald-600 text-white rounded disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save"}
