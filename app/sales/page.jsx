@@ -410,16 +410,8 @@ export default function SalePage() {
     }, 0)
   );
 
-  const discount = orderPricing.enable_discount
-    ? round2((subtotal * Number(orderPricing.discount_rate || 0)) / 100)
-    : 0;
-
-  const tax = orderPricing.enable_vat
-    ? round2(
-        ((subtotal - discount) * Number(orderPricing.vat_rate || 0)) / 100
-      )
-    : 0;
-
+  const discount = orderPricing.enable_discount ? round2((subtotal * Number(orderPricing.discount_rate || 0)) / 100): 0;
+  const tax = orderPricing.enable_vat ? round2(((subtotal - discount) * Number(orderPricing.vat_rate || 0)) / 100) : 0;
   const total = round2(subtotal - discount + tax);
 
   const getFinalPrice = (item) => {

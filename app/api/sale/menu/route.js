@@ -28,10 +28,10 @@ export async function GET() {
         category_id,
         image_url,
         package_type,
-        charge_type
+        charge_type,
+        sort_order
       `)
-      .eq("status", "active")
-      .order("price", { ascending: true });
+      .eq("status", "active");
 
     if (pkgError) throw pkgError;
 
@@ -64,6 +64,22 @@ export async function GET() {
       /* ---------- MAIN PACKAGES + FIXED ADDONS ---------- */
       const categoryPackages = packages
         .filter((p) => p.category_id === cat.id)
+        .sort((a, b) => {
+          const getTypeOrder = (type) => {
+            if ((type ?? "MAIN") === "MAIN") return 1;
+            if (type === "ADDON") return 2;
+            return 99;
+          };
+
+          const typeDiff = getTypeOrder(a.package_type) - getTypeOrder(b.package_type);
+          if (typeDiff !== 0) return typeDiff;
+
+          const sortA = Number(a.sort_order ?? 0);
+          const sortB = Number(b.sort_order ?? 0);
+
+          if (sortA !== sortB) return sortA - sortB;
+          return Number(a.price ?? 0) - Number(b.price ?? 0);
+        })
         .map((p) => ({
           id: p.id,
           name: p.name,
