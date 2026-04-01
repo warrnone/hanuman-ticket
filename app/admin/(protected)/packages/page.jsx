@@ -18,6 +18,7 @@ export default function AdminPackagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   // ✅ ตรวจสอบสถานะออนไลน์/ออฟไลน์
   const [isOffline, setIsOffline] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   // 🔹 pagination
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(1);
@@ -208,6 +209,8 @@ export default function AdminPackagesPage() {
       return;
     }
 
+    setIsSaving(true);
+
     try {
       let res;
       if (editingId) {
@@ -238,6 +241,8 @@ export default function AdminPackagesPage() {
       }
       console.error(err);
       swalError(err.message || 'บันทึกไม่สำเร็จ');
+    }finally {      
+      setIsSaving(false);
     }
   };
 
@@ -681,10 +686,10 @@ export default function AdminPackagesPage() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={isOffline}
+                disabled={isOffline || isSaving}
                 className="flex-1 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ease-in-out"
               >
-                Save
+                {isSaving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
