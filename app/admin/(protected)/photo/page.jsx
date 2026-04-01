@@ -35,6 +35,7 @@ export default function AdminPhotoVideoPage() {
 
   const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(1);
@@ -246,6 +247,8 @@ export default function AdminPhotoVideoPage() {
       payload.extra_pax_price = null;
     }
 
+    setIsSaving(true);
+
     try {
       let imageUrl = formData.image_url || null;
 
@@ -297,6 +300,8 @@ export default function AdminPhotoVideoPage() {
     } catch (err) {
       console.error("Save error:", err);
       swalError("บันทึกข้อมูลไม่สำเร็จ", err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -990,9 +995,10 @@ export default function AdminPhotoVideoPage() {
 
               <button
                 onClick={handleSave}
+                disabled={isSaving}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:opacity-95 transition shadow"
               >
-                Save Rule
+                {isSaving ? "Saving..." : "Save Rule"}
               </button>
             </div>
           </div>
